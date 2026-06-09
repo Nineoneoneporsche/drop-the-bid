@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  overscroll-behavior: none;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.6);
+}
+
+/* Price flash on tick */
+.price-tick {
+  animation: price-tick-flash 0.3s ease-out;
+}
+
+@keyframes price-tick-flash {
+  0% { color: #f97316; transform: scale(1.05); }
+  100% { color: inherit; transform: scale(1); }
+}
+
+/* Narrator message slide-in */
+.narrator-slide {
+  animation: narrator-in 0.4s ease-out;
+}
+
+@keyframes narrator-in {
+  0% { opacity: 0; transform: translateY(6px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Tension meter glow when critical */
+.tension-critical {
+  animation: tension-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes tension-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.9); }
+}
+
+/* Confetti */
+@keyframes confetti-fall {
+  0%   { transform: translateY(-60px) rotateZ(0deg); opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateY(105vh) rotateZ(680deg); opacity: 0; }
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -60px;
+  border-radius: 2px;
+  animation: confetti-fall linear forwards;
+}
+
+/* Reaction message slide-up */
+@keyframes reaction-in {
+  0% { opacity: 0; transform: translateX(-12px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.reaction-in {
+  animation: reaction-in 0.35s ease-out;
+}
+
+/* Win banner glow */
+@keyframes win-glow {
+  0%, 100% { text-shadow: 0 0 20px rgba(249,115,22,0.5); }
+  50% { text-shadow: 0 0 40px rgba(249,115,22,1), 0 0 80px rgba(249,115,22,0.4); }
+}
+
+.win-glow {
+  animation: win-glow 2s ease-in-out infinite;
+}
+
+/* Betrayal stamp */
+@keyframes stamp-in {
+  0% { opacity: 0; transform: scale(2.5) rotate(-15deg); }
+  60% { transform: scale(0.9) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.stamp-in {
+  animation: stamp-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
