@@ -101,14 +101,14 @@ export default function WinnerPage() {
       <div className="px-4 pt-12 z-20 relative">
         {/* Celebration title */}
         <div className="text-center mb-6 winner-pop">
-          <div className="text-6xl mb-3">🎉</div>
-          <h1 className="text-3xl font-black text-gray-900 mb-1">낙찰 완료!</h1>
+          <div className="text-6xl mb-3">🐰</div>
+          <h1 className="text-3xl font-black text-gray-900 mb-1">래빗 완료!</h1>
           <p className="text-gray-500 text-base">
             축하합니다!{" "}
             <span className="text-orange-500 font-bold">
               {state.winner.nickname}
             </span>
-            님이 낙찰 받으셨어요.
+            님이 래빗했습니다!
           </p>
         </div>
 
@@ -130,7 +130,7 @@ export default function WinnerPage() {
               <p className="text-xl font-black text-gray-900">
                 {state.winner.nickname}
               </p>
-              <p className="text-gray-400 text-sm">낙찰자</p>
+              <p className="text-gray-400 text-sm">래빗 성공 🐰</p>
             </div>
 
             {/* Price */}

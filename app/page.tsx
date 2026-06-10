@@ -49,34 +49,34 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#fffbf5] flex flex-col items-center pb-16">
-      <div className="w-full max-w-md px-4 pt-8">
+      <div className="w-full max-w-md px-4 pt-2">
 
-        {/* Brand header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
+        {/* Brand header — logo centered, admin pinned top-right */}
+        <div className="relative mb-3">
+          <div className="absolute top-0 right-0 z-10">
+            <a
+              href="/admin"
+              className="text-xs text-gray-400 border border-gray-200 rounded-xl px-3 py-1.5 bg-white hover:border-orange-300 hover:text-orange-500 transition-colors shadow-sm"
+            >
+              Admin ⚙
+            </a>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
             <Image
               src="/rabbit-logo.png"
               alt="Rabbit"
-              width={108}
-              height={108}
-              style={{ width: 108, height: "auto" }}
+              width={180}
+              height={90}
+              style={{ width: 180, height: "auto", display: "block", marginBottom: -18 }}
               priority
             />
-            <div>
-              <h1 className="text-2xl font-black text-gray-900 tracking-tight leading-none">
-                Rabbit
-              </h1>
-              <p className="text-gray-400 text-xs mt-1 leading-snug">
-                기다릴수록 가격은 내려갑니다
-              </p>
-            </div>
+            <p
+              className="text-gray-800 text-center"
+              style={{ fontSize: 17, fontWeight: 800, whiteSpace: "nowrap", marginTop: 0, lineHeight: 1.1 }}
+            >
+              래빗! 먼저 누른 사람이 임자!
+            </p>
           </div>
-          <a
-            href="/admin"
-            className="text-xs text-gray-400 border border-gray-200 rounded-xl px-3 py-1.5 bg-white hover:border-orange-300 hover:text-orange-500 transition-colors shadow-sm flex-shrink-0"
-          >
-            Admin ⚙
-          </a>
         </div>
 
         {/* LIVE badge row */}

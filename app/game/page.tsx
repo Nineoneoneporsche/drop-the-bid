@@ -232,7 +232,7 @@ export default function GamePage() {
                   }
             }
           >
-            {raised ? "✅ 낙찰 신청 완료!" : "✋  손들기 — 지금 낙찰받기"}
+            {raised ? "🐰 래빗 완료!" : "🐰 래빗!"}
           </button>
           {!raised && (
             <p className="text-gray-400 text-xs text-center mt-2">
@@ -240,7 +240,7 @@ export default function GamePage() {
               <span className="text-orange-500 font-semibold">
                 {formatKRW(state.currentPrice)}
               </span>
-              에 낙찰돼요
+              에 래빗해요
             </p>
           )}
         </div>
@@ -249,7 +249,7 @@ export default function GamePage() {
       {!isParticipant && (
         <div className="flex-shrink-0 mx-4 my-2 bg-orange-50 rounded-2xl px-4 py-2.5 border border-orange-100">
           <p className="text-orange-400 text-xs font-medium text-center">
-            👁 관전 중 — 참여자로 입장하면 낙찰받을 수 있어요
+            👁 관전 중 — 참여자로 입장하면 래빗할 수 있어요
           </p>
         </div>
       )}
