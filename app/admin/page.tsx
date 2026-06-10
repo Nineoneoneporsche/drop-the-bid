@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGame, formatKRW, DEFAULT_CONFIG } from "../context/GameContext";
 
@@ -18,6 +18,20 @@ export default function AdminPage() {
     gameStartTime: state.config.gameStartTime ?? "",
   });
   const [saved, setSaved] = useState(false);
+
+  // Keep form in sync with state.config — fixes the init race where useState
+  // captures DEFAULT_CONFIG before GameProvider's localStorage useEffect fires.
+  useEffect(() => {
+    setForm({
+      productName: state.config.productName,
+      description: state.config.description,
+      startPrice: state.config.startPrice.toString(),
+      dropAmount: state.config.dropAmount.toString(),
+      strategyDuration: state.config.strategyDuration.toString(),
+      floorPrice: state.config.floorPrice.toString(),
+      gameStartTime: state.config.gameStartTime ?? "",
+    });
+  }, [state.config]);
 
   function set(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -55,6 +69,19 @@ export default function AdminPage() {
     if (!confirm("게임을 리셋하고 홈으로 이동할까요?")) return;
     dispatch({ type: "RESET" });
     router.push("/");
+  }
+
+  function handleClearStorage() {
+    if (!confirm("저장된 설정을 모두 초기화하고 기본값으로 되돌릴까요?\n(페이지가 새로고침됩니다)")) return;
+    try {
+      // Clear all Drop The Bid keys
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith("dtb_") || k.toLowerCase().includes("rabbit"))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // ignore if localStorage is unavailable
+    }
+    window.location.reload();
   }
 
   const sp = parseInt(form.startPrice, 10);
@@ -205,6 +232,13 @@ export default function AdminPage() {
             className="w-full bg-white border-2 border-gray-200 hover:border-red-300 hover:text-red-500 text-gray-500 font-semibold py-4 rounded-2xl text-base transition-all active:scale-[0.98]"
           >
             게임 리셋 &amp; 홈으로
+          </button>
+
+          <button
+            onClick={handleClearStorage}
+            className="w-full bg-white border-2 border-amber-200 hover:border-amber-400 text-amber-500 hover:text-amber-600 font-semibold py-4 rounded-2xl text-base transition-all active:scale-[0.98]"
+          >
+            저장값 초기화
           </button>
         </div>
 
