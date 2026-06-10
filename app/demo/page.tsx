@@ -37,7 +37,7 @@ export default function DemoPage() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="text-lg font-black text-gray-900 tracking-tight">Demo</h1>
-            <p className="text-gray-400 text-xs mt-0.5">Drop The Bid — 투자자 데모</p>
+            <p className="text-gray-400 text-xs mt-0.5">Rabbit — 투자자 데모</p>
           </div>
           <a
             href="/"

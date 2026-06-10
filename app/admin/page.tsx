@@ -107,7 +107,7 @@ export default function AdminPage() {
               className="mb-2"
             />
             <h1 className="text-xl font-black text-gray-900">관리자 설정</h1>
-            <p className="text-gray-400 text-sm">Drop The Bid</p>
+            <p className="text-gray-400 text-sm">Rabbit</p>
           </div>
           <button
             onClick={() => router.push("/")}

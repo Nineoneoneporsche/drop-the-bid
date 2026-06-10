@@ -3,8 +3,8 @@ import "./globals.css";
 import { GameProvider } from "./context/GameContext";
 
 export const metadata: Metadata = {
-  title: "Drop The Bid",
-  description: "가격이 떨어질 때 손을 들어라 — 역경매 플랫폼",
+  title: "Rabbit",
+  description: "기다릴수록 가격은 내려갑니다 — 실시간 역경매 라이브",
 };
 
 export const viewport: Viewport = {
