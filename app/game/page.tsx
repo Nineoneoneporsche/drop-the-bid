@@ -9,27 +9,25 @@ import {
   MOCK_PARTICIPANT_COUNT,
   MOCK_SPECTATOR_COUNT,
 } from "../context/GameContext";
+import { ProductThumb } from "../components/ProductImage";
 
-// Chat events from participants (regular messages)
+// Friendly chat messages from other participants
 const CHAT_EVENTS = [
-  { threshold: 95, nickname: "kimchi_buyer", message: "아직 이르다... 기다려요" },
-  { threshold: 90, nickname: "bidder_pro", message: "슬슬 긴장되네요 😅 다들 버티죠?" },
-  { threshold: 85, nickname: "techie_seoul", message: "85만원... 손 가고 싶은 거 참는 중 ㅋ" },
-  { threshold: 80, nickname: "mac_lover99", message: "믿어요 다들! 우리 약속했잖아요 💪" },
-  { threshold: 75, nickname: "newbie_here", message: "손이 떨려요... 근데 참을게요" },
-  { threshold: 70, nickname: "kimchi_buyer", message: "70% 진입!! 이제 진짜 심리전이에요" },
-  { threshold: 65, nickname: "bidder_pro", message: "누가 먼저 배신하나 봐봐요... 👀" },
-  { threshold: 60, nickname: "techie_seoul", message: "60만원... 이쯤이면 손들어도 되는 거 아닌가" },
+  { threshold: 95, nickname: "shopping_star", message: "조금 더 기다려볼게요 👀" },
+  { threshold: 88, nickname: "minivelo_fan",  message: "220,000원대네요, 슬슬 고민되는데..." },
+  { threshold: 80, nickname: "kid_gear_mom",  message: "200,000원 밑으로 가면 바로 손들게요!" },
+  { threshold: 72, nickname: "smart_buyer",   message: "다들 조금 더 기다려봐요 😊" },
+  { threshold: 65, nickname: "shopping_star", message: "170,000원... 이 정도면 정말 좋은 가격이네요" },
+  { threshold: 58, nickname: "minivelo_fan",  message: "누가 먼저 누를지 두근두근 🤩" },
 ];
 
-// Atmospheric narrator messages
+// Neutral live-commerce narrator messages
 const NARRATOR_EVENTS = [
-  { threshold: 88, message: "👀  누군가의 손가락이 움직이고 있습니다..." },
-  { threshold: 75, message: "🌡️  긴장감이 고조되고 있습니다." },
-  { threshold: 62, message: "⚠️  신뢰가 흔들리고 있습니다..." },
-  { threshold: 50, message: "🔥  배신이 일어날 것 같습니다." },
-  { threshold: 40, message: "💀  지금이 누군가의 한계입니다." },
-  { threshold: 30, message: "⚡  신뢰는 무너졌습니다. 이제 각자도생입니다." },
+  { threshold: 90, message: "📢  가격이 계속 내려가고 있어요" },
+  { threshold: 76, message: "💬  참가자들이 신중하게 기다리고 있습니다" },
+  { threshold: 63, message: "👥  현재 많은 분들이 지켜보고 있어요" },
+  { threshold: 50, message: "🎯  좋은 가격이 다가오고 있습니다!" },
+  { threshold: 40, message: "✨  지금이 절호의 찬스예요!" },
 ];
 
 export default function GamePage() {
@@ -56,13 +54,17 @@ export default function GamePage() {
       setTickFlash(true);
       setTimeout(() => setTickFlash(false), 300);
     }, 1000);
-    return () => { if (tickRef.current) clearInterval(tickRef.current); };
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current);
+    };
   }, [state.phase, dispatch]);
 
-  // Auto chat + narrator events
+  // Auto events
   useEffect(() => {
     if (state.phase !== "game" || !state.config.startPrice) return;
-    const pct = Math.round((state.currentPrice / state.config.startPrice) * 100);
+    const pct = Math.round(
+      (state.currentPrice / state.config.startPrice) * 100
+    );
 
     for (const evt of CHAT_EVENTS) {
       if (pct <= evt.threshold && !firedChatRef.current.has(evt.threshold)) {
@@ -93,10 +95,19 @@ export default function GamePage() {
   }, [state.chatMessages]);
 
   const handleRaiseHand = useCallback(() => {
-    if (!state.currentUser || state.currentUser.role !== "participant" || raised) return;
+    if (
+      !state.currentUser ||
+      state.currentUser.role !== "participant" ||
+      raised
+    )
+      return;
     setRaised(true);
     if (tickRef.current) clearInterval(tickRef.current);
-    dispatch({ type: "RAISE_HAND", nickname: state.currentUser.nickname, price: state.currentPrice });
+    dispatch({
+      type: "RAISE_HAND",
+      nickname: state.currentUser.nickname,
+      price: state.currentPrice,
+    });
     router.push("/winner");
   }, [state.currentUser, state.currentPrice, raised, dispatch, router]);
 
@@ -112,119 +123,134 @@ export default function GamePage() {
   }
 
   const isParticipant = state.currentUser?.role === "participant";
-  const pct =
-    state.config.startPrice > 0
-      ? Math.max(0, (state.currentPrice / state.config.startPrice) * 100)
-      : 0;
-  const tension = Math.min(100, Math.round(100 - pct * 0.85));
 
-  const priceColor =
-    pct > 70 ? "text-green-400" : pct > 45 ? "text-yellow-400" : "text-red-400";
-  const tensionColor =
-    tension < 40 ? "bg-green-500" : tension < 65 ? "bg-yellow-500" : tension < 85 ? "bg-orange-500" : "bg-red-500";
-  const tensionLabel =
-    tension < 40 ? "낮음" : tension < 65 ? "보통" : tension < 85 ? "높음" : "위험";
-  const tensionTextColor =
-    tension < 40 ? "text-green-400" : tension < 65 ? "text-yellow-400" : tension < 85 ? "text-orange-400" : "text-red-400";
-  const isCritical = tension >= 85;
+  // Price progress bar: 0 at startPrice, 100 at floorPrice
+  const floor = state.config.floorPrice;
+  const start = state.config.startPrice;
+  const barPct =
+    start > floor
+      ? Math.min(
+          100,
+          Math.max(
+            0,
+            ((start - state.currentPrice) / (start - floor)) * 100
+          )
+        )
+      : 0;
+  // Percentage remaining vs start
+  const pct =
+    start > 0
+      ? Math.max(0, (state.currentPrice / start) * 100)
+      : 0;
+
+  const isLow = pct < 50;
 
   if (!state.currentUser) return null;
 
   return (
-    <main className="h-screen bg-[#080808] flex flex-col max-w-md mx-auto overflow-hidden">
-      {/* Price + tension header */}
-      <div className="flex-shrink-0 px-4 pt-9 pb-4 border-b border-gray-800/80">
+    <main className="h-screen bg-[#fffbf5] flex flex-col max-w-md mx-auto overflow-hidden">
+      {/* Price header */}
+      <div className="flex-shrink-0 bg-white px-4 pt-9 pb-4 border-b border-gray-100 shadow-sm">
         {/* Status row */}
         <div className="flex items-center gap-2 mb-3">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-red-400 text-xs font-semibold uppercase tracking-widest">
-            Live Drop
+          <span className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+            LIVE
           </span>
-          <div className="ml-auto flex items-center gap-3 text-xs">
-            <span className="text-gray-500">
-              ✋ <span className="text-gray-300">{MOCK_PARTICIPANT_COUNT - MOCK_SPECTATOR_COUNT}명</span>
-            </span>
-            <span className="text-gray-500">
-              👁 <span className="text-gray-300">{MOCK_SPECTATOR_COUNT}명</span>
-            </span>
-          </div>
+          <span className="text-gray-400 text-xs">
+            ✋ <span className="text-gray-700 font-semibold">{MOCK_PARTICIPANT_COUNT - 31}명</span>
+          </span>
+          <span className="text-gray-400 text-xs">
+            👁 <span className="text-gray-700 font-semibold">{MOCK_SPECTATOR_COUNT.toLocaleString()}명</span>
+          </span>
+          <span className="ml-auto text-gray-400 text-xs">
+            {isParticipant ? "✋ 참여자" : "👁 관전자"}
+          </span>
         </div>
 
-        <p className="text-gray-500 text-xs mb-1">{state.config.productName}</p>
+        <div className="flex items-center gap-2 mb-1">
+          <ProductThumb alt={state.config.productName} size={32} rounded="rounded-lg" />
+          <p className="text-gray-400 text-xs truncate">{state.config.productName}</p>
+        </div>
 
         {/* Price */}
         <div
-          className={`text-5xl font-mono font-bold tabular-nums transition-colors duration-300 ${priceColor} ${tickFlash ? "price-tick" : ""}`}
+          className={`font-black tabular-nums font-mono transition-colors duration-300 ${
+            tickFlash ? "price-tick" : ""
+          } ${isLow ? "text-red-500" : "text-orange-500"}`}
+          style={{ fontSize: "3.2rem", lineHeight: 1.1 }}
         >
           {formatKRW(state.currentPrice)}
         </div>
 
-        <div className="flex items-center gap-3 mt-1.5 mb-3">
-          <span className="text-gray-700 text-xs">
-            ↓ {formatKRW(state.config.dropAmount)}/초
-          </span>
-          <span className="text-gray-800">·</span>
-          <span className="text-gray-700 text-xs">시작가의 {Math.round(pct)}%</span>
-        </div>
+        <p className="text-gray-400 text-xs mt-1 mb-3">
+          ↓ {formatKRW(state.config.dropAmount)}/초 하락
+        </p>
 
-        {/* Tension meter */}
+        {/* Progress bar: start → floor */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-gray-500 text-xs uppercase tracking-wider">긴장도</span>
-            <span className={`text-xs font-bold ${tensionTextColor}`}>
-              {tensionLabel} {tension}%
+          <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+            <span>{formatKRW(start)}</span>
+            <span className="text-orange-500 font-semibold">
+              목표가 {formatKRW(floor)}
             </span>
           </div>
-          <div className="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden">
+          <div className="w-full bg-orange-50 rounded-full h-3 overflow-hidden border border-orange-100">
             <div
-              className={`h-2.5 rounded-full transition-all duration-1000 ${tensionColor} ${
-                isCritical ? "tension-critical" : ""
-              }`}
-              style={{ width: `${tension}%` }}
+              className="h-3 rounded-full transition-all duration-1000"
+              style={{
+                width: `${barPct}%`,
+                background: isLow
+                  ? "linear-gradient(90deg,#f97316,#ef4444)"
+                  : "linear-gradient(90deg,#fb923c,#f59e0b)",
+              }}
             />
           </div>
+          <p className="text-right text-xs text-gray-400 mt-1">
+            {Math.round(barPct)}% 내려왔어요
+          </p>
         </div>
       </div>
 
-      {/* Raise hand (participants only) */}
+      {/* Raise hand */}
       {isParticipant && (
-        <div className="flex-shrink-0 px-4 py-3 border-b border-gray-800/80">
+        <div className="flex-shrink-0 px-4 py-3 bg-white border-b border-gray-100">
           <button
             onClick={handleRaiseHand}
             disabled={raised || state.currentPrice <= 0}
-            className={`w-full font-bold py-5 rounded-2xl text-xl transition-all duration-150 ${
-              raised
-                ? "bg-green-800 text-white cursor-not-allowed"
-                : "text-white active:scale-[0.98]"
+            className={`w-full font-bold py-5 rounded-2xl text-xl transition-all active:scale-[0.98] ${
+              raised ? "cursor-not-allowed" : ""
             }`}
             style={
-              !raised
-                ? {
+              raised
+                ? { background: "#16a34a", color: "#fff" }
+                : {
                     background:
-                      "linear-gradient(135deg,#dc2626 0%,#ea580c 100%)",
-                    boxShadow: "0 0 28px rgba(220,38,38,0.45)",
-                    animation: "pulse-slow 2s ease-in-out infinite",
+                      "linear-gradient(135deg,#fb923c 0%,#f97316 100%)",
+                    color: "#fff",
+                    boxShadow: "0 4px 24px rgba(249,115,22,0.4)",
                   }
-                : undefined
             }
           >
-            {raised ? "✅ 손 들었습니다!" : "✋  손들기 — 지금 낙찰받기"}
+            {raised ? "✅ 낙찰 신청 완료!" : "✋  손들기 — 지금 낙찰받기"}
           </button>
           {!raised && (
-            <p className="text-gray-700 text-xs text-center mt-2">
+            <p className="text-gray-400 text-xs text-center mt-2">
               지금 누르면{" "}
-              <span className="text-gray-300 font-semibold">
+              <span className="text-orange-500 font-semibold">
                 {formatKRW(state.currentPrice)}
               </span>
-              에 낙찰
+              에 낙찰돼요
             </p>
           )}
         </div>
       )}
 
       {!isParticipant && (
-        <div className="flex-shrink-0 mx-4 my-2 bg-gray-900/50 rounded-xl px-4 py-2.5">
-          <span className="text-gray-500 text-xs">👁 관전 중 — 참여자만 낙찰받을 수 있어요</span>
+        <div className="flex-shrink-0 mx-4 my-2 bg-orange-50 rounded-2xl px-4 py-2.5 border border-orange-100">
+          <p className="text-orange-400 text-xs font-medium text-center">
+            👁 관전 중 — 참여자로 입장하면 낙찰받을 수 있어요
+          </p>
         </div>
       )}
 
@@ -236,7 +262,7 @@ export default function GamePage() {
           if (msg.kind === "system") {
             return (
               <div key={msg.id} className="flex justify-center">
-                <span className="bg-gray-800/80 text-gray-400 text-xs px-3 py-1.5 rounded-full">
+                <span className="bg-orange-50 text-orange-400 text-xs px-4 py-1.5 rounded-full border border-orange-100">
                   {msg.message}
                 </span>
               </div>
@@ -246,14 +272,8 @@ export default function GamePage() {
           if (msg.kind === "narrator") {
             return (
               <div key={msg.id} className="narrator-slide">
-                <div
-                  className="rounded-xl px-4 py-3 text-center border"
-                  style={{
-                    background: "rgba(80,10,0,0.5)",
-                    borderColor: "rgba(200,40,0,0.4)",
-                  }}
-                >
-                  <p className="text-orange-300 text-sm font-medium italic">
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-center">
+                  <p className="text-amber-700 text-sm font-medium">
                     {msg.message}
                   </p>
                 </div>
@@ -262,8 +282,11 @@ export default function GamePage() {
           }
 
           return (
-            <div key={msg.id} className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-600 to-red-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+            <div
+              key={msg.id}
+              className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center text-xs font-black text-white flex-shrink-0 shadow-sm">
                 {msg.nickname[0].toUpperCase()}
               </div>
               <div
@@ -271,14 +294,14 @@ export default function GamePage() {
                   isMe ? "items-end" : "items-start"
                 }`}
               >
-                <span className="text-xs text-gray-600 mb-1">
+                <span className="text-xs text-gray-400 mb-1">
                   {isMe ? "나" : msg.nickname} · {formatTime(msg.timestamp)}
                 </span>
                 <div
-                  className={`px-3 py-2 rounded-2xl text-sm leading-snug ${
+                  className={`px-3 py-2.5 rounded-2xl text-sm leading-snug shadow-sm ${
                     isMe
-                      ? "bg-orange-600 text-white rounded-tr-sm"
-                      : "bg-gray-800/90 text-white rounded-tl-sm"
+                      ? "bg-orange-500 text-white rounded-tr-sm"
+                      : "bg-white text-gray-800 rounded-tl-sm border border-gray-100"
                   }`}
                 >
                   {msg.message}
@@ -290,8 +313,8 @@ export default function GamePage() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="flex-shrink-0 px-4 pt-3 pb-8 border-t border-gray-800/80 bg-[#080808]">
+      {/* Chat input */}
+      <div className="flex-shrink-0 bg-white px-4 pt-3 pb-8 border-t border-gray-100">
         <div className="flex gap-2">
           <input
             type="text"
@@ -299,12 +322,12 @@ export default function GamePage() {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             placeholder="메시지..."
-            className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-orange-600 transition-colors min-w-0"
+            className="flex-1 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 text-gray-900 placeholder-gray-300 text-sm focus:outline-none focus:border-orange-300 transition-colors min-w-0"
           />
           <button
             onClick={sendMessage}
             disabled={!message.trim()}
-            className="bg-orange-600 hover:bg-orange-500 disabled:opacity-30 text-white w-12 rounded-xl font-bold text-lg flex items-center justify-center transition-colors flex-shrink-0"
+            className="bg-orange-500 hover:bg-orange-400 disabled:opacity-30 text-white w-12 rounded-2xl font-bold text-lg flex items-center justify-center transition-colors flex-shrink-0 shadow-sm"
           >
             ↑
           </button>

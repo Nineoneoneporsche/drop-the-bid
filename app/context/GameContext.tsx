@@ -20,6 +20,7 @@ export interface GameConfig {
   dropAmount: number;
   strategyDuration: number;
   gameStartTime: string | null;
+  floorPrice: number;
 }
 
 export interface GameState {
@@ -34,7 +35,7 @@ export interface GameState {
 }
 
 export type GameAction =
-  | { type: "LOAD_CONFIG"; config: GameConfig }
+  | { type: "LOAD_CONFIG"; config: Partial<GameConfig> }
   | { type: "UPDATE_CONFIG"; config: Partial<GameConfig> }
   | { type: "JOIN"; user: { nickname: string; role: Role } }
   | { type: "START_STRATEGY"; timestamp: number }
@@ -46,67 +47,67 @@ export type GameAction =
   | { type: "RESET" };
 
 export const DEFAULT_CONFIG: GameConfig = {
-  productName: "Mac mini M4",
-  startPrice: 1_000_000,
+  productName: "NUVY 누비 유모차 자전거 타보-고급형 미니스트라이크",
+  startPrice: 250_000,
   dropAmount: 1_000,
-  strategyDuration: 180,
+  strategyDuration: 60,
   gameStartTime: null,
+  floorPrice: 150_000,
 };
 
 export const MOCK_PARTICIPANT_COUNT = 217;
-export const MOCK_SPECTATOR_COUNT = 31;
+export const MOCK_SPECTATOR_COUNT = 3412;
 
 function makeMockMessages(baseTime: number): ChatMessage[] {
   return [
     {
       id: "m0",
       nickname: "system",
-      message: `협상 라운지 입장 — ${MOCK_PARTICIPANT_COUNT}명 참여 중`,
+      message: `전략 회의 시간 시작 — ${MOCK_PARTICIPANT_COUNT}명 참여 중 🛒`,
       kind: "system",
-      timestamp: baseTime - 32000,
-    },
-    {
-      id: "m1",
-      nickname: "kimchi_buyer",
-      message: "다들 70만원까지는 기다리는 거죠? 🤝",
-      kind: "chat",
-      timestamp: baseTime - 26000,
-    },
-    {
-      id: "m2",
-      nickname: "techie_seoul",
-      message: "70k 이전엔 절대 아무도 누르지 말아요. 약속해요!",
-      kind: "chat",
       timestamp: baseTime - 20000,
     },
     {
-      id: "m3",
-      nickname: "bidder_pro",
-      message: "우리 서로 믿으면 다 같이 싸게 살 수 있어요",
+      id: "m1",
+      nickname: "shopping_star",
+      message: "조금 더 기다려볼까요? 😊",
       kind: "chat",
-      timestamp: baseTime - 14000,
+      timestamp: baseTime - 16000,
     },
     {
-      id: "m4",
-      nickname: "mac_lover99",
-      message: "작년엔 협력이 잘 돼서 87만원에 낙찰됐어요 💪",
+      id: "m2",
+      nickname: "minivelo_fan",
+      message: "20만원 밑으로 가면 좋겠네요",
+      kind: "chat",
+      timestamp: baseTime - 12000,
+    },
+    {
+      id: "m3",
+      nickname: "kid_gear_mom",
+      message: "아직은 이른 것 같아요",
       kind: "chat",
       timestamp: baseTime - 8000,
     },
     {
-      id: "m5",
-      nickname: "newbie_here",
-      message: "저도 믿고 기다릴게요... 무섭지만 ㅠ",
+      id: "m4",
+      nickname: "smart_buyer",
+      message: "다들 신중하게 가봐요 👍",
       kind: "chat",
-      timestamp: baseTime - 3000,
+      timestamp: baseTime - 4000,
     },
   ];
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case "LOAD_CONFIG":
-      return { ...state, config: action.config, currentPrice: action.config.startPrice };
+    case "LOAD_CONFIG": {
+      const merged = { ...DEFAULT_CONFIG, ...action.config };
+      return {
+        ...state,
+        config: merged,
+        currentPrice: merged.startPrice,
+      };
+    }
 
     case "UPDATE_CONFIG": {
       const newConfig = { ...state.config, ...action.config };
@@ -222,7 +223,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     try {
       const saved = localStorage.getItem("dtb_config");
       if (saved) {
-        const config = JSON.parse(saved) as GameConfig;
+        const config = JSON.parse(saved) as Partial<GameConfig>;
         dispatch({ type: "LOAD_CONFIG", config });
       }
     } catch {

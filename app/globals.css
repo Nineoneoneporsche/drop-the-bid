@@ -7,6 +7,7 @@ html {
 }
 
 body {
+  background-color: #fffbf5;
   overscroll-behavior: none;
 }
 
@@ -17,7 +18,8 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.6);
+  filter: none;
+  opacity: 0.5;
 }
 
 /* Price flash on tick */
@@ -26,31 +28,21 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 @keyframes price-tick-flash {
-  0% { color: #f97316; transform: scale(1.05); }
+  0%   { color: #f97316; transform: scale(1.05); }
   100% { color: inherit; transform: scale(1); }
 }
 
-/* Narrator message slide-in */
+/* Narrator info message slide-in */
 .narrator-slide {
-  animation: narrator-in 0.4s ease-out;
+  animation: narrator-in 0.35s ease-out;
 }
 
 @keyframes narrator-in {
-  0% { opacity: 0; transform: translateY(6px) scale(0.97); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-/* Tension meter glow when critical */
-.tension-critical {
-  animation: tension-pulse 0.8s ease-in-out infinite;
-}
-
-@keyframes tension-pulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
-  50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.9); }
-}
-
-/* Confetti */
+/* Cheerful confetti */
 @keyframes confetti-fall {
   0%   { transform: translateY(-60px) rotateZ(0deg); opacity: 1; }
   85%  { opacity: 1; }
@@ -60,37 +52,37 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .confetti-piece {
   position: absolute;
   top: -60px;
-  border-radius: 2px;
+  border-radius: 3px;
   animation: confetti-fall linear forwards;
 }
 
-/* Reaction message slide-up */
+/* Reaction slide-in */
 @keyframes reaction-in {
-  0% { opacity: 0; transform: translateX(-12px); }
+  0%   { opacity: 0; transform: translateX(-10px); }
   100% { opacity: 1; transform: translateX(0); }
 }
 
 .reaction-in {
-  animation: reaction-in 0.35s ease-out;
+  animation: reaction-in 0.3s ease-out;
 }
 
-/* Win banner glow */
-@keyframes win-glow {
-  0%, 100% { text-shadow: 0 0 20px rgba(249,115,22,0.5); }
-  50% { text-shadow: 0 0 40px rgba(249,115,22,1), 0 0 80px rgba(249,115,22,0.4); }
+/* Winner title pop */
+@keyframes winner-pop {
+  0%   { transform: scale(0.7); opacity: 0; }
+  70%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-.win-glow {
-  animation: win-glow 2s ease-in-out infinite;
+.winner-pop {
+  animation: winner-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Betrayal stamp */
-@keyframes stamp-in {
-  0% { opacity: 0; transform: scale(2.5) rotate(-15deg); }
-  60% { transform: scale(0.9) rotate(2deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+/* Gentle float for badge */
+@keyframes float-badge {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-3px); }
 }
 
-.stamp-in {
-  animation: stamp-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.float-badge {
+  animation: float-badge 2.5s ease-in-out infinite;
 }
