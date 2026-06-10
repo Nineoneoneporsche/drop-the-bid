@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   useGame,
   formatKRW,
@@ -363,6 +364,13 @@ export default function StrategyPage() {
               <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
               LIVE
             </span>
+            <Image
+              src="/rabbit-logo.png"
+              alt="Rabbit"
+              width={28}
+              height={28}
+              style={{ width: 28, height: "auto" }}
+            />
             <span className="text-gray-900 font-black text-base tracking-tight">
               참가자 라운지
             </span>

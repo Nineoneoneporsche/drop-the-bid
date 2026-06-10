@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useGame, formatKRW, DEFAULT_CONFIG } from "../context/GameContext";
 
 export default function AdminPage() {
@@ -97,6 +98,14 @@ export default function AdminPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
+            <Image
+              src="/rabbit-logo.png"
+              alt="Rabbit"
+              width={48}
+              height={48}
+              style={{ width: 48, height: "auto" }}
+              className="mb-2"
+            />
             <h1 className="text-xl font-black text-gray-900">관리자 설정</h1>
             <p className="text-gray-400 text-sm">Drop The Bid</p>
           </div>

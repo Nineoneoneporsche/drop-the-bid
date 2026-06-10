@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   useGame,
   formatKRW,
@@ -49,6 +50,18 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#fffbf5] flex flex-col items-center pb-16">
       <div className="w-full max-w-md px-4 pt-8">
+
+        {/* Rabbit brand logo */}
+        <div className="flex justify-center mb-5">
+          <Image
+            src="/rabbit-logo.png"
+            alt="Rabbit"
+            width={72}
+            height={72}
+            style={{ width: 72, height: "auto" }}
+            priority
+          />
+        </div>
 
         {/* Top bar */}
         <div className="flex items-center justify-between mb-5">
