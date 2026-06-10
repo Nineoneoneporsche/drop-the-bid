@@ -16,6 +16,7 @@ export interface ChatMessage {
 
 export interface GameConfig {
   productName: string;
+  description: string;
   startPrice: number;
   dropAmount: number;
   strategyDuration: number;
@@ -48,6 +49,7 @@ export type GameAction =
 
 export const DEFAULT_CONFIG: GameConfig = {
   productName: "NUVY 누비 유모차 자전거 타보-고급형 미니스트라이크",
+  description: "프리미엄 유모차 자전거",
   startPrice: 250_000,
   dropAmount: 1_000,
   strategyDuration: 60,
@@ -63,7 +65,7 @@ function makeMockMessages(baseTime: number): ChatMessage[] {
     {
       id: "m0",
       nickname: "system",
-      message: `전략 회의 시간 시작 — ${MOCK_PARTICIPANT_COUNT}명 참여 중 🛒`,
+      message: `참가자 라운지 입장 — ${MOCK_PARTICIPANT_COUNT}명 참여 중 👋`,
       kind: "system",
       timestamp: baseTime - 20000,
     },

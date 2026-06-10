@@ -10,6 +10,7 @@ export default function AdminPage() {
 
   const [form, setForm] = useState({
     productName: state.config.productName,
+    description: state.config.description,
     startPrice: state.config.startPrice.toString(),
     dropAmount: state.config.dropAmount.toString(),
     strategyDuration: state.config.strategyDuration.toString(),
@@ -38,6 +39,7 @@ export default function AdminPage() {
       type: "UPDATE_CONFIG",
       config: {
         productName: form.productName.trim() || DEFAULT_CONFIG.productName,
+        description: form.description.trim() || DEFAULT_CONFIG.description,
         startPrice,
         dropAmount,
         strategyDuration,
@@ -87,6 +89,16 @@ export default function AdminPage() {
               value={form.productName}
               onChange={(e) => set("productName", e.target.value)}
               placeholder={DEFAULT_CONFIG.productName}
+              className={INPUT}
+            />
+          </Field>
+
+          <Field label="상품 설명">
+            <input
+              type="text"
+              value={form.description}
+              onChange={(e) => set("description", e.target.value)}
+              placeholder={DEFAULT_CONFIG.description}
               className={INPUT}
             />
           </Field>
@@ -204,6 +216,7 @@ export default function AdminPage() {
           <div className="space-y-2.5">
             {[
               ["상품명", state.config.productName],
+              ["상품 설명", state.config.description],
               ["시작가", formatKRW(state.config.startPrice)],
               ["목표 하한가", formatKRW(state.config.floorPrice)],
               ["하락 금액", `${formatKRW(state.config.dropAmount)}/초`],

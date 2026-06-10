@@ -5,6 +5,7 @@ import { ProductImageFill, ProductThumb } from "../components/ProductImage";
 import { formatKRW, MOCK_PARTICIPANT_COUNT, MOCK_SPECTATOR_COUNT } from "../context/GameContext";
 
 const PRODUCT_NAME = "NUVY 누비 유모차 자전거 타보-고급형 미니스트라이크";
+const PRODUCT_DESC = "프리미엄 유모차 자전거";
 const START_PRICE = 250_000;
 const FLOOR_PRICE = 150_000;
 const DROP_AMOUNT = 1_000;
@@ -80,7 +81,7 @@ export default function DemoPage() {
             <h2 className="text-gray-900 font-bold text-base leading-snug mb-1">
               {PRODUCT_NAME}
             </h2>
-            <p className="text-gray-400 text-sm mb-4">고급형 · 어린이 라이딩 스쿠터</p>
+            <p className="text-gray-400 text-sm mb-4">{PRODUCT_DESC}</p>
 
             <div className="flex items-baseline gap-2 mb-1">
               <span className="text-gray-400 text-xs">시작가</span>

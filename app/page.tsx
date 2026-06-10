@@ -101,7 +101,7 @@ export default function HomePage() {
               {state.config.productName}
             </h2>
             <p className="text-gray-400 text-sm mb-4">
-              고급형 · 어린이 라이딩 스쿠터
+              {state.config.description}
             </p>
 
             <div className="flex items-baseline gap-2 mb-1">
