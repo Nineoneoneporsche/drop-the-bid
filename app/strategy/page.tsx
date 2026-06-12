@@ -365,7 +365,7 @@ export default function StrategyPage() {
               LIVE
             </span>
             <Image
-              src="/rabbit-logo.png"
+              src="/dtblogo.png"
               alt="Rabbit"
               width={28}
               height={28}

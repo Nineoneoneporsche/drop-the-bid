@@ -16,9 +16,23 @@ const CHAT_EVENTS = [
   { threshold: 95, nickname: "shopping_star", message: "조금 더 기다려볼게요 👀" },
   { threshold: 88, nickname: "minivelo_fan",  message: "220,000원대네요, 슬슬 고민되는데..." },
   { threshold: 80, nickname: "kid_gear_mom",  message: "200,000원 밑으로 가면 바로 손들게요!" },
+  { threshold: 77, nickname: "구경꾼99",      message: "와 이걸 버틴다고?? 😳" },
+  { threshold: 74, nickname: "라이브팬",      message: "아직도 아무도 안 누르네" },
   { threshold: 72, nickname: "smart_buyer",   message: "다들 조금 더 기다려봐요 😊" },
+  { threshold: 70, nickname: "실속파",        message: "생각보다 강한데요?" },
+  { threshold: 67, nickname: "쇼핑고수",      message: "슬슬 긴장된다" },
   { threshold: 65, nickname: "shopping_star", message: "170,000원... 이 정도면 정말 좋은 가격이네요" },
+  { threshold: 64, nickname: "기다렸다",      message: "여기서 더 기다린다고?" },
+  { threshold: 61, nickname: "알뜰파",        message: "이 가격이면 고민되는데" },
+  { threshold: 59, nickname: "구경꾼99",      message: "레전드네 ㄷㄷ" },
   { threshold: 58, nickname: "minivelo_fan",  message: "누가 먼저 누를지 두근두근 🤩" },
+  { threshold: 56, nickname: "채팅구경",      message: "단합력 무엇 ㅋㅋ" },
+  { threshold: 53, nickname: "뭐야이거",      message: "진짜 아무도 안 누른다고?" },
+  { threshold: 49, nickname: "라이브킹",      message: "이건 예상 못했다" },
+  { threshold: 46, nickname: "득템요정",      message: "오늘 참가자들 독하네" },
+  { threshold: 44, nickname: "sunny_star",    message: "여기까지 오는 건 처음 보는데" },
+  { threshold: 42, nickname: "ㅋㅋ구경",      message: "채팅방 분위기 왜 이래 ㅋㅋ" },
+  { threshold: 41, nickname: "설레는밤",      message: "다들 참을성 무슨 일이야" },
 ];
 
 // Neutral live-commerce narrator messages
@@ -232,7 +246,7 @@ export default function GamePage() {
                   }
             }
           >
-            {raised ? "🐰 래빗 완료!" : "🐰 래빗!"}
+            {raised ? "✅ 낙찰 완료!" : "🔥 낙찰받기"}
           </button>
           {!raised && (
             <p className="text-gray-400 text-xs text-center mt-2">
@@ -240,7 +254,7 @@ export default function GamePage() {
               <span className="text-orange-500 font-semibold">
                 {formatKRW(state.currentPrice)}
               </span>
-              에 래빗해요
+              에 낙찰받아요
             </p>
           )}
         </div>
@@ -249,7 +263,7 @@ export default function GamePage() {
       {!isParticipant && (
         <div className="flex-shrink-0 mx-4 my-2 bg-orange-50 rounded-2xl px-4 py-2.5 border border-orange-100">
           <p className="text-orange-400 text-xs font-medium text-center">
-            👁 관전 중 — 참여자로 입장하면 래빗할 수 있어요
+            👁 관전 중 — 참여자로 입장하면 낙찰받을 수 있어요
           </p>
         </div>
       )}

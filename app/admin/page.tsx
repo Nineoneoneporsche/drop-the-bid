@@ -99,7 +99,7 @@ export default function AdminPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <Image
-              src="/rabbit-logo.png"
+              src="/dtblogo.png"
               alt="Rabbit"
               width={48}
               height={48}

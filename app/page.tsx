@@ -63,7 +63,7 @@ export default function HomePage() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
             <Image
-              src="/rabbit-logo.png"
+              src="/dtblogo.png"
               alt="Rabbit"
               width={180}
               height={90}
@@ -74,7 +74,7 @@ export default function HomePage() {
               className="text-gray-800 text-center"
               style={{ fontSize: 17, fontWeight: 800, whiteSpace: "nowrap", marginTop: 0, lineHeight: 1.1 }}
             >
-              래빗! 먼저 누른 사람이 임자!
+              먼저 누른 사람이 임자!
             </p>
           </div>
         </div>
