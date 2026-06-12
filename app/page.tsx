@@ -65,14 +65,14 @@ export default function HomePage() {
             <Image
               src="/dtblogo.png"
               alt="Rabbit"
-              width={180}
-              height={90}
-              style={{ width: 180, height: "auto", display: "block", marginBottom: -18 }}
+              width={90}
+              height={45}
+              style={{ width: 90, height: "auto", display: "block", marginBottom: 8 }}
               priority
             />
             <p
               className="text-gray-800 text-center"
-              style={{ fontSize: 17, fontWeight: 800, whiteSpace: "nowrap", marginTop: 0, lineHeight: 1.1 }}
+              style={{ fontSize: 15, fontWeight: 800, whiteSpace: "nowrap", marginTop: 0, lineHeight: 1.2 }}
             >
               먼저 누른 사람이 임자!
             </p>
