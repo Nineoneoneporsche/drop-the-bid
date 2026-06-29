@@ -11,6 +11,7 @@ import {
 } from "../context/GameContext";
 import { ProductThumb } from "../components/ProductImage";
 import RightActionMenu from "../components/RightActionMenu";
+import BottomNav from "../components/BottomNav";
 
 // Friendly chat messages from other participants
 const CHAT_EVENTS = [
@@ -330,7 +331,7 @@ export default function GamePage() {
       </div>
 
       {/* Chat input */}
-      <div className="flex-shrink-0 bg-white px-4 pt-3 pb-8 border-t border-gray-100">
+      <div className="flex-shrink-0 bg-white px-4 pt-3 pb-24 border-t border-gray-100">
         <div className="flex gap-2">
           <input
             type="text"
@@ -349,6 +350,7 @@ export default function GamePage() {
           </button>
         </div>
       </div>
+      <BottomNav />
     </main>
   );
 }

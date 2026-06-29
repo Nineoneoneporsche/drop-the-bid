@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGame, formatKRW } from "../context/GameContext";
 import { ProductThumb } from "../components/ProductImage";
+import BottomNav from "../components/BottomNav";
 
 const REACTIONS = [
   { nickname: "shopping_star", message: "와 대박! 정말 좋은 가격이에요! 🎉", delay: 900 },
@@ -95,7 +96,7 @@ export default function WinnerPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fffbf5] flex flex-col pb-12 max-w-md mx-auto relative overflow-hidden">
+    <main className="min-h-screen bg-[#fffbf5] flex flex-col pb-24 max-w-md mx-auto relative overflow-hidden">
       <ConfettiRain />
 
       <div className="px-4 pt-12 z-20 relative">
@@ -211,6 +212,7 @@ export default function WinnerPage() {
           다시 시작하기
         </button>
       </div>
+      <BottomNav />
     </main>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from "../context/GameContext";
 import { ProductThumb } from "../components/ProductImage";
 import RightActionMenu from "../components/RightActionMenu";
+import BottomNav from "../components/BottomNav";
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
@@ -498,7 +499,7 @@ export default function StrategyPage() {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 bg-white px-4 pt-3 pb-8 border-t border-gray-100 shadow-sm">
+      <div className="flex-shrink-0 bg-white px-4 pt-3 pb-24 border-t border-gray-100 shadow-sm">
         <div className="flex gap-2">
           <input
             ref={inputRef}
@@ -518,6 +519,7 @@ export default function StrategyPage() {
           </button>
         </div>
       </div>
+      <BottomNav />
     </main>
   );
 }

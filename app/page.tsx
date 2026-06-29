@@ -10,6 +10,7 @@ import {
   MOCK_SPECTATOR_COUNT,
 } from "./context/GameContext";
 import { ProductImageFill, ProductThumb } from "./components/ProductImage";
+import BottomNav from "./components/BottomNav";
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
@@ -48,7 +49,7 @@ export default function HomePage() {
   }, [state.config.gameStartTime]);
 
   return (
-    <main className="min-h-screen bg-[#fffbf5] flex flex-col items-center pb-16">
+    <main className="min-h-screen bg-[#fffbf5] flex flex-col items-center pb-24">
       <div className="w-full max-w-md px-4 pt-2">
 
         {/* Brand header — logo centered, admin pinned top-right */}
@@ -275,6 +276,7 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+      <BottomNav />
     </main>
   );
 }
