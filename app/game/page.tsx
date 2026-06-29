@@ -10,6 +10,7 @@ import {
   MOCK_SPECTATOR_COUNT,
 } from "../context/GameContext";
 import { ProductThumb } from "../components/ProductImage";
+import RightActionMenu from "../components/RightActionMenu";
 
 // Friendly chat messages from other participants
 const CHAT_EVENTS = [
@@ -162,7 +163,8 @@ export default function GamePage() {
   if (!state.currentUser) return null;
 
   return (
-    <main className="h-screen bg-[#fffbf5] flex flex-col max-w-md mx-auto overflow-hidden">
+    <main className="h-screen bg-[#fffbf5] flex flex-col max-w-md mx-auto overflow-hidden relative">
+      <RightActionMenu />
       {/* Price header */}
       <div className="flex-shrink-0 bg-white px-4 pt-9 pb-4 border-b border-gray-100 shadow-sm">
         {/* Status row */}

@@ -11,6 +11,7 @@ import {
   MOCK_SPECTATOR_COUNT,
 } from "../context/GameContext";
 import { ProductThumb } from "../components/ProductImage";
+import RightActionMenu from "../components/RightActionMenu";
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
@@ -353,7 +354,8 @@ export default function StrategyPage() {
   if (!state.currentUser) return null;
 
   return (
-    <main className="h-screen bg-[#fffbf5] flex flex-col max-w-md mx-auto overflow-hidden">
+    <main className="h-screen bg-[#fffbf5] flex flex-col max-w-md mx-auto overflow-hidden relative">
+      <RightActionMenu />
       {/* Header */}
       <div className="flex-shrink-0 bg-white px-4 pt-10 pb-3 border-b border-gray-100 shadow-sm">
 
