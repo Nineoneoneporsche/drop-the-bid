@@ -13,6 +13,7 @@ import {
 import { ProductThumb } from "../components/ProductImage";
 import RightActionMenu from "../components/RightActionMenu";
 import BottomNav from "../components/BottomNav";
+import HomeButton from "../components/HomeButton";
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
@@ -359,6 +360,9 @@ export default function StrategyPage() {
       <RightActionMenu />
       {/* Header */}
       <div className="flex-shrink-0 bg-white px-4 pt-10 pb-3 border-b border-gray-100 shadow-sm">
+        <div className="flex mb-2">
+          <HomeButton />
+        </div>
 
         {/* Top row: lounge title + timer */}
         <div className="flex items-center justify-between mb-2">

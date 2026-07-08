@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useGame, formatKRW } from "../context/GameContext";
 import { ProductThumb } from "../components/ProductImage";
 import BottomNav from "../components/BottomNav";
+import HomeButton from "../components/HomeButton";
+import Link from "next/link";
 
 const REACTIONS = [
   { nickname: "shopping_star", message: "와 대박! 정말 좋은 가격이에요! 🎉", delay: 900 },
@@ -65,6 +67,7 @@ export default function WinnerPage() {
   const router = useRouter();
   const [visibleReactions, setVisibleReactions] = useState(0);
   const [showCard, setShowCard] = useState(false);
+  const [payTime, setPayTime] = useState(600);
 
   const isMe = state.winner?.nickname === state.currentUser?.nickname;
 
@@ -85,6 +88,20 @@ export default function WinnerPage() {
     };
   }, [state.winner, router]);
 
+  useEffect(() => {
+    if (!state.winner) return;
+    const t = setInterval(() => {
+      setPayTime((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [state.winner]);
+
+  function formatPayTime(s: number) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }
+
   if (!state.winner) return null;
 
   const saved = state.config.startPrice - state.winner.price;
@@ -100,6 +117,9 @@ export default function WinnerPage() {
       <ConfettiRain />
 
       <div className="px-4 pt-12 z-20 relative">
+        <div className="flex mb-5">
+          <HomeButton />
+        </div>
         {/* Celebration title */}
         <div className="text-center mb-6 winner-pop">
           <div className="text-6xl mb-3">🎉</div>
@@ -200,14 +220,31 @@ export default function WinnerPage() {
           </div>
         </div>
 
-        {/* CTA */}
-        <button
-          onClick={handlePlayAgain}
-          className="w-full font-bold py-4 rounded-2xl text-base text-white transition-all active:scale-[0.98] shadow-md"
+        {/* Payment deadline */}
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 text-center mb-3">
+          <p className="text-amber-600 text-[11px] font-semibold mb-0.5">결제 제한 시간</p>
+          <p className="text-amber-700 font-black font-mono text-3xl tabular-nums">{formatPayTime(payTime)}</p>
+        </div>
+
+        {/* Primary CTA */}
+        <Link
+          href="/payment"
+          className="block w-full font-bold py-4 rounded-2xl text-base text-white text-center transition-all active:scale-[0.98] shadow-md mb-2"
           style={{
             background: "linear-gradient(135deg,#fb923c 0%,#f97316 100%)",
             boxShadow: "0 4px 20px rgba(249,115,22,0.35)",
           }}
+        >
+          결제하기
+        </Link>
+        <p className="text-gray-400 text-xs text-center mb-4">
+          제한 시간 안에 결제를 완료해야 낙찰이 확정됩니다.
+        </p>
+
+        {/* Secondary CTA */}
+        <button
+          onClick={handlePlayAgain}
+          className="w-full py-3.5 rounded-2xl text-base font-bold border-2 border-gray-200 text-gray-500 bg-white transition-colors active:bg-gray-50"
         >
           다시 시작하기
         </button>

@@ -50,12 +50,12 @@ export default function JoinPage() {
   return (
     <main className="min-h-screen bg-[#fffbf5] flex flex-col px-4 pt-8 pb-12 max-w-md mx-auto">
       {/* Back */}
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-gray-400 hover:text-orange-500 transition-colors mb-8 self-start text-sm"
+      <a
+        href="/"
+        className="inline-flex items-center gap-1 text-xs text-gray-400 border border-gray-200 rounded-xl px-3 py-1.5 bg-white hover:border-orange-300 hover:text-orange-500 transition-colors shadow-sm mb-8 self-start"
       >
-        ← 뒤로
-      </button>
+        ← 메인화면
+      </a>
 
       {/* Header */}
       <div className="mb-8">

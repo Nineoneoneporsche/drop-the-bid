@@ -86,3 +86,29 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .float-badge {
   animation: float-badge 2.5s ease-in-out infinite;
 }
+
+/* Chat message appear in guide preview */
+@keyframes chat-in {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.chat-in {
+  animation: chat-in 0.3s ease-out forwards;
+}
+
+/* Success overlay pop */
+@keyframes success-pop {
+  0%   { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.success-pop {
+  animation: success-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Go-button pulse ring in mini game */
+@keyframes go-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.55), 0 8px 32px rgba(249,115,22,0.4); }
+  50%       { box-shadow: 0 0 0 22px rgba(249,115,22,0), 0 8px 32px rgba(249,115,22,0.4); }
+}

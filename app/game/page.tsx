@@ -12,6 +12,7 @@ import {
 import { ProductThumb } from "../components/ProductImage";
 import RightActionMenu from "../components/RightActionMenu";
 import BottomNav from "../components/BottomNav";
+import HomeButton from "../components/HomeButton";
 
 // Friendly chat messages from other participants
 const CHAT_EVENTS = [
@@ -168,6 +169,9 @@ export default function GamePage() {
       <RightActionMenu />
       {/* Price header */}
       <div className="flex-shrink-0 bg-white px-4 pt-9 pb-4 border-b border-gray-100 shadow-sm">
+        <div className="flex mb-2">
+          <HomeButton />
+        </div>
         {/* Status row */}
         <div className="flex items-center gap-2 mb-3">
           <span className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
