@@ -20,12 +20,16 @@ export default function HomePage() {
   const maxDiscountPct = start > 0 ? Math.round((maxSavings / start) * 100) : 0;
 
   return (
-    <main className="h-screen bg-[#0a0a0a] flex flex-col max-w-md mx-auto overflow-hidden relative">
+    <main className="bg-[#0a0a0a] flex flex-col max-w-md mx-auto">
 
-      {/* ── HERO — 65vh ── */}
-      <div className="relative flex-shrink-0" style={{ height: "65vh" }}>
+      {/* ══════════════════════════════════════════════════
+          HERO — 68vh
+          Character fully visible. No cards overlapping.
+          Only: top bar + headline copy.
+          ══════════════════════════════════════════════════ */}
+      <div className="relative flex-shrink-0" style={{ height: "52vh" }}>
 
-        {/* Character / stage image — kept bright */}
+        {/* Stage / character image */}
         <Image
           src="/dtb-hero.png"
           alt="Drop The Bid"
@@ -34,24 +38,16 @@ export default function HomePage() {
           style={{ objectFit: "cover", objectPosition: "center top" }}
         />
 
-        {/* Top-to-bottom gradient — dark header + dark bottom, bright middle */}
+        {/* Subtle gradient: only darkens the very top and the bottom strip for text */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.0) 20%, rgba(0,0,0,0.0) 44%, rgba(0,0,0,0.70) 68%, rgba(0,0,0,0.97) 100%)",
-          }}
-        />
-        {/* Radial vignette — darkens left/right edges, keeps centre bright */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 70% 60% at 50% 45%, transparent 30%, rgba(0,0,0,0.52) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.38) 18%, rgba(0,0,0,0.0) 36%, rgba(0,0,0,0.0) 62%, rgba(0,0,0,0.55) 82%, rgba(0,0,0,0.94) 100%)",
           }}
         />
 
-        {/* ── Top bar ── */}
+        {/* ── Top bar: logo · LIVE · counts ── */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-10">
           <Image
             src="/dtblogo.png"
@@ -75,13 +71,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Headline — center of hero ── */}
-        <div
-          className="absolute left-0 right-0 px-5"
-          style={{ top: "28%" }}
-        >
-          {/* Brand badge row */}
-          <div className="flex items-center gap-2 mb-3">
+        {/* ── Headline — bottom of hero, above fold ── */}
+        <div className="absolute left-0 right-0 pl-10 pr-5" style={{ top: "27%" }}>
+
+          {/* Brand badge */}
+          <div className="flex items-center gap-2 mb-2.5">
             <span
               className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 leading-none"
               style={{
@@ -94,7 +88,7 @@ export default function HomePage() {
             </span>
             <span
               className="text-white/55 text-[10px] font-bold uppercase tracking-wider"
-              style={{ textShadow: "0 1px 8px rgba(0,0,0,1)" }}
+              style={{ textShadow: "0 2px 8px rgba(0,0,0,1), 0 4px 24px rgba(0,0,0,1)" }}
             >
               WHO WILL WIN?
             </span>
@@ -102,11 +96,11 @@ export default function HomePage() {
 
           {/* Main headline */}
           <h1
-            className="font-black leading-[1.08] mb-3"
+            className="font-black leading-[1.08] mb-2.5"
             style={{
-              fontSize: "2.1rem",
+              fontSize: "2.05rem",
               letterSpacing: "-0.025em",
-              textShadow: "0 2px 24px rgba(0,0,0,0.85), 0 1px 3px rgba(0,0,0,1)",
+              textShadow: "0 2px 8px rgba(0,0,0,1), 0 4px 32px rgba(0,0,0,1), 0 0 60px rgba(0,0,0,0.95)",
             }}
           >
             <span className="text-white">과연 누가,</span>
@@ -116,12 +110,12 @@ export default function HomePage() {
             <span className="text-white">가져갈까요?</span>
           </h1>
 
-          {/* Subtext */}
+          {/* Participant subtext */}
           <p
             className="text-[13px] font-medium flex items-center gap-1.5"
             style={{
-              color: "rgba(255,255,255,0.72)",
-              textShadow: "0 1px 10px rgba(0,0,0,1)",
+              color: "rgba(255,255,255,0.70)",
+              textShadow: "0 2px 8px rgba(0,0,0,1), 0 4px 24px rgba(0,0,0,1)",
             }}
           >
             👥{" "}
@@ -131,83 +125,83 @@ export default function HomePage() {
             이 기다리고 있습니다.
           </p>
         </div>
-
-        {/* ── Event status panel — bottom of hero ── */}
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
-          <div
-            className="px-4 py-3.5"
-            style={{
-              background: "rgba(6,6,6,0.84)",
-              backdropFilter: "blur(28px)",
-              borderRadius: "12px",
-              border: "1px solid rgba(139,92,246,0.55)",
-              boxShadow:
-                "0 0 16px rgba(139,92,246,0.28), 0 0 48px rgba(139,92,246,0.12), 0 8px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(167,139,250,0.12)",
-            }}
-          >
-            <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-
-              {/* 시작 가격 */}
-              <div>
-                <p className="text-[9px] uppercase tracking-[0.16em] text-white/75 font-medium mb-0.5">
-                  시작 가격
-                </p>
-                <p
-                  className="text-white font-black tabular-nums font-mono leading-none"
-                  style={{ fontSize: "1.55rem" }}
-                >
-                  {formatKRW(start)}
-                </p>
-              </div>
-
-              {/* 하락 속도 */}
-              <div>
-                <p className="text-[9px] uppercase tracking-[0.16em] text-white/75 font-medium mb-0.5">
-                  하락 속도
-                </p>
-                <p className="text-white font-bold tabular-nums font-mono text-[1.1rem] leading-none">
-                  ₩{state.config.dropAmount.toLocaleString()}/초
-                </p>
-                <p className="text-white/55 text-[9px] mt-0.5">실시간 자동 하락</p>
-              </div>
-
-              {/* 전체 참가자 */}
-              <div>
-                <p className="text-[9px] uppercase tracking-[0.16em] text-white/75 font-medium mb-0.5">
-                  전체 참가자
-                </p>
-                <p className="text-white font-bold text-[1.1rem] leading-none">
-                  <span className="tabular-nums">{MOCK_PARTICIPANT_COUNT}</span>
-                  <span className="text-sm ml-0.5">명</span>
-                </p>
-                <p className="text-white/55 text-[9px] mt-0.5">경쟁 중</p>
-              </div>
-
-              {/* 목표 최저가 */}
-              <div>
-                <p className="text-[9px] uppercase tracking-[0.16em] text-white/75 font-medium mb-0.5">
-                  목표 최저가
-                </p>
-                <p
-                  className="font-black tabular-nums font-mono text-[1.1rem] leading-none"
-                  style={{ color: "#f97316" }}
-                >
-                  {formatKRW(floor)}
-                </p>
-                <p className="text-orange-500/50 text-[9px] mt-0.5">최대 {maxDiscountPct}% 할인</p>
-              </div>
-
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* ── Below hero ── */}
-      <div className="flex-1 flex flex-col px-4 pt-3.5 pb-24 min-h-0">
+      {/* ══════════════════════════════════════════════════
+          BELOW HERO — scrollable
+          Stats → Event card → CTAs
+          ══════════════════════════════════════════════════ */}
+      <div className="px-4 pt-3.5 pb-28">
 
-        {/* Event product card */}
+        {/* ── Event stats card ── */}
         <div
-          className="flex-shrink-0 px-4 py-3 mb-3"
+          className="mb-3"
+          style={{
+            background: "rgba(6,6,6,0.90)",
+            borderRadius: "12px",
+            border: "1px solid rgba(139,92,246,0.55)",
+            boxShadow:
+              "0 0 16px rgba(139,92,246,0.22), 0 0 40px rgba(139,92,246,0.10), inset 0 1px 0 rgba(167,139,250,0.10)",
+          }}
+        >
+          <div className="grid grid-cols-2 divide-x divide-y divide-white/[0.06]">
+
+            {/* 시작 가격 */}
+            <div className="px-4 py-3.5">
+              <p className="text-[9px] uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
+                시작 가격
+              </p>
+              <p
+                className="text-white font-black tabular-nums font-mono leading-none"
+                style={{ fontSize: "1.45rem" }}
+              >
+                {formatKRW(start)}
+              </p>
+            </div>
+
+            {/* 하락 속도 */}
+            <div className="px-4 py-3.5">
+              <p className="text-[9px] uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
+                하락 속도
+              </p>
+              <p className="text-white font-bold tabular-nums font-mono text-[1.15rem] leading-none">
+                ₩{state.config.dropAmount.toLocaleString()}/초
+              </p>
+              <p className="text-white/45 text-[9px] mt-1">실시간 자동 하락</p>
+            </div>
+
+            {/* 참가자 수 */}
+            <div className="px-4 py-3.5">
+              <p className="text-[9px] uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
+                참가자 수
+              </p>
+              <p className="text-white font-bold text-[1.15rem] leading-none">
+                <span className="tabular-nums">{MOCK_PARTICIPANT_COUNT}</span>
+                <span className="text-sm ml-0.5">명</span>
+              </p>
+              <p className="text-white/45 text-[9px] mt-1">현재 경쟁 중</p>
+            </div>
+
+            {/* 목표 최저가 */}
+            <div className="px-4 py-3.5">
+              <p className="text-[9px] uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
+                목표 최저가
+              </p>
+              <p
+                className="font-black tabular-nums font-mono text-[1.15rem] leading-none"
+                style={{ color: "#f97316" }}
+              >
+                {formatKRW(floor)}
+              </p>
+              <p className="text-orange-500/55 text-[9px] mt-1">최대 {maxDiscountPct}% 할인</p>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ── Event product card ── */}
+        <div
+          className="px-4 py-3 mb-3"
           style={{
             background: "rgba(255,255,255,0.03)",
             borderRadius: "10px",
@@ -220,12 +214,12 @@ export default function HomePage() {
           <p className="text-white font-bold text-[13.5px] leading-snug mb-1.5">
             {state.config.productName}
           </p>
-          <div className="flex items-center gap-2 text-[11px]">
-            <span className="text-white/35 tabular-nums font-mono">
+          <div className="flex items-center gap-2 text-[11px] flex-wrap">
+            <span className="text-white/40 tabular-nums font-mono">
               정가 {formatKRW(start)}
             </span>
             <span className="text-white/18">·</span>
-            <span className="text-orange-400/80 font-medium">
+            <span className="text-orange-400/85 font-medium">
               최대{" "}
               <span className="font-bold text-orange-400">{formatKRW(maxSavings)}</span>{" "}
               절약 가능
@@ -233,22 +227,23 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* CTA buttons */}
-        <div className="flex flex-col gap-2 mt-auto flex-shrink-0">
+        {/* ── CTA buttons ── */}
+        <div className="flex flex-col gap-2">
           <button
             onClick={() => router.push("/join")}
             className="w-full font-black text-base text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-3.5 gap-0.5"
             style={{
               background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
               borderRadius: "10px",
-              boxShadow: "0 4px 24px rgba(139,92,246,0.50), 0 0 0 1px rgba(167,139,250,0.25)",
+              boxShadow: "0 4px 24px rgba(139,92,246,0.50), 0 0 0 1px rgba(167,139,250,0.20)",
             }}
           >
             <span>🔥 참가자로 입장</span>
-            <span className="text-[10px] font-medium text-white/62 tracking-normal">
+            <span className="text-[10px] font-medium text-white/60 tracking-normal">
               경매에 참여하고 낙찰 기회를 잡으세요!
             </span>
           </button>
+
           <button
             onClick={() => router.push("/join")}
             className="w-full font-bold text-sm text-white/60 transition-all active:opacity-70 flex flex-col items-center py-3 gap-0.5"
@@ -263,6 +258,7 @@ export default function HomePage() {
             </span>
           </button>
         </div>
+
       </div>
 
       <BottomNav />
