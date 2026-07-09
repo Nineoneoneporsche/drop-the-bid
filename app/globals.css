@@ -7,7 +7,7 @@ html {
 }
 
 body {
-  background-color: #fffbf5;
+  background-color: #0f0f0f;
   overscroll-behavior: none;
 }
 
@@ -22,27 +22,27 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   opacity: 0.5;
 }
 
-/* Price flash on tick */
+/* Price tick — scale pulse */
 .price-tick {
-  animation: price-tick-flash 0.3s ease-out;
+  animation: price-tick-flash 0.22s ease-out;
 }
 
 @keyframes price-tick-flash {
-  0%   { color: #f97316; transform: scale(1.05); }
-  100% { color: inherit; transform: scale(1); }
+  0%   { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
-/* Narrator info message slide-in */
+/* Narrator slide-in */
 .narrator-slide {
-  animation: narrator-in 0.35s ease-out;
+  animation: narrator-in 0.3s ease-out;
 }
 
 @keyframes narrator-in {
-  0%   { opacity: 0; transform: translateY(6px); }
+  0%   { opacity: 0; transform: translateY(4px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
-/* Cheerful confetti */
+/* Confetti */
 @keyframes confetti-fall {
   0%   { transform: translateY(-60px) rotateZ(0deg); opacity: 1; }
   85%  { opacity: 1; }
@@ -52,32 +52,32 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .confetti-piece {
   position: absolute;
   top: -60px;
-  border-radius: 3px;
+  border-radius: 2px;
   animation: confetti-fall linear forwards;
 }
 
 /* Reaction slide-in */
 @keyframes reaction-in {
-  0%   { opacity: 0; transform: translateX(-10px); }
+  0%   { opacity: 0; transform: translateX(-8px); }
   100% { opacity: 1; transform: translateX(0); }
 }
 
 .reaction-in {
-  animation: reaction-in 0.3s ease-out;
+  animation: reaction-in 0.25s ease-out;
 }
 
-/* Winner title pop */
+/* Winner pop */
 @keyframes winner-pop {
-  0%   { transform: scale(0.7); opacity: 0; }
-  70%  { transform: scale(1.08); }
+  0%   { transform: scale(0.75); opacity: 0; }
+  70%  { transform: scale(1.06); }
   100% { transform: scale(1); opacity: 1; }
 }
 
 .winner-pop {
-  animation: winner-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: winner-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Gentle float for badge */
+/* Float badge */
 @keyframes float-badge {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-3px); }
@@ -87,28 +87,28 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   animation: float-badge 2.5s ease-in-out infinite;
 }
 
-/* Chat message appear in guide preview */
+/* Chat appear */
 @keyframes chat-in {
-  0%   { opacity: 0; transform: translateY(8px); }
+  0%   { opacity: 0; transform: translateY(6px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
 .chat-in {
-  animation: chat-in 0.3s ease-out forwards;
+  animation: chat-in 0.25s ease-out forwards;
 }
 
-/* Success overlay pop */
+/* Success pop */
 @keyframes success-pop {
-  0%   { opacity: 0; transform: scale(0.92); }
+  0%   { opacity: 0; transform: scale(0.93); }
   100% { opacity: 1; transform: scale(1); }
 }
 
 .success-pop {
-  animation: success-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: success-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Go-button pulse ring in mini game */
+/* Go-button pulse */
 @keyframes go-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.55), 0 8px 32px rgba(249,115,22,0.4); }
-  50%       { box-shadow: 0 0 0 22px rgba(249,115,22,0), 0 8px 32px rgba(249,115,22,0.4); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.6); }
+  50%       { box-shadow: 0 0 0 18px rgba(249,115,22,0); }
 }

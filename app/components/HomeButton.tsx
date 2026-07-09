@@ -6,7 +6,7 @@ export default function HomeButton() {
   return (
     <Link
       href="/"
-      className="inline-flex items-center gap-1 text-xs text-gray-400 border border-gray-200 rounded-xl px-3 py-1.5 bg-white hover:border-orange-300 hover:text-orange-500 transition-colors shadow-sm"
+      className="inline-flex items-center gap-1 text-xs font-medium text-white/30 hover:text-white/70 transition-colors"
     >
       ← 메인화면
     </Link>

@@ -2,21 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useGame, formatKRW } from "../context/GameContext";
 import { ProductThumb } from "../components/ProductImage";
 import BottomNav from "../components/BottomNav";
-import HomeButton from "../components/HomeButton";
-import Link from "next/link";
 
 const REACTIONS = [
   { nickname: "shopping_star", message: "와 대박! 정말 좋은 가격이에요! 🎉", delay: 900 },
-  { nickname: "minivelo_fan",  message: "타이밍이 완벽하네요! 부럽다 ㅠ", delay: 1800 },
-  { nickname: "kid_gear_mom",  message: "저 제품 좋던데 잘 쓰세요! 👏", delay: 2700 },
+  { nickname: "minivelo_fan",  message: "타이밍이 완벽하네요! 부럽다 ㅠ",     delay: 1800 },
+  { nickname: "kid_gear_mom",  message: "저 제품 좋던데 잘 쓰세요! 👏",       delay: 2700 },
   { nickname: "smart_buyer",   message: "저도 저 가격에 사고 싶었는데... 다음엔 제가! 😊", delay: 3600 },
-  { nickname: "minivelo_fan",  message: "축하드려요!! 완전 이득이네요 🎊", delay: 4400 },
+  { nickname: "minivelo_fan",  message: "축하드려요!! 완전 이득이네요 🎊",     delay: 4400 },
 ];
 
-// Cheerful confetti — bright varied palette
 const CONFETTI = [
   { left: "5%",  delay: "0s",    dur: "1.6s", color: "#f97316", w: 8,  h: 12, rot: 20 },
   { left: "12%", delay: "0.2s",  dur: "1.9s", color: "#a855f7", w: 6,  h: 10, rot: 70 },
@@ -69,19 +67,12 @@ export default function WinnerPage() {
   const [showCard, setShowCard] = useState(false);
   const [payTime, setPayTime] = useState(600);
 
-  const isMe = state.winner?.nickname === state.currentUser?.nickname;
-
   useEffect(() => {
-    if (!state.winner) {
-      router.replace("/");
-      return;
-    }
-
+    if (!state.winner) { router.replace("/"); return; }
     const cardTimer = setTimeout(() => setShowCard(true), 400);
     const timers = REACTIONS.map((r, i) =>
       setTimeout(() => setVisibleReactions(i + 1), r.delay)
     );
-
     return () => {
       clearTimeout(cardTimer);
       timers.forEach(clearTimeout);
@@ -113,85 +104,58 @@ export default function WinnerPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fffbf5] flex flex-col pb-24 max-w-md mx-auto relative overflow-hidden">
+    <main className="min-h-screen bg-[#0f0f0f] flex flex-col pb-20 max-w-md mx-auto relative overflow-hidden">
       <ConfettiRain />
 
+      {/* Hero section — dark */}
       <div className="px-4 pt-12 z-20 relative">
-        <div className="flex mb-5">
-          <HomeButton />
-        </div>
-        {/* Celebration title */}
-        <div className="text-center mb-6 winner-pop">
-          <div className="text-6xl mb-3">🎉</div>
-          <h1 className="text-3xl font-black text-gray-900 mb-1">성공!</h1>
-          <p className="text-gray-500 text-base">
-            축하합니다!{" "}
-            <span className="text-orange-500 font-bold">
-              {state.winner.nickname}
-            </span>
-            님이 낙찰받았습니다!
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1 text-xs font-medium text-white/65 hover:text-white/90 transition-colors mb-8"
+        >
+          ← 메인화면
+        </Link>
+
+        <div className="text-center mb-8 winner-pop">
+          <div className="text-5xl mb-4">🎉</div>
+          <p className="text-[10px] uppercase tracking-[0.14em] text-white/65 font-medium mb-2">낙찰 성공</p>
+          <h1 className="text-4xl font-black text-white mb-2">성공!</h1>
+          <p className="text-white/60 text-sm">
+            <span className="text-orange-400 font-bold">{state.winner.nickname}</span>님이 낙찰받았습니다!
           </p>
         </div>
 
-        {/* Winner card */}
+        {/* Price — the hero */}
         {showCard && (
-          <div className="bg-white rounded-3xl shadow-md border border-orange-100 p-5 mb-4 winner-pop">
-            {/* Avatar */}
-            <div className="flex flex-col items-center mb-5">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black text-white mb-3 shadow-lg"
-                style={{
-                  background:
-                    "linear-gradient(135deg,#fb923c 0%,#f97316 100%)",
-                  boxShadow: "0 4px 20px rgba(249,115,22,0.4)",
-                }}
-              >
-                {state.winner.nickname[0].toUpperCase()}
+          <div className="winner-pop mb-6">
+            <div className="text-center mb-2">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <ProductThumb alt={state.config.productName} size={32} rounded="rounded-sm" />
+                <p className="text-white/75 text-xs font-medium">{state.config.productName}</p>
               </div>
-              <p className="text-xl font-black text-gray-900">
-                {state.winner.nickname}
-              </p>
-              <p className="text-gray-400 text-sm">낙찰 성공!</p>
-            </div>
-
-            {/* Price */}
-            <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 text-center mb-4">
-              <div className="flex items-center justify-center mb-2">
-                <ProductThumb alt={state.config.productName} size={72} rounded="rounded-2xl" />
-              </div>
-              <p className="text-gray-400 text-sm mb-1">
-                {state.config.productName}
-              </p>
               <p
-                className="font-black text-orange-500 font-mono tabular-nums"
-                style={{ fontSize: "2.8rem", lineHeight: 1.1 }}
+                className="font-black tabular-nums font-mono text-orange-400 leading-none"
+                style={{ fontSize: "4.5rem" }}
               >
                 {formatKRW(state.winner.price)}
               </p>
-              <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
-                <span className="text-gray-400 text-xs">
-                  정가 {formatKRW(state.config.startPrice)}
-                </span>
-                <span className="bg-green-100 border border-green-200 text-green-600 text-xs font-bold px-2.5 py-1 rounded-full">
-                  {formatKRW(saved)} 절약 ({savedPct}% ↓)
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <span className="text-white/55 text-xs line-through">{formatKRW(state.config.startPrice)}</span>
+                <span className="bg-green-500 text-white text-xs font-bold px-2.5 py-0.5">
+                  -{savedPct}% · {formatKRW(saved)} 절약
                 </span>
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Stats row */}
+            <div className="grid grid-cols-2 gap-px mt-5 border border-white/18">
               {[
-                { label: "절약 금액", value: formatKRW(saved), color: "#16a34a" },
-                { label: "낙찰 비율", value: `정가의 ${100 - savedPct}%`, color: "#f97316" },
-              ].map(({ label, value, color }) => (
-                <div
-                  key={label}
-                  className="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100"
-                >
-                  <p className="text-gray-400 text-xs mb-1">{label}</p>
-                  <p className="text-sm font-bold" style={{ color }}>
-                    {value}
-                  </p>
+                { label: "절약 금액", value: formatKRW(saved), accent: true },
+                { label: "낙찰 비율", value: `정가의 ${100 - savedPct}%`, accent: false },
+              ].map(({ label, value, accent }) => (
+                <div key={label} className="bg-white/5 px-4 py-3 text-center">
+                  <p className="text-white/60 text-[10px] uppercase tracking-wider mb-1">{label}</p>
+                  <p className={`text-sm font-bold ${accent ? "text-green-400" : "text-white/85"}`}>{value}</p>
                 </div>
               ))}
             </div>
@@ -200,51 +164,44 @@ export default function WinnerPage() {
 
         {/* Reactions */}
         <div className="mb-6">
-          <p className="text-gray-400 text-xs uppercase tracking-wider font-medium mb-3 px-1">
-            다른 참여자들의 반응
-          </p>
-          <div className="space-y-2.5">
+          <p className="text-[10px] uppercase tracking-wider text-white/60 font-medium mb-3">다른 참여자 반응</p>
+          <div className="space-y-2">
             {REACTIONS.slice(0, visibleReactions).map((r, i) => (
-              <div key={i} className="flex items-start gap-3 reaction-in">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-300 to-amber-400 flex items-center justify-center text-xs font-black text-white flex-shrink-0 shadow-sm">
+              <div key={i} className="reaction-in flex items-start gap-2.5">
+                <div className="w-7 h-7 rounded-sm bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center text-[10px] font-black text-white flex-shrink-0">
                   {r.nickname[0].toUpperCase()}
                 </div>
-                <div className="flex-1 bg-white rounded-2xl rounded-tl-sm px-3 py-2.5 text-sm border border-gray-100 shadow-sm">
-                  <span className="text-gray-400 text-xs mr-2">
-                    {r.nickname}
-                  </span>
-                  <span className="text-gray-800">{r.message}</span>
+                <div className="flex-1 bg-white/8 border border-white/18 px-3 py-2 text-sm">
+                  <span className="text-white/65 text-[10px] mr-2">{r.nickname}</span>
+                  <span className="text-white/90">{r.message}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Payment deadline */}
-        <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 text-center mb-3">
-          <p className="text-amber-600 text-[11px] font-semibold mb-0.5">결제 제한 시간</p>
-          <p className="text-amber-700 font-black font-mono text-3xl tabular-nums">{formatPayTime(payTime)}</p>
+        {/* Payment section */}
+        <div className="border border-white/18 p-4 mb-3">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] uppercase tracking-wider text-white/60 font-medium">결제 제한 시간</p>
+            <p className="font-black font-mono tabular-nums text-orange-400 text-2xl">{formatPayTime(payTime)}</p>
+          </div>
+
+          <Link
+            href="/payment"
+            className="block w-full py-4 font-bold text-base text-white text-center transition-opacity active:opacity-80 mb-2"
+            style={{ background: "#f97316" }}
+          >
+            결제하기
+          </Link>
+          <p className="text-white/65 text-[11px] text-center">
+            제한 시간 안에 결제를 완료해야 낙찰이 확정됩니다.
+          </p>
         </div>
 
-        {/* Primary CTA */}
-        <Link
-          href="/payment"
-          className="block w-full font-bold py-4 rounded-2xl text-base text-white text-center transition-all active:scale-[0.98] shadow-md mb-2"
-          style={{
-            background: "linear-gradient(135deg,#fb923c 0%,#f97316 100%)",
-            boxShadow: "0 4px 20px rgba(249,115,22,0.35)",
-          }}
-        >
-          결제하기
-        </Link>
-        <p className="text-gray-400 text-xs text-center mb-4">
-          제한 시간 안에 결제를 완료해야 낙찰이 확정됩니다.
-        </p>
-
-        {/* Secondary CTA */}
         <button
           onClick={handlePlayAgain}
-          className="w-full py-3.5 rounded-2xl text-base font-bold border-2 border-gray-200 text-gray-500 bg-white transition-colors active:bg-gray-50"
+          className="w-full py-3.5 font-bold text-sm border border-white/25 text-white/65 hover:text-white/85 transition-colors"
         >
           다시 시작하기
         </button>

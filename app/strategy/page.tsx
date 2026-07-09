@@ -285,20 +285,18 @@ export default function StrategyPage() {
     if (!state.currentUser) router.replace("/");
   }, [state.currentUser, router]);
 
-  // Generate a random arrival schedule once on mount
   useEffect(() => {
     const pool = shuffle(LOUNGE_MESSAGES);
     const sched: typeof scheduleRef.current = [];
-    let t = 1 + Math.floor(Math.random() * 3); // first message at 1-3s
+    let t = 1 + Math.floor(Math.random() * 3);
     for (const item of pool) {
       if (t >= 57) break;
       sched.push({ atSecond: t, ...item });
-      t += 2 + Math.floor(Math.random() * 5); // 2-6s gap between messages
+      t += 2 + Math.floor(Math.random() * 5);
     }
     scheduleRef.current = sched;
   }, []);
 
-  // Timer + fire lounge messages
   useEffect(() => {
     if (!state.strategyStartedAt) return;
 
@@ -356,98 +354,86 @@ export default function StrategyPage() {
   if (!state.currentUser) return null;
 
   return (
-    <main className="h-screen bg-[#fffbf5] flex flex-col max-w-md mx-auto overflow-hidden relative">
-      <RightActionMenu />
-      {/* Header */}
-      <div className="flex-shrink-0 bg-white px-4 pt-10 pb-3 border-b border-gray-100 shadow-sm">
-        <div className="flex mb-2">
+    <main className="h-screen bg-[#0a0a0a] flex flex-col max-w-md mx-auto overflow-hidden relative">
+      <RightActionMenu containerClassName="absolute right-3 bottom-[128px] z-40 flex flex-col gap-3" />
+
+      {/* ── Minimal broadcast header ── */}
+      <div className="flex-shrink-0 px-4 pt-10 pb-3">
+        <div className="flex mb-2.5">
           <HomeButton />
         </div>
-
-        {/* Top row: lounge title + timer */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-              <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
-              LIVE
-            </span>
-            <Image
-              src="/dtblogo.png"
-              alt="Rabbit"
-              width={28}
-              height={28}
-              style={{ width: 28, height: "auto" }}
-            />
-            <span className="text-gray-900 font-black text-base tracking-tight">
-              참가자 라운지
-            </span>
-          </div>
-          {/* Timer */}
-          <div className="text-right">
-            <div
-              className={`text-2xl font-black tabular-nums font-mono leading-none ${
-                isUrgent ? "text-red-500" : "text-orange-500"
-              }`}
-            >
-              {pad(mins)}:{pad(secs)}
-            </div>
-            <p className="text-gray-400 text-[10px] mt-0.5 text-right">라이브 시작까지</p>
-          </div>
-        </div>
-
-        {/* Product row */}
-        <div className="flex items-center gap-2.5 mb-2">
-          <ProductThumb alt={state.config.productName} size={40} rounded="rounded-xl" />
-          <div className="min-w-0">
-            <p className="text-gray-800 text-sm font-semibold truncate leading-tight">
-              {state.config.productName}
-            </p>
-            <p className="text-gray-400 text-xs">
-              시작가 {formatKRW(state.config.startPrice)}
-            </p>
-          </div>
-        </div>
-
-        {/* Participant / spectator counts */}
-        <div className="flex items-center gap-2 mb-2.5">
-          <span className="flex items-center gap-1 bg-orange-50 text-orange-600 text-xs font-semibold px-2.5 py-1 rounded-full border border-orange-100">
-            👥 참가자 {MOCK_PARTICIPANT_COUNT.toLocaleString()}명
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 uppercase tracking-widest flex-shrink-0">
+            <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
+            LIVE
           </span>
-          <span className="flex items-center gap-1 bg-gray-50 text-gray-500 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-100">
-            👀 관전자 {MOCK_SPECTATOR_COUNT.toLocaleString()}명
+          <Image
+            src="/dtblogo.png"
+            alt="DTB"
+            width={20}
+            height={20}
+            style={{ width: 20, height: "auto" }}
+          />
+          <span className="text-white font-black text-sm tracking-tight">참가자 라운지</span>
+          <div className="flex-1" />
+          <ProductThumb alt={state.config.productName} size={16} rounded="rounded-sm" />
+          <span className="text-white/60 text-[10px] truncate max-w-[90px]">{state.config.productName}</span>
+          <span className="text-white/55 text-[10px] flex-shrink-0 tabular-nums">
+            ✋{MOCK_PARTICIPANT_COUNT} · 👁{MOCK_SPECTATOR_COUNT.toLocaleString()}
           </span>
         </div>
+      </div>
 
-        {/* Progress bar */}
-        <div className="w-full bg-orange-50 rounded-full h-1.5 overflow-hidden mb-1">
+      {/* ── COUNTDOWN HERO — the pre-match clock ── */}
+      <div className="flex-shrink-0 px-4 pt-3 pb-5">
+        <p className="text-[9px] uppercase tracking-[0.22em] text-white/55 font-medium mb-3">
+          경기 시작까지
+        </p>
+        <div
+          className="font-black tabular-nums font-mono leading-none"
+          style={{
+            fontSize: "6.5rem",
+            color: isUrgent ? "#ef4444" : "#f97316",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {pad(mins)}:{pad(secs)}
+        </div>
+
+        {/* Time remaining bar */}
+        <div className="mt-4 h-0.5 bg-white/8 w-full overflow-hidden">
           <div
-            className="h-1.5 rounded-full transition-all duration-1000"
+            className="h-full transition-all duration-1000"
             style={{
               width: `${progress * 100}%`,
-              background: isUrgent
-                ? "linear-gradient(90deg,#ef4444,#f97316)"
-                : "linear-gradient(90deg,#fb923c,#f59e0b)",
+              background: isUrgent ? "#ef4444" : "#f97316",
             }}
           />
         </div>
 
         {isUrgent && (
-          <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 text-center">
-            <p className="text-amber-600 text-xs font-semibold">
-              ⏱ 잠시 후 라이브가 시작됩니다!
-            </p>
-          </div>
+          <p className="text-orange-500 text-[11px] font-bold mt-2 animate-pulse">
+            ⚡ 잠시 후 경기가 시작됩니다!
+          </p>
         )}
+
+        {/* Product info — small, below the clock */}
+        <div className="flex items-center gap-2 mt-4">
+          <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">상품</span>
+          <span className="text-white/65 text-[11px] truncate">{state.config.productName}</span>
+          <span className="text-[9px] text-white/50 ml-auto flex-shrink-0">
+            시작가 {formatKRW(state.config.startPrice)}
+          </span>
+        </div>
       </div>
 
-      {/* Chat area */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
+      {/* Divider */}
+      <div className="flex-shrink-0 h-px bg-white/8" />
 
-        {/* Lounge intro pill */}
-        <div className="flex justify-center pb-1">
-          <span className="bg-orange-50 text-orange-400 text-xs px-4 py-1.5 rounded-full border border-orange-100 text-center leading-snug">
-            라이브 시작 전, 참가자들이 자유롭게 이야기를 나누고 있습니다.
-          </span>
+      {/* ── Pre-match chat ── */}
+      <div className="flex-1 overflow-y-auto px-4 py-2">
+        <div className="py-2 text-center">
+          <span className="text-[9px] text-white/50 uppercase tracking-[0.18em]">경기 전 자유 채팅</span>
         </div>
 
         {state.chatMessages.map((msg) => {
@@ -455,69 +441,41 @@ export default function StrategyPage() {
 
           if (msg.kind === "system") {
             return (
-              <div key={msg.id} className="flex justify-center">
-                <span className="bg-gray-50 text-gray-400 text-xs px-4 py-1.5 rounded-full border border-gray-100">
-                  {msg.message}
-                </span>
+              <div key={msg.id} className="py-1.5 text-center">
+                <span className="text-[11px] text-white/50">{msg.message}</span>
               </div>
             );
           }
 
           return (
-            <div
-              key={msg.id}
-              className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}
-            >
-              {/* Avatar */}
-              <div
-                className={`w-7 h-7 rounded-full bg-gradient-to-br ${
-                  isMe ? "from-orange-400 to-amber-400" : avatarGradient(msg.nickname)
-                } flex items-center justify-center text-[10px] font-black text-white flex-shrink-0 shadow-sm`}
-              >
-                {msg.nickname[0].toUpperCase()}
-              </div>
-
-              {/* Bubble */}
-              <div
-                className={`max-w-[72%] flex flex-col ${isMe ? "items-end" : "items-start"}`}
-              >
-                <span className="text-[10px] text-gray-400 mb-0.5 px-1">
-                  {isMe ? "나" : msg.nickname}
-                  <span className="ml-1 text-gray-300">·</span>
-                  <span className="ml-1">{formatTime(msg.timestamp)}</span>
-                </span>
-                <div
-                  className={`px-3 py-2 rounded-2xl text-sm leading-snug shadow-sm ${
-                    isMe
-                      ? "bg-orange-500 text-white rounded-tr-sm"
-                      : "bg-white text-gray-800 rounded-tl-sm border border-gray-100"
-                  }`}
-                >
-                  {msg.message}
-                </div>
-              </div>
+            <div key={msg.id} className="py-0.5 leading-relaxed chat-in">
+              <span className={`text-[11px] font-bold mr-1.5 ${isMe ? "text-orange-400" : "text-white/60"}`}>
+                {isMe ? "나" : msg.nickname}
+              </span>
+              <span className="text-xs text-white/75">{msg.message}</span>
+              <span className="text-[10px] text-white/40 ml-1.5">{formatTime(msg.timestamp)}</span>
             </div>
           );
         })}
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="flex-shrink-0 bg-white px-4 pt-3 pb-24 border-t border-gray-100 shadow-sm">
-        <div className="flex gap-2">
+      {/* ── Chat input ── */}
+      <div className="flex-shrink-0 bg-[#111] px-4 pt-2.5 pb-16 border-t border-white/15">
+        <div className="flex gap-0">
           <input
             ref={inputRef}
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="라운지에서 자유롭게 이야기해요 😊"
-            className="flex-1 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-orange-300 transition-colors min-w-0"
+            placeholder="경기 전에 한 마디..."
+            className="flex-1 bg-transparent border border-white/15 border-r-0 px-3 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:border-orange-500/60 transition-colors min-w-0"
           />
           <button
             onClick={sendMessage}
             disabled={!message.trim()}
-            className="bg-orange-500 hover:bg-orange-400 disabled:opacity-30 text-white w-12 rounded-2xl font-bold text-lg flex items-center justify-center transition-colors flex-shrink-0 shadow-sm"
+            className="bg-white/8 disabled:bg-white/4 disabled:text-white/10 text-white/60 w-10 font-bold text-base flex items-center justify-center flex-shrink-0 transition-colors"
           >
             ↑
           </button>

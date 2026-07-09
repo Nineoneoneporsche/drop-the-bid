@@ -148,10 +148,10 @@ function ActionBtn({
       onClick={onClick}
       className="flex flex-col items-center active:scale-90 transition-transform"
     >
-      <div className="w-14 h-14 rounded-full bg-black/70 text-white border border-white/20 shadow-xl flex items-center justify-center">
+      <div className="w-11 h-11 rounded-full bg-black/65 text-white border border-white/18 shadow-xl flex items-center justify-center backdrop-blur-sm">
         {icon}
       </div>
-      <span className="text-gray-700 text-xs mt-1 text-center drop-shadow-sm">
+      <span className="text-white/50 text-[9px] mt-1 text-center leading-tight">
         {label}
       </span>
     </button>
@@ -159,7 +159,11 @@ function ActionBtn({
 }
 
 /* ─── Main export ─── */
-export default function RightActionMenu() {
+export default function RightActionMenu({
+  containerClassName = "absolute right-3 top-[95px] z-50 flex flex-col gap-3",
+}: {
+  containerClassName?: string;
+}) {
   const [sheet, setSheet] = useState<"more" | "wallet" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -192,41 +196,41 @@ export default function RightActionMenu() {
 
   return (
     <>
-      {/* Right-side vertical menu — absolute inside relative game container */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-4">
+      {/* Right-side vertical menu — position controlled by caller */}
+      <div className={containerClassName}>
         <ActionBtn
           icon={
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="5" r="1.5" fill="white" stroke="none"/>
-              <circle cx="12" cy="12" r="1.5" fill="white" stroke="none"/>
-              <circle cx="12" cy="19" r="1.5" fill="white" stroke="none"/>
-            </svg>
-          }
-          label="More"
-          onClick={() => setSheet("more")}
-        />
-        <ActionBtn
-          icon={
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-              <polyline points="16 6 12 2 8 6"/>
-              <line x1="12" y1="2" x2="12" y2="15"/>
-            </svg>
-          }
-          label="Share"
-          onClick={handleShare}
-        />
-        <ActionBtn
-          icon={
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
               <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
               <line x1="12" y1="12" x2="12" y2="16"/>
               <line x1="10" y1="14" x2="14" y2="14"/>
             </svg>
           }
-          label="Wallet"
+          label="지갑"
           onClick={() => setSheet("wallet")}
+        />
+        <ActionBtn
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+              <polyline points="16 6 12 2 8 6"/>
+              <line x1="12" y1="2" x2="12" y2="15"/>
+            </svg>
+          }
+          label="공유"
+          onClick={handleShare}
+        />
+        <ActionBtn
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="5" r="1.5" fill="white" stroke="none"/>
+              <circle cx="12" cy="12" r="1.5" fill="white" stroke="none"/>
+              <circle cx="12" cy="19" r="1.5" fill="white" stroke="none"/>
+            </svg>
+          }
+          label="더보기"
+          onClick={() => setSheet("more")}
         />
       </div>
 

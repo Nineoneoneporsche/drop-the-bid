@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -9,273 +8,263 @@ import {
   MOCK_PARTICIPANT_COUNT,
   MOCK_SPECTATOR_COUNT,
 } from "./context/GameContext";
-import { ProductImageFill, ProductThumb } from "./components/ProductImage";
 import BottomNav from "./components/BottomNav";
-
-function pad(n: number) {
-  return n.toString().padStart(2, "0");
-}
 
 export default function HomePage() {
   const { state } = useGame();
   const router = useRouter();
-  const [countdown, setCountdown] = useState<{
-    h: number;
-    m: number;
-    s: number;
-  } | null>(null);
 
-  useEffect(() => {
-    if (!state.config.gameStartTime) {
-      setCountdown(null);
-      return;
-    }
-    const update = () => {
-      const diff =
-        new Date(state.config.gameStartTime!).getTime() - Date.now();
-      if (diff <= 0) {
-        setCountdown({ h: 0, m: 0, s: 0 });
-        return;
-      }
-      setCountdown({
-        h: Math.floor(diff / 3_600_000),
-        m: Math.floor((diff % 3_600_000) / 60_000),
-        s: Math.floor((diff % 60_000) / 1_000),
-      });
-    };
-    update();
-    const t = setInterval(update, 1000);
-    return () => clearInterval(t);
-  }, [state.config.gameStartTime]);
+  const floor = state.config.floorPrice;
+  const start = state.config.startPrice;
+  const maxSavings = start - floor;
+  const maxDiscountPct = start > 0 ? Math.round((maxSavings / start) * 100) : 0;
 
   return (
-    <main className="min-h-screen bg-[#fffbf5] flex flex-col items-center pb-24">
-      <div className="w-full max-w-md px-4 pt-2">
+    <main className="h-screen bg-[#0a0a0a] flex flex-col max-w-md mx-auto overflow-hidden relative">
 
-        {/* Brand header — logo centered, admin pinned top-right */}
-        <div className="relative mb-3">
-          <div className="absolute top-0 right-0 z-10">
-            <a
-              href="/admin"
-              className="text-xs text-gray-400 border border-gray-200 rounded-xl px-3 py-1.5 bg-white hover:border-orange-300 hover:text-orange-500 transition-colors shadow-sm"
+      {/* ── HERO — 65vh ── */}
+      <div className="relative flex-shrink-0" style={{ height: "65vh" }}>
+
+        {/* Character / stage image — kept bright */}
+        <Image
+          src="/dtb-hero.png"
+          alt="Drop The Bid"
+          fill
+          priority
+          style={{ objectFit: "cover", objectPosition: "center top" }}
+        />
+
+        {/* Top-to-bottom gradient — dark header + dark bottom, bright middle */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.0) 20%, rgba(0,0,0,0.0) 44%, rgba(0,0,0,0.70) 68%, rgba(0,0,0,0.97) 100%)",
+          }}
+        />
+        {/* Radial vignette — darkens left/right edges, keeps centre bright */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 60% at 50% 45%, transparent 30%, rgba(0,0,0,0.52) 100%)",
+          }}
+        />
+
+        {/* ── Top bar ── */}
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-10">
+          <Image
+            src="/dtblogo.png"
+            alt="DTB"
+            width={48}
+            height={24}
+            style={{ width: 48, height: "auto" }}
+            priority
+          />
+          <div className="flex items-center gap-2.5">
+            <span className="flex items-center gap-1.5 bg-red-600 text-white text-[9px] font-black px-2 py-1 uppercase tracking-[0.18em]">
+              <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+              LIVE
+            </span>
+            <span
+              className="text-white text-xs tabular-nums font-medium"
+              style={{ textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}
             >
-              Admin ⚙
-            </a>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
-            <Image
-              src="/dtblogo.png"
-              alt="Rabbit"
-              width={90}
-              height={45}
-              style={{ width: 90, height: "auto", display: "block", marginBottom: 8 }}
-              priority
-            />
-            <p
-              className="text-gray-800 text-center"
-              style={{ fontSize: 15, fontWeight: 800, whiteSpace: "nowrap", marginTop: 0, lineHeight: 1.2 }}
-            >
-              먼저 누른 사람이 임자!
-            </p>
-          </div>
-        </div>
-
-        {/* LIVE badge row */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            LIVE
-          </span>
-          <span className="bg-amber-100 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-amber-200">
-            오늘의 상품
-          </span>
-          <span className="ml-auto text-gray-400 text-xs">
-            👁 {MOCK_SPECTATOR_COUNT.toLocaleString()}명 관전 중
-          </span>
-        </div>
-
-        {/* Product card */}
-        <div className="bg-white rounded-3xl shadow-sm border border-orange-50 overflow-hidden mb-4">
-          {/* Product image */}
-          <div className="relative w-full" style={{ height: 260 }}>
-            <ProductImageFill alt={state.config.productName} priority />
-            {/* Participant badge overlay */}
-            <div className="absolute bottom-3 left-3 float-badge">
-              <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                ✋ {MOCK_PARTICIPANT_COUNT}명 대기 중
-              </span>
-            </div>
-          </div>
-
-          {/* Product info */}
-          <div className="px-5 pt-4 pb-5">
-            <h2 className="text-gray-900 font-bold text-base leading-snug mb-1">
-              {state.config.productName}
-            </h2>
-            <p className="text-gray-400 text-sm mb-4">
-              {state.config.description}
-            </p>
-
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-gray-400 text-xs">시작가</span>
-              <span className="text-3xl font-black text-orange-500 font-mono tabular-nums">
-                {formatKRW(state.config.startPrice)}
-              </span>
-            </div>
-            <p className="text-gray-400 text-xs mb-5">
-              ↓ {formatKRW(state.config.dropAmount)}/초 하락
-            </p>
-
-            {/* Stat chips */}
-            <div className="flex gap-2 mb-5 flex-wrap">
-              {[
-                { icon: "✋", label: `${MOCK_PARTICIPANT_COUNT}명 참여 대기` },
-                { icon: "👁", label: `${MOCK_SPECTATOR_COUNT.toLocaleString()}명 관전` },
-              ].map(({ icon, label }) => (
-                <span
-                  key={label}
-                  className="flex items-center gap-1.5 bg-orange-50 text-orange-600 text-xs font-medium px-3 py-1.5 rounded-full border border-orange-100"
-                >
-                  {icon} {label}
-                </span>
-              ))}
-            </div>
-
-            {/* Countdown or live now */}
-            {countdown ? (
-              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 mb-5 text-center">
-                <p className="text-orange-400 text-xs font-semibold uppercase tracking-wider mb-3">
-                  경매 시작까지
-                </p>
-                <div className="flex justify-center gap-5">
-                  {[
-                    ["시", countdown.h],
-                    ["분", countdown.m],
-                    ["초", countdown.s],
-                  ].map(([label, val]) => (
-                    <div key={String(label)} className="text-center">
-                      <div className="text-4xl font-black text-orange-500 tabular-nums font-mono">
-                        {pad(Number(val))}
-                      </div>
-                      <div className="text-orange-300 text-xs mt-1">{label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-3 mb-5 flex items-center justify-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-green-600 text-sm font-semibold">
-                  지금 참여 가능
-                </span>
-              </div>
-            )}
-
-            <button
-              onClick={() => router.push("/join")}
-              className="w-full font-bold py-4 rounded-2xl text-base text-white transition-all active:scale-[0.98] shadow-md"
-              style={{
-                background: "linear-gradient(135deg, #fb923c 0%, #f97316 100%)",
-                boxShadow: "0 4px 20px rgba(249,115,22,0.35)",
-              }}
-            >
-              지금 참여하기 →
-            </button>
-          </div>
-        </div>
-
-        {/* Hook copy */}
-        <div className="bg-white rounded-3xl shadow-sm border border-amber-100 p-5 mb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xl">🤔</span>
-            <span className="text-amber-600 text-xs font-semibold uppercase tracking-wider">
-              오늘의 챌린지
+              👥 {MOCK_PARTICIPANT_COUNT} · 👁 {MOCK_SPECTATOR_COUNT.toLocaleString()}
             </span>
           </div>
-          <p className="text-gray-900 font-bold text-lg leading-snug mb-1">
-            217명이 대기하고 있습니다!
-          </p>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            과연 누가, 얼마나 낮은 가격에 낙찰을 받을 수 있을까요?
+        </div>
+
+        {/* ── Headline — center of hero ── */}
+        <div
+          className="absolute left-0 right-0 px-5"
+          style={{ top: "28%" }}
+        >
+          {/* Brand badge row */}
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 leading-none"
+              style={{
+                background: "linear-gradient(90deg, #f97316, #fbbf24)",
+                color: "#0a0a0a",
+                borderRadius: "3px",
+              }}
+            >
+              DROP THE BID
+            </span>
+            <span
+              className="text-white/55 text-[10px] font-bold uppercase tracking-wider"
+              style={{ textShadow: "0 1px 8px rgba(0,0,0,1)" }}
+            >
+              WHO WILL WIN?
+            </span>
+          </div>
+
+          {/* Main headline */}
+          <h1
+            className="font-black leading-[1.08] mb-3"
+            style={{
+              fontSize: "2.1rem",
+              letterSpacing: "-0.025em",
+              textShadow: "0 2px 24px rgba(0,0,0,0.85), 0 1px 3px rgba(0,0,0,1)",
+            }}
+          >
+            <span className="text-white">과연 누가,</span>
+            <br />
+            <span style={{ color: "#fbbf24" }}>가장 낮은 가격에</span>
+            <br />
+            <span className="text-white">가져갈까요?</span>
+          </h1>
+
+          {/* Subtext */}
+          <p
+            className="text-[13px] font-medium flex items-center gap-1.5"
+            style={{
+              color: "rgba(255,255,255,0.72)",
+              textShadow: "0 1px 10px rgba(0,0,0,1)",
+            }}
+          >
+            👥{" "}
+            <span className="text-orange-400 font-bold tabular-nums">
+              {MOCK_PARTICIPANT_COUNT}명
+            </span>
+            이 기다리고 있습니다.
           </p>
         </div>
 
-        {/* Previous result */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 mb-4">
-          <p className="text-gray-400 text-xs uppercase tracking-wider font-medium mb-4">
-            직전 게임 결과
-          </p>
-          <div className="flex items-center gap-3 mb-4">
-            <ProductThumb alt="NUVY 유모차 자전거" size={40} rounded="rounded-xl" />
-            <div>
-              <p className="text-gray-900 font-semibold text-sm">
-                NUVY 누비 유모차 자전거
-              </p>
-              <p className="text-gray-400 text-xs">정가 ₩250,000</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "낙찰가", value: "₩187,000", accent: true },
-              { label: "참여자", value: "231명" },
-              { label: "낙찰자", value: "Samdori" },
-            ].map(({ label, value, accent }) => (
-              <div
-                key={label}
-                className="bg-gray-50 rounded-xl p-2.5 text-center"
-              >
-                <p className="text-gray-400 text-[10px] mb-1">{label}</p>
+        {/* ── Event status panel — bottom of hero ── */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
+          <div
+            className="px-4 py-3.5"
+            style={{
+              background: "rgba(6,6,6,0.84)",
+              backdropFilter: "blur(28px)",
+              borderRadius: "12px",
+              border: "1px solid rgba(139,92,246,0.55)",
+              boxShadow:
+                "0 0 16px rgba(139,92,246,0.28), 0 0 48px rgba(139,92,246,0.12), 0 8px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(167,139,250,0.12)",
+            }}
+          >
+            <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+
+              {/* 시작 가격 */}
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.16em] text-white/75 font-medium mb-0.5">
+                  시작 가격
+                </p>
                 <p
-                  className={`text-sm font-bold ${
-                    accent ? "text-orange-500" : "text-gray-800"
-                  }`}
+                  className="text-white font-black tabular-nums font-mono leading-none"
+                  style={{ fontSize: "1.55rem" }}
                 >
-                  {value}
+                  {formatKRW(start)}
                 </p>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* How it works */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
-          <p className="text-gray-400 text-xs uppercase tracking-wider font-medium mb-4">
-            진행 방식
-          </p>
-          <div className="space-y-4">
-            {[
-              {
-                emoji: "💬",
-                title: "전략 회의 시간 1분",
-                desc: "참여자들과 채팅으로 이야기해요",
-              },
-              {
-                emoji: "📉",
-                title: "가격 하락 시작",
-                desc: `초당 ${formatKRW(state.config.dropAmount)} 씩 내려가요`,
-              },
-              {
-                emoji: "✋",
-                title: "손들기",
-                desc: "원하는 가격에 도달하면 손을 들어요",
-              },
-              {
-                emoji: "🏆",
-                title: "낙찰 확정",
-                desc: "가장 먼저 손든 참여자가 낙찰!",
-              },
-            ].map(({ emoji, title, desc }) => (
-              <div key={title} className="flex items-start gap-3">
-                <span className="text-xl leading-none mt-0.5">{emoji}</span>
-                <div>
-                  <p className="text-gray-800 text-sm font-semibold">{title}</p>
-                  <p className="text-gray-400 text-xs mt-0.5">{desc}</p>
-                </div>
+              {/* 하락 속도 */}
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.16em] text-white/75 font-medium mb-0.5">
+                  하락 속도
+                </p>
+                <p className="text-white font-bold tabular-nums font-mono text-[1.1rem] leading-none">
+                  ₩{state.config.dropAmount.toLocaleString()}/초
+                </p>
+                <p className="text-white/55 text-[9px] mt-0.5">실시간 자동 하락</p>
               </div>
-            ))}
+
+              {/* 전체 참가자 */}
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.16em] text-white/75 font-medium mb-0.5">
+                  전체 참가자
+                </p>
+                <p className="text-white font-bold text-[1.1rem] leading-none">
+                  <span className="tabular-nums">{MOCK_PARTICIPANT_COUNT}</span>
+                  <span className="text-sm ml-0.5">명</span>
+                </p>
+                <p className="text-white/55 text-[9px] mt-0.5">경쟁 중</p>
+              </div>
+
+              {/* 목표 최저가 */}
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.16em] text-white/75 font-medium mb-0.5">
+                  목표 최저가
+                </p>
+                <p
+                  className="font-black tabular-nums font-mono text-[1.1rem] leading-none"
+                  style={{ color: "#f97316" }}
+                >
+                  {formatKRW(floor)}
+                </p>
+                <p className="text-orange-500/50 text-[9px] mt-0.5">최대 {maxDiscountPct}% 할인</p>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
+
+      {/* ── Below hero ── */}
+      <div className="flex-1 flex flex-col px-4 pt-3.5 pb-24 min-h-0">
+
+        {/* Event product card */}
+        <div
+          className="flex-shrink-0 px-4 py-3 mb-3"
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            borderRadius: "10px",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <p className="text-[9px] uppercase tracking-[0.22em] text-orange-400 font-bold mb-1.5">
+            오늘의 경매
+          </p>
+          <p className="text-white font-bold text-[13.5px] leading-snug mb-1.5">
+            {state.config.productName}
+          </p>
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="text-white/35 tabular-nums font-mono">
+              정가 {formatKRW(start)}
+            </span>
+            <span className="text-white/18">·</span>
+            <span className="text-orange-400/80 font-medium">
+              최대{" "}
+              <span className="font-bold text-orange-400">{formatKRW(maxSavings)}</span>{" "}
+              절약 가능
+            </span>
+          </div>
+        </div>
+
+        {/* CTA buttons */}
+        <div className="flex flex-col gap-2 mt-auto flex-shrink-0">
+          <button
+            onClick={() => router.push("/join")}
+            className="w-full font-black text-base text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-3.5 gap-0.5"
+            style={{
+              background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+              borderRadius: "10px",
+              boxShadow: "0 4px 24px rgba(139,92,246,0.50), 0 0 0 1px rgba(167,139,250,0.25)",
+            }}
+          >
+            <span>🔥 참가자로 입장</span>
+            <span className="text-[10px] font-medium text-white/62 tracking-normal">
+              경매에 참여하고 낙찰 기회를 잡으세요!
+            </span>
+          </button>
+          <button
+            onClick={() => router.push("/join")}
+            className="w-full font-bold text-sm text-white/60 transition-all active:opacity-70 flex flex-col items-center py-3 gap-0.5"
+            style={{
+              borderRadius: "10px",
+              border: "1px solid rgba(255,255,255,0.10)",
+            }}
+          >
+            <span>👁 관전하기</span>
+            <span className="text-[10px] font-medium text-white/32 tracking-normal">
+              실시간 경매를 구경해보세요!
+            </span>
+          </button>
+        </div>
+      </div>
+
       <BottomNav />
     </main>
   );
