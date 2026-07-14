@@ -39,17 +39,17 @@ export default function JoinPage() {
       <HomeButton />
 
       <div className="mt-10 mb-12">
-        <p className="text-[10px] uppercase tracking-[0.14em] text-white/25 font-medium mb-1">Drop The Bid</p>
-        <h1 className="text-4xl font-black text-white leading-tight">입장하기</h1>
-        <p className="text-white/30 text-sm mt-2">
+        <p className="text-xs uppercase tracking-[0.14em] text-white/60 font-medium mb-1">Drop The Bid</p>
+        <h1 className="text-5xl font-black text-white leading-tight">입장하기</h1>
+        <p className="text-white/70 text-base mt-2">
           {state.config.productName} ·{" "}
-          <span className="text-orange-500 font-semibold">{formatKRW(state.config.startPrice)}</span> 부터 시작
+          <span className="font-semibold" style={{ color: "#a855f7" }}>{formatKRW(state.config.startPrice)}</span> 부터 시작
         </p>
       </div>
 
       {/* Nickname */}
       <div className="mb-10">
-        <label className="block text-[10px] uppercase tracking-[0.14em] text-white/25 font-medium mb-4">
+        <label className="block text-xs uppercase tracking-[0.14em] text-white/60 font-medium mb-4">
           닉네임
         </label>
         <input
@@ -60,14 +60,17 @@ export default function JoinPage() {
           placeholder="닉네임을 입력하세요"
           maxLength={20}
           autoFocus
-          className="w-full bg-transparent border-b-2 border-white/15 px-0 py-3 text-white text-2xl font-bold placeholder-white/10 focus:outline-none focus:border-orange-500 transition-colors"
+          className="w-full bg-transparent border-b-2 border-white/25 px-0 py-3 text-white text-3xl font-bold placeholder-white/25 focus:outline-none transition-colors"
+          style={{ borderBottomColor: undefined }}
+          onFocus={e => (e.target.style.borderBottomColor = "#a855f7")}
+          onBlur={e => (e.target.style.borderBottomColor = "")}
         />
         {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
       </div>
 
       {/* Role */}
       <div className="mb-12">
-        <label className="block text-[10px] uppercase tracking-[0.14em] text-white/25 font-medium mb-2">
+        <label className="block text-xs uppercase tracking-[0.14em] text-white/60 font-medium mb-2">
           역할 선택
         </label>
         {ROLES.map(({ value, label, desc }, i) => {
@@ -76,18 +79,17 @@ export default function JoinPage() {
             <button
               key={value}
               onClick={() => setRole(value)}
-              className={`w-full flex items-start gap-3 py-4 text-left ${i === 0 ? "border-b border-white/8" : ""}`}
+              className={`w-full flex items-start gap-4 py-5 text-left ${i === 0 ? "border-b border-white/10" : ""}`}
             >
               <div
-                className={`w-4 h-4 border-2 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
-                  sel ? "border-orange-500" : "border-white/20"
-                }`}
+                className="w-5 h-5 border-2 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors"
+                style={{ borderColor: sel ? "#a855f7" : "rgba(255,255,255,0.35)" }}
               >
-                {sel && <div className="w-2 h-2 rounded-full bg-orange-500" />}
+                {sel && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#a855f7" }} />}
               </div>
               <div>
-                <p className={`font-bold text-base ${sel ? "text-white" : "text-white/25"}`}>{label}</p>
-                <p className="text-white/25 text-xs mt-0.5 leading-snug">{desc}</p>
+                <p className={`font-bold text-lg ${sel ? "text-white" : "text-white/60"}`}>{label}</p>
+                <p className="text-white/55 text-sm mt-1 leading-snug">{desc}</p>
               </div>
             </button>
           );
@@ -97,8 +99,12 @@ export default function JoinPage() {
       <div className="mt-auto">
         <button
           onClick={handleJoin}
-          className="w-full py-4 font-bold text-base text-white transition-opacity active:opacity-80"
-          style={{ background: "#f97316" }}
+          className="w-full py-5 font-bold text-lg text-white transition-all active:scale-[0.98] active:opacity-90"
+          style={{
+            background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+            borderRadius: "10px",
+            boxShadow: "0 4px 24px rgba(139,92,246,0.45)",
+          }}
         >
           {role === "participant" ? "참여자로 입장 →" : "관전자로 입장 →"}
         </button>

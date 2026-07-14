@@ -6,17 +6,17 @@ import Link from "next/link";
 import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
 
-const PRODUCT_NAME = "NUVY 누비 유모차 자전거 타보-고급형 미니스트라이크";
-const START_PRICE = 250_000;
-const FLOOR_PRICE = 150_000;
+const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
+const START_PRICE = 899_000;
+const FLOOR_PRICE = 550_000;
 
 function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
 
 const SEQUENCE = [
-  { price: 250_000, chats: [{ nick: "shopping_star", msg: "오늘 어디까지 갈까요?" }, { nick: "minivelo_fan", msg: "다들 버티는 분위기네요" }] },
-  { price: 220_000, chats: [{ nick: "구경꾼99", msg: "와 벌써 22만원" }, { nick: "라이브팬", msg: "아직 아무도 안 누르네?" }] },
-  { price: 180_000, chats: [{ nick: "실속파", msg: "이걸 버틴다고??" }, { nick: "쇼핑고수", msg: "슬슬 누를 사람 나올 듯" }] },
-  { price: 150_000, chats: [{ nick: "라이브킹", msg: "레전드네 ㄷㄷ" }, { nick: "채팅구경", msg: "단합력 무엇 ㅋㅋ" }] },
+  { price: 899_000, chats: [{ nick: "shopping_star", msg: "오늘 어디까지 갈까요?" }, { nick: "minivelo_fan", msg: "다들 버티는 분위기네요" }] },
+  { price: 780_000, chats: [{ nick: "구경꾼99", msg: "와 벌써 78만원" }, { nick: "라이브팬", msg: "아직 아무도 안 누르네?" }] },
+  { price: 650_000, chats: [{ nick: "실속파", msg: "이걸 버틴다고??" }, { nick: "쇼핑고수", msg: "슬슬 누를 사람 나올 듯" }] },
+  { price: 550_000, chats: [{ nick: "라이브킹", msg: "레전드네 ㄷㄷ" }, { nick: "채팅구경", msg: "단합력 무엇 ㅋㅋ" }] },
 ];
 
 type ChatMsg = { nick: string; msg: string; id: number };

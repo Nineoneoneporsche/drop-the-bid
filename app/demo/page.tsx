@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { ProductImageFill, ProductThumb } from "../components/ProductImage";
 import { formatKRW, MOCK_PARTICIPANT_COUNT, MOCK_SPECTATOR_COUNT } from "../context/GameContext";
 
-const PRODUCT_NAME = "NUVY 누비 유모차 자전거 타보-고급형 미니스트라이크";
-const PRODUCT_DESC = "프리미엄 유모차 자전거";
-const START_PRICE = 250_000;
-const FLOOR_PRICE = 150_000;
+const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
+const PRODUCT_DESC = "강력한 M3 칩과 11형 Liquid Retina 디스플레이를 탑재한 iPad Air";
+const START_PRICE = 899_000;
+const FLOOR_PRICE = 550_000;
 const DROP_AMOUNT = 1_000;
 
 const STATS = [

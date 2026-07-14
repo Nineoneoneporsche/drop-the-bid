@@ -70,9 +70,9 @@ export default function ResultsPage() {
         </div>
 
         <div className="mb-8">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-3xl font-black text-white">지난 결과</h1>
-          <p className="text-white/65 text-sm mt-1.5">끝까지 버텨낸 레전드 드랍.</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
+          <h1 className="text-5xl font-black text-white leading-tight">지난 결과</h1>
+          <p className="text-white/65 text-base mt-2">끝까지 버텨낸 레전드 드랍.</p>
         </div>
 
         <div>
@@ -82,29 +82,32 @@ export default function ResultsPage() {
             return (
               <div key={r.id} className={`py-6 ${i < RESULTS.length - 1 ? "border-b border-white/15" : ""}`}>
                 {/* Name + tag */}
-                <div className="flex items-baseline justify-between gap-2 mb-1">
-                  <p className="text-sm font-bold text-white/80 leading-snug">{r.name}</p>
-                  <span className={`text-[10px] font-black uppercase tracking-wider flex-shrink-0 ${TAG_COLOR[r.tag]}`}>
+                <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                  <p className="text-base font-bold text-white/80 leading-snug">{r.name}</p>
+                  <span className={`text-[11px] font-black uppercase tracking-wider flex-shrink-0 ${TAG_COLOR[r.tag]}`}>
                     {r.tag}
                   </span>
                 </div>
 
                 {/* Retail strikethrough */}
-                <p className="text-[11px] text-white/40 line-through mb-0.5">{fmt(r.retail)}</p>
+                <p className="text-xs text-white/40 line-through mb-1">{fmt(r.retail)}</p>
 
-                {/* Price — hero of each row */}
-                <div className="flex items-end gap-3 mb-2">
+                {/* Price */}
+                <div className="flex items-end gap-3 mb-2.5">
                   <span
-                    className="font-black text-orange-500 font-mono tabular-nums leading-none"
-                    style={{ fontSize: isFirst ? "3rem" : "2.4rem" }}
+                    className="font-black font-mono tabular-nums leading-none"
+                    style={{
+                      fontSize: isFirst ? "3rem" : "2.4rem",
+                      color: "#c084fc",
+                    }}
                   >
                     {fmt(r.winning)}
                   </span>
-                  <span className="mb-0.5 text-white text-sm font-black">-{r.discount}%</span>
+                  <span className="mb-1 text-white text-base font-black">-{r.discount}%</span>
                 </div>
 
                 {/* Meta line */}
-                <div className="flex items-center gap-2 text-xs text-white/60">
+                <div className="flex items-center gap-2 text-sm text-white/60">
                   <span className="text-green-400 font-semibold">{fmt(saved)} 절약</span>
                   <span>·</span>
                   <span>{r.winner}</span>
@@ -113,7 +116,7 @@ export default function ResultsPage() {
                 </div>
 
                 {/* Quote */}
-                <p className="text-white/55 text-[11px] italic mt-2">"{r.highlight}"</p>
+                <p className="text-white/55 text-xs italic mt-2">"{r.highlight}"</p>
               </div>
             );
           })}
@@ -121,13 +124,14 @@ export default function ResultsPage() {
 
         {/* FOMO */}
         <div className="pt-8 pb-2 flex items-center justify-between gap-4">
-          <p className="text-sm text-white/65">
-            오늘의 레전드는 <span className="font-black text-orange-500">당신이 만들 수 있어요.</span>
+          <p className="text-base text-white/65">
+            오늘의 레전드는{" "}
+            <span className="font-black" style={{ color: "#c084fc" }}>당신이 만들 수 있어요.</span>
           </p>
           <Link
             href="/"
             className="flex-shrink-0 px-4 py-2.5 text-white text-sm font-bold transition-opacity active:opacity-80"
-            style={{ background: "#f97316" }}
+            style={{ background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)" }}
           >
             참여 →
           </Link>

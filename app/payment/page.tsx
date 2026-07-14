@@ -5,8 +5,8 @@ import Link from "next/link";
 import { ProductThumb } from "../components/ProductImage";
 import HomeButton from "../components/HomeButton";
 
-const PRICE = 150_000;
-const PRODUCT_NAME = "NUVY 누비 유모차 자전거";
+const PRICE = 550_000;
+const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
 
 type PayMethod = {
   id: string;
@@ -73,7 +73,7 @@ export default function PaymentPage() {
               <ProductThumb alt={PRODUCT_NAME} size={60} rounded="rounded-sm" />
               <div>
                 <p className="text-white/70 text-sm font-semibold leading-snug">{PRODUCT_NAME}</p>
-                <p className="text-orange-500 font-black text-xl font-mono tabular-nums mt-1">{fmt(PRICE)}</p>
+                <p className="text-[#c084fc] font-black text-xl font-mono tabular-nums mt-1">{fmt(PRICE)}</p>
                 <p className="text-white/60 text-xs mt-0.5">배송 준비 중</p>
               </div>
             </div>
@@ -81,7 +81,7 @@ export default function PaymentPage() {
           <Link
             href="/"
             className="block w-full py-4 text-white font-bold text-base transition-opacity active:opacity-80"
-            style={{ background: "#f97316" }}
+            style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
           >
             홈으로 가기
           </Link>
@@ -107,7 +107,7 @@ export default function PaymentPage() {
             <p className="text-[10px] uppercase tracking-wider text-white/60 mb-0.5">남은 시간</p>
             <p
               className={`font-black font-mono text-2xl tabular-nums leading-none ${
-                expired ? "text-white/45" : timeLeft < 60 ? "text-red-500" : "text-orange-500"
+                expired ? "text-white/45" : timeLeft < 60 ? "text-red-500" : "text-[#a855f7]"
               }`}
             >
               {fmtTime(timeLeft)}
@@ -131,8 +131,8 @@ export default function PaymentPage() {
             <ProductThumb alt={PRODUCT_NAME} size={80} rounded="rounded-sm" />
             <div className="flex-1 min-w-0">
               <p className="text-white/70 text-sm font-semibold leading-snug">{PRODUCT_NAME}</p>
-              <p className="text-white/55 text-xs mt-1">정가 ₩250,000</p>
-              <p className="text-orange-500 font-black text-2xl font-mono tabular-nums mt-1 leading-none">{fmt(PRICE)}</p>
+              <p className="text-white/55 text-xs mt-1">정가 ₩899,000</p>
+              <p className="text-[#c084fc] font-black text-2xl font-mono tabular-nums mt-1 leading-none">{fmt(PRICE)}</p>
             </div>
           </div>
           <div className="border-t border-white/15 mt-4 pt-4 space-y-2">
@@ -144,7 +144,7 @@ export default function PaymentPage() {
             ))}
             <div className="border-t border-white/15 pt-2 flex justify-between">
               <span className="text-white text-sm font-bold">합계</span>
-              <span className="text-orange-500 font-black text-sm font-mono tabular-nums">{fmt(PRICE)}</span>
+              <span className="text-[#c084fc] font-black text-sm font-mono tabular-nums">{fmt(PRICE)}</span>
             </div>
           </div>
         </div>
@@ -160,7 +160,7 @@ export default function PaymentPage() {
                   key={m.id}
                   onClick={() => setMethod(m.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 text-left border transition-colors ${
-                    sel ? "border-orange-500 bg-orange-500/10" : "border-white/15 bg-white/5 hover:border-white/20"
+                    sel ? "border-[#a855f7] bg-[#a855f7]/10" : "border-white/15 bg-white/5 hover:border-white/20"
                   }`}
                 >
                   <div
@@ -177,8 +177,8 @@ export default function PaymentPage() {
                     )}
                   </div>
                   <span className={`flex-1 text-sm font-semibold ${sel ? "text-white" : "text-white/70"}`}>{m.label}</span>
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${sel ? "border-orange-500" : "border-white/35"}`}>
-                    {sel && <div className="w-2 h-2 rounded-full bg-orange-500" />}
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${sel ? "border-[#a855f7]" : "border-white/35"}`}>
+                    {sel && <div className="w-2 h-2 rounded-full bg-[#a855f7]" />}
                   </div>
                 </button>
               );
@@ -203,7 +203,7 @@ export default function PaymentPage() {
         {/* Agreement */}
         <div className="px-4 py-5">
           <button onClick={() => setAgreed((a) => !a)} className="w-full flex items-start gap-3 text-left">
-            <div className={`w-5 h-5 border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${agreed ? "bg-orange-500 border-orange-500" : "border-white/20 bg-transparent"}`}>
+            <div className={`w-5 h-5 border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${agreed ? "bg-[#a855f7] border-[#a855f7]" : "border-white/20 bg-transparent"}`}>
               {agreed && (
                 <svg viewBox="0 0 12 12" className="w-3 h-3" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="1,6 5,10 11,2" />
@@ -212,7 +212,7 @@ export default function PaymentPage() {
             </div>
             <p className="text-white/70 text-sm leading-relaxed">
               결제 정보 및 개인정보 수집·이용에 동의합니다.{" "}
-              <span className="text-orange-500 font-semibold">(필수)</span>
+              <span className="text-[#a855f7] font-semibold">(필수)</span>
             </p>
           </button>
         </div>
@@ -224,7 +224,7 @@ export default function PaymentPage() {
           onClick={handlePay}
           disabled={!canPay}
           className="w-full py-4 text-base font-bold transition-opacity active:opacity-80 disabled:cursor-not-allowed"
-          style={canPay ? { background: "#f97316", color: "#fff" } : { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.2)" }}
+          style={canPay ? { background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)", color: "#fff" } : { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.2)" }}
         >
           {fmt(PRICE)} 결제하기
         </button>

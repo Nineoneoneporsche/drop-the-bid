@@ -6,7 +6,7 @@ import { useState } from "react";
 function Fallback({ className = "" }: { className?: string }) {
   return (
     <div className={`w-full h-full flex items-center justify-center bg-orange-50 ${className}`}>
-      <span className="text-4xl select-none">🛵</span>
+      <span className="text-4xl select-none">📱</span>
     </div>
   );
 }
@@ -70,7 +70,7 @@ export function ProductThumb({
         style={{ width: w, height: h, minWidth: w }}
         className={`flex items-center justify-center bg-orange-50 flex-shrink-0 ${rounded}`}
       >
-        <span style={{ fontSize: Math.round(w * 0.45) }}>🛵</span>
+        <span style={{ fontSize: Math.round(w * 0.45) }}>📱</span>
       </div>
     );
   }

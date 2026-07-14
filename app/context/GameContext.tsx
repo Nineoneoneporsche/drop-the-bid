@@ -48,13 +48,13 @@ export type GameAction =
   | { type: "RESET" };
 
 export const DEFAULT_CONFIG: GameConfig = {
-  productName: "NUVY 누비 유모차 자전거 타보-고급형 미니스트라이크",
-  description: "프리미엄 유모차 자전거",
-  startPrice: 250_000,
+  productName: "Apple iPad Air 11형 Wi-Fi 128GB",
+  description: "강력한 M3 칩과 11형 Liquid Retina 디스플레이를 탑재한 iPad Air",
+  startPrice: 899_000,
   dropAmount: 1_000,
   strategyDuration: 60,
   gameStartTime: null,
-  floorPrice: 150_000,
+  floorPrice: 550_000,
 };
 
 export const MOCK_PARTICIPANT_COUNT = 217;

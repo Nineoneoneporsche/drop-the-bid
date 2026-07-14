@@ -107,8 +107,50 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   animation: success-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* Hide scrollbars globally in chat areas */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* Chat top fade — true transparency via mask (works over any background) */
+.chat-fade-top {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0px, rgba(0,0,0,0.6) 36px, black 72px);
+  mask-image: linear-gradient(to bottom, transparent 0px, rgba(0,0,0,0.6) 36px, black 72px);
+}
+
+/* DJ appearance */
+@keyframes dj-appear {
+  0%   { opacity: 0; transform: scale(0.82); }
+  12%  { opacity: 1; transform: scale(1.04); }
+  20%  { opacity: 1; transform: scale(1);    }
+  78%  { opacity: 1; transform: scale(1);    }
+  100% { opacity: 0; transform: scale(0.92); }
+}
+.dj-pop {
+  animation: dj-appear 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 /* Go-button pulse */
 @keyframes go-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.6); }
   50%       { box-shadow: 0 0 0 18px rgba(249,115,22,0); }
+}
+
+@keyframes bid-glow {
+  0%, 100% { box-shadow: 0 2px 14px rgba(168,85,247,0.55), inset 0 1px 0 rgba(255,255,255,0.18); }
+  50%       { box-shadow: 0 2px 22px rgba(168,85,247,0.85), inset 0 1px 0 rgba(255,255,255,0.18); }
+}
+
+@keyframes bid-glow-red {
+  0%, 100% { box-shadow: 0 2px 14px rgba(239,68,68,0.55), inset 0 1px 0 rgba(255,255,255,0.15); }
+  50%       { box-shadow: 0 2px 22px rgba(239,68,68,0.9),  inset 0 1px 0 rgba(255,255,255,0.15); }
+}
+
+.bid-btn-purple {
+  background: linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%) !important;
+  animation: bid-glow 2s ease-in-out infinite;
+}
+
+.bid-btn-critical {
+  background: linear-gradient(180deg, #f87171 0%, #ef4444 55%, #c41c1c 100%) !important;
+  animation: bid-glow-red 1.4s ease-in-out infinite;
 }

@@ -80,7 +80,7 @@ export default function BottomNav() {
                 <Link
                   href={href}
                   className={`flex flex-col items-center justify-center h-full gap-0.5 transition-opacity active:opacity-50 ${
-                    active ? "text-orange-500" : "text-white/55"
+                    active ? "text-[#4ade80]" : "text-white/55"
                   }`}
                 >
                   {icon}

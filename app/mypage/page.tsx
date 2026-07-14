@@ -16,7 +16,7 @@ const STATS = [
 ];
 
 const HISTORY = [
-  { product: "NUVY 누비 유모차 자전거", date: "2025.12.01", price: 187_000, won: true  },
+  { product: "Apple iPad Air 11형 Wi-Fi 128GB", date: "2025.12.01", price: 680_000, won: true  },
   { product: "배민 상품권 50,000원",    date: "2025.11.28", price: null,    won: false },
   { product: "iPad Pro 11형",           date: "2025.11.15", price: null,    won: false },
 ];
@@ -42,30 +42,36 @@ export default function MyPage() {
     <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center pb-28">
       <div className="w-full max-w-md px-4 pt-10">
 
-        <div className="mb-6">
+        <div className="mb-5">
           <HomeButton />
+        </div>
+
+        {/* Page header */}
+        <div className="mb-6">
+          <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
+          <h1 className="text-5xl font-black text-white leading-tight">My Page</h1>
         </div>
 
         {/* Profile */}
         <div className="flex items-center gap-4 mb-6">
           <div
-            className="w-12 h-12 flex-shrink-0 flex items-center justify-center text-xl font-black text-white"
-            style={{ background: "#f97316" }}
+            className="w-14 h-14 flex-shrink-0 flex items-center justify-center text-2xl font-black text-white"
+            style={{ background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)" }}
           >
             {USER.nickname[0]}
           </div>
           <div>
-            <h1 className="text-xl font-black text-white">{USER.nickname}</h1>
-            <p className="text-xs text-white/55 mt-0.5">{USER.level} · {USER.since}부터</p>
+            <p className="text-xl font-black text-white">{USER.nickname}</p>
+            <p className="text-sm text-white/55 mt-0.5">{USER.level} · {USER.since}부터</p>
           </div>
         </div>
 
-        {/* Stats — 4 columns */}
+        {/* Stats */}
         <div className="grid grid-cols-4 mb-8">
           {STATS.map(({ label, value }, i) => (
             <div key={label} className={`text-center ${i > 0 ? "border-l border-white/15" : ""}`}>
-              <p className="text-[10px] uppercase tracking-wider text-white/55 font-medium mb-0.5">{label}</p>
-              <p className="text-orange-500 font-black text-sm font-mono tabular-nums">{value}</p>
+              <p className="text-xs uppercase tracking-wider text-white/55 font-medium mb-0.5">{label}</p>
+              <p className="font-black text-base font-mono tabular-nums" style={{ color: "#c084fc" }}>{value}</p>
             </div>
           ))}
         </div>
@@ -74,17 +80,17 @@ export default function MyPage() {
 
         {/* History */}
         <div className="mb-6">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-white/55 font-medium mb-3">참여 내역</p>
+          <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium mb-3">참여 내역</p>
           {HISTORY.map((item, i) => (
             <div key={i} className={`flex items-center gap-3 py-3.5 ${i < HISTORY.length - 1 ? "border-b border-white/12" : ""}`}>
               <span className={`text-sm flex-shrink-0 ${item.won ? "" : "opacity-30"}`}>{item.won ? "🏆" : "😔"}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white/80 truncate">{item.product}</p>
-                <p className="text-xs text-white/55 mt-0.5">{item.date}</p>
+                <p className="text-base font-semibold text-white/80 truncate">{item.product}</p>
+                <p className="text-sm text-white/55 mt-0.5">{item.date}</p>
               </div>
               <div className="text-right flex-shrink-0">
                 {item.won
-                  ? <p className="text-sm font-black font-mono text-orange-500">{fmt(item.price!)}</p>
+                  ? <p className="text-sm font-black font-mono" style={{ color: "#c084fc" }}>{fmt(item.price!)}</p>
                   : <p className="text-xs text-white/45">미낙찰</p>
                 }
               </div>
@@ -97,19 +103,19 @@ export default function MyPage() {
         {/* Achievements */}
         <div className="mb-6">
           <div className="flex items-baseline justify-between mb-3">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-white/55 font-medium">획득 배지</p>
-            <span className="text-[10px] text-white/55">{ACHIEVEMENTS.filter(a => a.unlocked).length}/{ACHIEVEMENTS.length}</span>
+            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">획득 배지</p>
+            <span className="text-xs text-white/55">{ACHIEVEMENTS.filter(a => a.unlocked).length}/{ACHIEVEMENTS.length}</span>
           </div>
           <div className="flex gap-5">
             {ACHIEVEMENTS.map(({ emoji, label, unlocked }) => (
               <div key={label} className="flex flex-col items-center gap-1">
                 <span
-                  className="text-2xl leading-none"
+                  className="text-3xl leading-none"
                   style={{ filter: unlocked ? "none" : "grayscale(1) opacity(0.25)" }}
                 >
                   {emoji}
                 </span>
-                <p className={`text-[9px] font-medium text-center ${unlocked ? "text-white/70" : "text-white/45"}`}>
+                <p className={`text-xs font-medium text-center ${unlocked ? "text-white/70" : "text-white/45"}`}>
                   {label}
                 </p>
               </div>
@@ -121,14 +127,17 @@ export default function MyPage() {
 
         {/* Quick links */}
         <div className="mb-6">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-white/55 font-medium mb-1">바로가기</p>
+          <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium mb-1">바로가기</p>
           {MENU.map(({ label, href }, i) => (
             <Link
               key={href}
               href={href}
-              className={`flex items-center justify-between py-3.5 text-sm font-medium text-white/70 hover:text-orange-500 transition-colors ${
+              className={`flex items-center justify-between py-3.5 text-base font-medium text-white/70 transition-colors ${
                 i < MENU.length - 1 ? "border-b border-white/12" : ""
               }`}
+              style={{}}
+              onMouseEnter={e => (e.currentTarget.style.color = "#a855f7")}
+              onMouseLeave={e => (e.currentTarget.style.color = "")}
             >
               {label}
               <span className="text-white/50 text-xs">→</span>
@@ -148,8 +157,7 @@ export default function MyPage() {
 
         <Link
           href="/"
-          className="block w-full py-4 text-white font-bold text-base text-center transition-opacity active:opacity-80 mb-3"
-          style={{ background: "#f97316" }}
+          className="block w-full py-4 text-white font-bold text-base text-center transition-opacity active:opacity-80 mb-3 bid-btn-purple"
         >
           오늘의 DTB 참여하기 →
         </Link>
