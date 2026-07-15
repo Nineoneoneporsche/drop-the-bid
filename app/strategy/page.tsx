@@ -324,7 +324,7 @@ export default function StrategyPage() {
       )}
 
       {/* ── Right action menu — sits above chat input + buttons ── */}
-      <RightActionMenu containerClassName="absolute right-3 bottom-[108px] z-40 flex flex-col gap-3" />
+      <RightActionMenu containerClassName="absolute right-3 bottom-[160px] z-40 flex flex-col gap-3" />
 
       {/* ── Main content ── */}
       <div className="relative z-10 flex flex-col h-full">
@@ -396,19 +396,11 @@ export default function StrategyPage() {
                 }}
               />
             </div>
-            <div className="flex justify-between mt-1">
-              {isStrategy ? (
-                <>
-                  <span className="text-[10px] text-white/40">경기 준비 중</span>
-                  {isUrgent && <span className="text-[10px] font-bold animate-pulse" style={{ color: "#a855f7" }}>⚡ 잠시 후 시작</span>}
-                </>
-              ) : (
-                <>
-                  <span className="text-[10px] text-white/40">시작 {formatKRW(start)}</span>
-                  <span className="text-[10px]" style={{ color: isCritical ? "#ef4444" : "#a855f7" }}>최저 {formatKRW(floor)}</span>
-                </>
-              )}
-            </div>
+            {isStrategy && isUrgent && (
+              <div className="flex justify-end mt-1">
+                <span className="text-[10px] font-bold animate-pulse" style={{ color: "#a855f7" }}>⚡ 잠시 후 시작</span>
+              </div>
+            )}
           </div>
 
           {/* Participant / spectator count — below countdown */}
