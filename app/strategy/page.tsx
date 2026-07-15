@@ -428,10 +428,7 @@ export default function StrategyPage() {
               <p className="text-white/90 text-sm font-semibold leading-snug line-clamp-1">
                 {state.config.productName}
               </p>
-              <div className="flex items-center gap-4 mt-1">
-                <p className="text-white/40 text-xs font-mono tabular-nums line-through">{formatKRW(start)}</p>
-                <p className="text-xs font-bold font-mono tabular-nums" style={{ color: "#c084fc" }}>{formatKRW(floor)}</p>
-              </div>
+              <p className="text-white/40 text-xs font-mono tabular-nums mt-1">정가 {formatKRW(start)}</p>
             </div>
           </div>
         </div>
