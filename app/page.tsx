@@ -60,14 +60,6 @@ export default function HomePage() {
 
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-10">
-          <Image
-            src="/dtblogo.png"
-            alt="DTB"
-            width={48}
-            height={24}
-            style={{ width: 48, height: "auto" }}
-            priority
-          />
           <div className="flex items-center gap-2.5">
             <span className="flex items-center gap-1.5 bg-red-600 text-white text-[9px] font-black px-2 py-1 uppercase tracking-[0.18em]">
               <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
