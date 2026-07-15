@@ -83,6 +83,30 @@ const LOUNGE_MESSAGES: { nickname: string; message: string }[] = [
   { nickname: "라이브러버",  message: "라이브 쇼핑 너무 좋아요" },
 ];
 
+// ── In-game rapid chat (time-based, fires every ~3-5s) ───────────────────────
+const RAPID_CHATS = shuffle([
+  { nickname: "관전자K",    message: "아직 아무도 안 눌렀네" },
+  { nickname: "두근두근",   message: "손이 떨려요 ㅋㅋ" },
+  { nickname: "긴장맥스",   message: "심장 쫄깃쫄깃" },
+  { nickname: "뚝심파",     message: "버텨버텨버텨" },
+  { nickname: "관전러88",   message: "와 진짜 안 눌러요?" },
+  { nickname: "눈치게임",   message: "지금 다들 숨참고 있는 거 알잖아요" },
+  { nickname: "라이브덕후", message: "이런 분위기 너무 좋다 ㅋㅋ" },
+  { nickname: "조용히봄",   message: "..." },
+  { nickname: "긴장자",     message: "누가 먼저 누를 것 같아요?" },
+  { nickname: "관전자K",    message: "저도 참가할걸 그랬나" },
+  { nickname: "두근두근",   message: "지금 가격 실화임?" },
+  { nickname: "뚝심파",     message: "조금만 더 조금만 더" },
+  { nickname: "눈치게임",   message: "눈치 싸움 ㄷㄷ" },
+  { nickname: "라이브덕후", message: "이 긴장감이 진짜 묘미죠" },
+  { nickname: "관전러88",   message: "으악 빨리빨리" },
+  { nickname: "조용히봄",   message: "제발 제발..." },
+  { nickname: "긴장맥스",   message: "저면 지금 당장 눌렀을 것 같은데 ㅋ" },
+  { nickname: "뚝심파",     message: "단합 단합!!" },
+  { nickname: "관전자K",    message: "이거 얼마까지 내려갈 수 있는 거예요?" },
+  { nickname: "두근두근",   message: "손가락이 저절로 가려고 해요 ㅠ" },
+]);
+
 // ── In-game chat events (price threshold) ────────────────────────────────────
 const CHAT_EVENTS = [
   { threshold: 97, nickname: "버티기대장", message: "자 오늘 목표가 얼마까지예요? 저는 최소 70만원까지는 버텨볼 거예요" },
@@ -143,6 +167,8 @@ export default function StrategyPage() {
   const djIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const firedChatRef = useRef(new Set<number>());
   const firedNarratorRef = useRef(new Set<number>());
+  const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rapidIdxRef = useRef(0);
 
   // ── Redirect guards ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -197,10 +223,18 @@ export default function StrategyPage() {
       djTimerRef.current = setTimeout(() => setShowDJ(false), 2500);
     }
     djIntervalRef.current = setInterval(triggerDJ, 20_000);
+    rapidIdxRef.current = 0;
+    rapidChatRef.current = setInterval(() => {
+      const msg = RAPID_CHATS[rapidIdxRef.current % RAPID_CHATS.length];
+      rapidIdxRef.current += 1;
+      dispatch({ type: "SEND_MESSAGE", nickname: msg.nickname, message: msg.message, timestamp: Date.now() });
+    }, 3500);
+
     return () => {
       if (tickRef.current) clearInterval(tickRef.current);
       if (djIntervalRef.current) clearInterval(djIntervalRef.current);
       if (djTimerRef.current) clearTimeout(djTimerRef.current);
+      if (rapidChatRef.current) clearInterval(rapidChatRef.current);
     };
   }, [state.phase, dispatch]);
 
