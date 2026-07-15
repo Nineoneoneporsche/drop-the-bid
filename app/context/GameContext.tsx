@@ -226,7 +226,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem("dtb_config");
       if (saved) {
         const config = JSON.parse(saved) as Partial<GameConfig>;
-        dispatch({ type: "LOAD_CONFIG", config });
+        // Product fields always come from DEFAULT_CONFIG so deploys take effect immediately
+        dispatch({ type: "LOAD_CONFIG", config: {
+          ...config,
+          productName:      DEFAULT_CONFIG.productName,
+          description:      DEFAULT_CONFIG.description,
+          startPrice:       DEFAULT_CONFIG.startPrice,
+          floorPrice:       DEFAULT_CONFIG.floorPrice,
+          dropAmount:       DEFAULT_CONFIG.dropAmount,
+          strategyDuration: DEFAULT_CONFIG.strategyDuration,
+        }});
       }
     } catch {
       // ignore
