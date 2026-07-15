@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
@@ -149,8 +150,8 @@ export default function PracticePage() {
             className="card-rise bg-[#141414] border border-white/10 rounded-2xl overflow-hidden"
             style={{ transitionDelay: "120ms" }}
           >
-            <div className="flex items-center justify-center py-10 bg-white/5">
-              <span style={{ fontSize: 64 }}>🎫</span>
+            <div className="w-full overflow-hidden">
+              <Image src="/baemincoupon.jpg" alt="배민 상품권" width={900} height={600} style={{ width: "100%", height: "auto", display: "block", marginTop: "-6%", marginBottom: "-6%" }} />
             </div>
             <div className="px-5 pt-4 pb-5">
               <p className="text-[10px] uppercase tracking-wider text-white/55 mb-1 font-medium">연습 상품</p>
