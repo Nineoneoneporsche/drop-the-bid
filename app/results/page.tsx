@@ -1,16 +1,17 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
 
 function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
 
-const TAG_COLOR: Record<string, string> = {
-  레전드: "text-amber-400",
-  역대급: "text-violet-400",
-  폭발:   "text-red-400",
-  데일리: "text-sky-400",
+const TAG_COLOR: Record<string, { text: string; bg: string; border: string }> = {
+  레전드: { text: "text-amber-400",  bg: "bg-amber-400/10",  border: "border-amber-400/30" },
+  역대급: { text: "text-violet-400", bg: "bg-violet-400/10", border: "border-violet-400/30" },
+  폭발:   { text: "text-red-400",    bg: "bg-red-400/10",    border: "border-red-400/30" },
+  데일리: { text: "text-sky-400",    bg: "bg-sky-400/10",    border: "border-sky-400/30" },
 };
 
 const RESULTS = [
@@ -61,6 +62,25 @@ const RESULTS = [
 ];
 
 export default function ResultsPage() {
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("card-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: "0px 0px -48px 0px" }
+    );
+
+    cardRefs.current.forEach((el) => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center pb-28">
       <div className="w-full max-w-md px-4 pt-10">
@@ -75,62 +95,70 @@ export default function ResultsPage() {
           <p className="text-white/65 text-base mt-2">끝까지 버텨낸 레전드 드랍.</p>
         </div>
 
-        <div>
+        <div className="flex flex-col gap-4">
           {RESULTS.map((r, i) => {
             const saved = r.retail - r.winning;
             const isFirst = i === 0;
+            const tag = TAG_COLOR[r.tag];
             return (
-              <div key={r.id} className={`py-6 ${i < RESULTS.length - 1 ? "border-b border-white/15" : ""}`}>
-                {/* Name + tag */}
-                <div className="flex items-baseline justify-between gap-2 mb-1.5">
-                  <p className="text-base font-bold text-white/80 leading-snug">{r.name}</p>
-                  <span className={`text-[11px] font-black uppercase tracking-wider flex-shrink-0 ${TAG_COLOR[r.tag]}`}>
+              <div
+                key={r.id}
+                ref={(el) => { cardRefs.current[i] = el; }}
+                className="card-rise bg-[#141414] border border-white/10 rounded-2xl p-5 overflow-hidden"
+                style={{ transitionDelay: `${i * 70}ms` }}
+              >
+                {/* Top row: name + tag badge */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <p className="text-base font-bold text-white/85 leading-snug">{r.name}</p>
+                  <span className={`text-[11px] font-black uppercase tracking-wider flex-shrink-0 px-2 py-0.5 rounded-full border ${tag.text} ${tag.bg} ${tag.border}`}>
                     {r.tag}
                   </span>
                 </div>
 
                 {/* Retail strikethrough */}
-                <p className="text-xs text-white/40 line-through mb-1">{fmt(r.retail)}</p>
+                <p className="text-xs text-white/35 line-through mb-1">{fmt(r.retail)}</p>
 
-                {/* Price */}
-                <div className="flex items-end gap-3 mb-2.5">
+                {/* Price row */}
+                <div className="flex items-end gap-3 mb-3">
                   <span
                     className="font-black font-mono tabular-nums leading-none"
-                    style={{
-                      fontSize: isFirst ? "3rem" : "2.4rem",
-                      color: "#c084fc",
-                    }}
+                    style={{ fontSize: isFirst ? "3rem" : "2.4rem", color: "#c084fc" }}
                   >
                     {fmt(r.winning)}
                   </span>
-                  <span className="mb-1 text-white text-base font-black">-{r.discount}%</span>
+                  <span className="mb-1 text-white/90 text-base font-black">-{r.discount}%</span>
                 </div>
 
-                {/* Meta line */}
-                <div className="flex items-center gap-2 text-sm text-white/60">
+                {/* Divider */}
+                <div className="border-t border-white/8 mb-3" />
+
+                {/* Meta + quote */}
+                <div className="flex items-center gap-2 text-sm text-white/55 mb-2">
                   <span className="text-green-400 font-semibold">{fmt(saved)} 절약</span>
                   <span>·</span>
                   <span>{r.winner}</span>
                   <span>·</span>
                   <span>{r.participants.toLocaleString()}명</span>
                 </div>
-
-                {/* Quote */}
-                <p className="text-white/55 text-xs italic mt-2">"{r.highlight}"</p>
+                <p className="text-white/45 text-xs italic">"{r.highlight}"</p>
               </div>
             );
           })}
         </div>
 
         {/* FOMO */}
-        <div className="pt-8 pb-2 flex items-center justify-between gap-4">
+        <div
+          ref={(el) => { cardRefs.current[RESULTS.length] = el; }}
+          className="card-rise pt-8 pb-2 flex items-center justify-between gap-4"
+          style={{ transitionDelay: `${RESULTS.length * 70}ms` }}
+        >
           <p className="text-base text-white/65">
             오늘의 레전드는{" "}
             <span className="font-black" style={{ color: "#c084fc" }}>당신이 만들 수 있어요.</span>
           </p>
           <Link
             href="/"
-            className="flex-shrink-0 px-4 py-2.5 text-white text-sm font-bold transition-opacity active:opacity-80"
+            className="flex-shrink-0 px-4 py-2.5 text-white text-sm font-bold rounded-xl transition-opacity active:opacity-80"
             style={{ background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)" }}
           >
             참여 →
