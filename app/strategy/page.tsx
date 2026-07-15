@@ -428,7 +428,7 @@ export default function StrategyPage() {
               <p className="text-white/90 text-sm font-semibold leading-snug line-clamp-1">
                 {state.config.productName}
               </p>
-              <p className="text-white/40 text-xs font-mono tabular-nums mt-1">정가 {formatKRW(start)}</p>
+              <p className="text-xs font-bold font-mono tabular-nums mt-1" style={{ color: "#c084fc" }}>정가 {formatKRW(start)}</p>
             </div>
           </div>
         </div>
