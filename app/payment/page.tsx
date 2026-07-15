@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ProductThumb } from "../components/ProductImage";
 import HomeButton from "../components/HomeButton";
 
-const PRICE = 550_000;
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
 
 type PayMethod = {
@@ -30,7 +30,10 @@ function fmtTime(s: number) {
   return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-export default function PaymentPage() {
+function PaymentInner() {
+  const searchParams = useSearchParams();
+  const PRICE = parseInt(searchParams.get("price") ?? "550000", 10);
+
   const [timeLeft, setTimeLeft] = useState(600);
   const [expired,  setExpired]  = useState(false);
   const [method,   setMethod]   = useState("card");
@@ -236,5 +239,13 @@ export default function PaymentPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={null}>
+      <PaymentInner />
+    </Suspense>
   );
 }

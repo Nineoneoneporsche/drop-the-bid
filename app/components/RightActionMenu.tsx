@@ -148,7 +148,7 @@ function ActionBtn({
       onClick={onClick}
       className="flex flex-col items-center active:scale-90 transition-transform"
     >
-      <div className="w-11 h-11 rounded-full bg-black/65 text-white border border-white/18 shadow-xl flex items-center justify-center backdrop-blur-sm">
+      <div className="w-11 h-11 rounded-full text-white border border-white/30 shadow-xl flex items-center justify-center backdrop-blur-sm">
         {icon}
       </div>
       <span className="text-white/50 text-[9px] mt-1 text-center leading-tight">

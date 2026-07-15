@@ -316,7 +316,7 @@ export default function StrategyPage() {
                 <p className="text-base font-black font-mono tabular-nums" style={{ color: "#c084fc" }}>정가의 {100 - bidDiscount}%</p>
               </div>
             </div>
-            <Link href="/payment" className="block w-full py-3.5 font-black text-[18px] text-white text-center bid-btn-purple" style={{ letterSpacing: "0.04em" }}>
+            <Link href={`/payment?price=${bidPrice}`} className="block w-full py-3.5 font-black text-[18px] text-white text-center bid-btn-purple" style={{ letterSpacing: "0.04em" }}>
               결제하기 →
             </Link>
           </div>
@@ -525,7 +525,7 @@ export default function StrategyPage() {
 
             {raised ? (
               <Link
-                href="/payment"
+                href={`/payment?price=${bidPrice}`}
                 className="flex-[7] flex items-center justify-center py-2 font-black text-base text-white bid-btn-purple"
                 style={{ letterSpacing: "0.04em" }}
               >
