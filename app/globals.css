@@ -150,6 +150,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   animation: bid-glow 2s ease-in-out infinite;
 }
 
+/* Signup step enter */
+@keyframes step-enter {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.step-enter { animation: step-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
 /* Scroll-reveal card */
 .card-rise {
   opacity: 0;
