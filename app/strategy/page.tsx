@@ -486,12 +486,12 @@ export default function StrategyPage() {
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               placeholder={isStrategy ? "경기 전에 한 마디..." : "메시지..."}
-              className="flex-1 bg-white/5 border border-white/10 border-r-0 px-3 py-2 text-white placeholder-white/18 text-[12px] focus:outline-none focus:border-purple-500/40 transition-colors min-w-0"
+              className="flex-1 bg-white/5 border border-white/10 border-r-0 px-3 py-2 text-white placeholder-white/18 text-[12px] focus:outline-none focus:border-purple-500/40 transition-colors min-w-0 rounded-l-xl"
             />
             <button
               onClick={sendMessage}
               disabled={!message.trim()}
-              className="bg-white/5 disabled:bg-white/3 disabled:text-white/10 text-white/40 w-10 font-bold text-sm flex items-center justify-center flex-shrink-0 transition-colors"
+              className="bg-white/5 disabled:bg-white/3 disabled:text-white/10 text-white/40 w-10 font-bold text-sm flex items-center justify-center flex-shrink-0 transition-colors rounded-r-xl"
             >
               ↑
             </button>
@@ -518,7 +518,7 @@ export default function StrategyPage() {
           )}
 
           <div className="flex gap-2">
-            <button className="flex items-center justify-center py-2 border border-white/12 gap-1.5 transition-colors active:bg-white/5 flex-[3]">
+            <button className="flex items-center justify-center py-2 border border-white/12 gap-1.5 transition-colors active:bg-white/5 flex-[3] rounded-xl">
               <span className="text-sm leading-none">👁</span>
               <span className="text-xs font-bold text-white/50">관전</span>
             </button>
@@ -526,7 +526,7 @@ export default function StrategyPage() {
             {raised ? (
               <Link
                 href={`/payment?price=${bidPrice}`}
-                className="flex-[7] flex items-center justify-center py-2 font-black text-base text-white bid-btn-purple"
+                className="flex-[7] flex items-center justify-center py-2 font-black text-base text-white bid-btn-purple rounded-xl"
                 style={{ letterSpacing: "0.04em" }}
               >
                 결제하기 →
@@ -535,7 +535,7 @@ export default function StrategyPage() {
               <button
                 onClick={handleRaiseHand}
                 disabled={isStrategy || !isParticipant || state.currentPrice <= 0}
-                className={`flex-[7] flex items-center justify-center py-2 font-black text-base text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed ${
+                className={`flex-[7] flex items-center justify-center py-2 font-black text-base text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed rounded-xl ${
                   isStrategy || !isParticipant || state.currentPrice <= 0
                     ? ""
                     : isCritical ? "bid-btn-critical" : "bid-btn-purple"
