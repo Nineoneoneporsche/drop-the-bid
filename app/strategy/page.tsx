@@ -337,6 +337,14 @@ export default function StrategyPage() {
             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
             LIVE
           </span>
+          {isStrategy && (
+            <button
+              onClick={() => dispatch({ type: "START_GAME", timestamp: Date.now() })}
+              className="ml-auto text-[11px] font-bold text-white/50 border border-white/15 px-2.5 py-1 rounded-lg transition-colors hover:text-white/80 hover:border-white/30 active:scale-95"
+            >
+              바로시작 →
+            </button>
+          )}
         </div>
 
         {/* ── Hero: countdown / price — no label above ── */}
