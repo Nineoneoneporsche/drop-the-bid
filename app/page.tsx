@@ -233,23 +233,9 @@ export default function HomePage() {
               boxShadow: "0 4px 24px rgba(139,92,246,0.50), 0 0 0 1px rgba(167,139,250,0.20)",
             }}
           >
-            <span>🔥 참가자로 입장</span>
+            <span>🔥 경매 참여하기</span>
             <span className="text-[11px] font-medium text-white/60 tracking-normal">
               경매에 참여하고 낙찰 기회를 잡으세요!
-            </span>
-          </button>
-
-          <button
-            onClick={() => router.push("/join")}
-            className="w-full font-bold text-base text-white/60 transition-all active:opacity-70 flex flex-col items-center py-3.5 gap-1"
-            style={{
-              borderRadius: "10px",
-              border: "1px solid rgba(255,255,255,0.10)",
-            }}
-          >
-            <span>👁 관전하기</span>
-            <span className="text-[11px] font-medium text-white/32 tracking-normal">
-              실시간 경매를 구경해보세요!
             </span>
           </button>
         </div>

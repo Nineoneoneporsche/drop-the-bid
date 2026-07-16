@@ -9,12 +9,12 @@ const ROLES: { value: Role; label: string; desc: string }[] = [
   {
     value: "participant",
     label: "참여자",
-    desc: "가격이 원하는 수준에 도달하면 손을 들어 낙찰받을 수 있어요",
+    desc: "가격이 원하는 수준에 도달하면 손을 들어 낙찰받을 수 있어요. 게임이 시작되면 채팅을 할 수 없어요",
   },
   {
     value: "spectator",
     label: "관전자",
-    desc: "라이브를 지켜보고 채팅에 참여할 수 있어요. 낙찰은 받을 수 없어요",
+    desc: "라이브를 지켜보고 채팅에 계속 참여할 수 있어요. 낙찰은 받을 수 없어요",
   },
 ];
 
