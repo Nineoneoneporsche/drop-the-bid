@@ -521,7 +521,7 @@ export default function StrategyPage() {
             {/* Watch button */}
             <button
               onClick={() => isParticipant ? setShowWatchConfirm(true) : undefined}
-              className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl py-5"
+              className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl py-3"
             >
               <span className="text-xl leading-none">👁</span>
               <span className="text-[11px] font-bold text-white/45 mt-0.5">{forcedWatcher ? "관전 중" : "관전"}</span>
@@ -531,7 +531,7 @@ export default function StrategyPage() {
             {raised ? (
               <Link
                 href={`/payment?price=${bidPrice}`}
-                className="flex-[7] flex items-center justify-center py-5 font-black text-xl text-white bid-btn-purple rounded-xl"
+                className="flex-[7] flex items-center justify-center py-3 font-black text-xl text-white bid-btn-purple rounded-xl"
               >
                 결제하기 →
               </Link>
@@ -539,7 +539,7 @@ export default function StrategyPage() {
               <button
                 onClick={handleRaiseHand}
                 disabled={isStrategy || !isParticipant || state.currentPrice <= 0}
-                className={`flex-[7] flex flex-col items-center justify-center py-5 text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed rounded-xl ${
+                className={`flex-[7] flex flex-col items-center justify-center py-3 text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed rounded-xl ${
                   isStrategy || !isParticipant || state.currentPrice <= 0
                     ? ""
                     : isCritical ? "bid-btn-critical" : "bid-btn-purple"
