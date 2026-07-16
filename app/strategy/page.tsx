@@ -161,6 +161,7 @@ export default function StrategyPage() {
   const [bidPrice, setBidPrice] = useState(0);
   const [forcedWatcher, setForcedWatcher] = useState(false);
   const [showWatchConfirm, setShowWatchConfirm] = useState(false);
+  const [showAuctionFailed, setShowAuctionFailed] = useState(false);
   const [tickFlash, setTickFlash] = useState(false);
   const [djKey, setDjKey] = useState(0);
   const [showDJ, setShowDJ] = useState(false);
@@ -239,6 +240,16 @@ export default function StrategyPage() {
       if (rapidChatRef.current) clearInterval(rapidChatRef.current);
     };
   }, [state.phase, dispatch]);
+
+  // ── Auction failure detection ────────────────────────────────────────────
+  useEffect(() => {
+    if (state.phase !== "game" || raised || showAuctionFailed) return;
+    if (state.currentPrice <= state.config.floorPrice) {
+      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+      if (rapidChatRef.current) { clearInterval(rapidChatRef.current); rapidChatRef.current = null; }
+      setShowAuctionFailed(true);
+    }
+  }, [state.currentPrice, state.phase, raised, showAuctionFailed, state.config.floorPrice]);
 
   // ── Game chat / narrator events ──────────────────────────────────────────
   useEffect(() => {
@@ -329,6 +340,26 @@ export default function StrategyPage() {
         </div>
       )}
 
+      {/* ── Auction failed popup ── */}
+      {showAuctionFailed && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center px-6" style={{ background: "rgba(10,10,10,0.85)" }}>
+          <div className="w-full max-w-xs bg-[#1a1a1a] border border-white/15 rounded-2xl p-6 text-center">
+            <div className="text-5xl mb-3">😔</div>
+            <p className="text-white font-black text-lg mb-1.5">경매 실패</p>
+            <p className="text-white/50 text-sm leading-relaxed mb-6">
+              아무도 낙찰받지 않아 경매가 종료됐어요.
+            </p>
+            <button
+              onClick={() => { dispatch({ type: "RESET" }); router.replace("/"); }}
+              className="w-full py-3.5 font-bold text-base text-white rounded-xl"
+              style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Watch confirm popup ── */}
       {showWatchConfirm && (
         <div className="absolute inset-0 z-[50] flex items-center justify-center px-6" style={{ background: "rgba(10,10,10,0.75)" }}>
@@ -399,14 +430,6 @@ export default function StrategyPage() {
             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
             LIVE
           </span>
-          {isStrategy && (
-            <button
-              onClick={() => dispatch({ type: "START_GAME", timestamp: Date.now() })}
-              className="ml-auto text-[11px] font-bold text-white/50 border border-white/15 px-2.5 py-1 rounded-lg transition-colors hover:text-white/80 hover:border-white/30 active:scale-95"
-            >
-              바로시작 →
-            </button>
-          )}
           <div className="ml-auto flex items-center gap-1 text-[11px] text-white/40 tabular-nums">
             {isStrategy ? null : (
               <>
@@ -416,6 +439,14 @@ export default function StrategyPage() {
               </>
             )}
           </div>
+          {isStrategy && (
+            <button
+              onClick={() => dispatch({ type: "START_GAME", timestamp: Date.now() })}
+              className="text-[11px] font-bold text-white/50 border border-white/15 px-2.5 py-1 rounded-lg transition-colors hover:text-white/80 hover:border-white/30 active:scale-95"
+            >
+              바로시작 →
+            </button>
+          )}
         </div>
 
         {/* ── Product info ── */}
@@ -517,11 +548,11 @@ export default function StrategyPage() {
             />
           </div>
 
-          <div className="flex gap-2 items-stretch">
+          <div className="flex gap-2">
             {/* Watch button */}
             <button
               onClick={() => isParticipant ? setShowWatchConfirm(true) : undefined}
-              className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl py-3"
+              className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl h-[88px]"
             >
               <span className="text-xl leading-none">👁</span>
               <span className="text-[11px] font-bold text-white/45 mt-0.5">{forcedWatcher ? "관전 중" : "관전"}</span>
@@ -531,7 +562,7 @@ export default function StrategyPage() {
             {raised ? (
               <Link
                 href={`/payment?price=${bidPrice}`}
-                className="flex-[7] flex items-center justify-center py-3 font-black text-xl text-white bid-btn-purple rounded-xl"
+                className="flex-[7] flex items-center justify-center h-[88px] font-black text-xl text-white bid-btn-purple rounded-xl"
               >
                 결제하기 →
               </Link>
@@ -539,13 +570,21 @@ export default function StrategyPage() {
               <button
                 onClick={handleRaiseHand}
                 disabled={isStrategy || !isParticipant || state.currentPrice <= 0}
-                className={`flex-[7] flex flex-col items-center justify-center py-3 text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed rounded-xl ${
+                className={`relative overflow-hidden flex-[7] flex flex-col items-center justify-center h-[88px] text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed rounded-xl ${
                   isStrategy || !isParticipant || state.currentPrice <= 0
                     ? ""
-                    : isCritical ? "bid-btn-critical" : "bid-btn-purple"
+                    : isCritical ? "bid-btn-critical critical-shake" : "bid-btn-purple"
                 }`}
                 style={{ background: isStrategy || !isParticipant ? "rgba(255,255,255,0.07)" : undefined }}
               >
+                {/* Shimmer sweep — only during live bidding */}
+                {isGame && isParticipant && (
+                  <div
+                    className="bid-shimmer absolute inset-y-0 w-[40%] pointer-events-none"
+                    style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.13), transparent)" }}
+                  />
+                )}
+
                 {isStrategy ? (
                   <>
                     <span
@@ -570,12 +609,10 @@ export default function StrategyPage() {
                     >
                       {formatKRW(state.currentPrice)}
                     </span>
-                    {currentSavings > 0 && (
-                      <span className="text-[11px] font-bold mt-1 opacity-75">
-                        -{currentSavingsPct}% · {formatKRW(currentSavings)} 절약
-                      </span>
-                    )}
-                    <span className="text-sm font-black mt-2">🔥 낙찰받기</span>
+                    <div className={`flex items-center gap-2 mt-1 transition-opacity duration-300 ${currentSavings > 0 ? "opacity-100" : "opacity-0"}`}>
+                      <span className="text-[11px] font-bold text-white">-{currentSavingsPct}% · {formatKRW(currentSavings)} 절약</span>
+                      <span className="text-sm font-black text-white">🔥 낙찰받기</span>
+                    </div>
                   </>
                 )}
               </button>

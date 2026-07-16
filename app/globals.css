@@ -136,13 +136,34 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 @keyframes bid-glow {
-  0%, 100% { box-shadow: 0 2px 14px rgba(168,85,247,0.55), inset 0 1px 0 rgba(255,255,255,0.18); }
-  50%       { box-shadow: 0 2px 22px rgba(168,85,247,0.85), inset 0 1px 0 rgba(255,255,255,0.18); }
+  0%, 100% { box-shadow: 0 2px 18px rgba(168,85,247,0.65), 0 0 0 1px rgba(168,85,247,0.30), inset 0 1px 0 rgba(255,255,255,0.20); }
+  50%       { box-shadow: 0 4px 38px rgba(168,85,247,1.00), 0 0 0 2px rgba(168,85,247,0.55), inset 0 1px 0 rgba(255,255,255,0.22); }
 }
 
 @keyframes bid-glow-red {
-  0%, 100% { box-shadow: 0 2px 14px rgba(239,68,68,0.55), inset 0 1px 0 rgba(255,255,255,0.15); }
-  50%       { box-shadow: 0 2px 22px rgba(239,68,68,0.9),  inset 0 1px 0 rgba(255,255,255,0.15); }
+  0%, 100% { box-shadow: 0 2px 18px rgba(239,68,68,0.65), 0 0 0 1px rgba(239,68,68,0.30), inset 0 1px 0 rgba(255,255,255,0.18); }
+  50%       { box-shadow: 0 4px 38px rgba(239,68,68,1.00), 0 0 0 2px rgba(239,68,68,0.55), inset 0 1px 0 rgba(255,255,255,0.18); }
+}
+
+/* Bid button shimmer sweep */
+@keyframes bid-shimmer {
+  0%   { transform: translateX(-130%) skewX(-10deg); }
+  100% { transform: translateX(160%) skewX(-10deg); }
+}
+.bid-shimmer {
+  animation: bid-shimmer 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Critical shake */
+@keyframes critical-shake {
+  0%, 100% { transform: translateX(0) scale(1); }
+  20%       { transform: translateX(-3px) scale(1.005); }
+  40%       { transform: translateX(3px) scale(1.005); }
+  60%       { transform: translateX(-2px); }
+  80%       { transform: translateX(2px); }
+}
+.critical-shake {
+  animation: critical-shake 0.55s ease-in-out infinite;
 }
 
 .bid-btn-purple {

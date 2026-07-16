@@ -216,7 +216,7 @@ export default function HomePage() {
             <p className="text-white font-bold text-[15px] leading-snug">
               {state.config.productName}
             </p>
-            <p className="text-white/40 text-[12px] tabular-nums font-mono mt-1">
+            <p className="text-white text-[12px] tabular-nums font-mono mt-1">
               정가 {formatKRW(start)}
             </p>
           </div>
