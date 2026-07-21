@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGame, type Role, formatKRW } from "../context/GameContext";
 import HomeButton from "../components/HomeButton";
@@ -19,19 +19,41 @@ const ROLES: { value: Role; label: string; desc: string }[] = [
 ];
 
 export default function JoinPage() {
-  const { state, dispatch } = useGame();
+  const { state, joinGame } = useGame();
   const router = useRouter();
   const [nickname, setNickname] = useState("");
   const [role, setRole] = useState<Role>("participant");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
-  function handleJoin() {
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const countdownExpired = state.config.gameStartTime
+    ? new Date(state.config.gameStartTime).getTime() <= now
+    : false;
+  const auctionLive = state.phase === "strategy" || state.phase === "game";
+  const participantBlocked = auctionLive || countdownExpired;
+
+  useEffect(() => {
+    if (participantBlocked) setRole("spectator");
+  }, [participantBlocked]);
+
+  async function handleJoin() {
     const trimmed = nickname.trim();
     if (!trimmed) { setError("닉네임을 입력해주세요"); return; }
     if (trimmed.length < 2) { setError("닉네임은 2자 이상이어야 합니다"); return; }
-    dispatch({ type: "JOIN", user: { nickname: trimmed, role } });
-    dispatch({ type: "START_STRATEGY", timestamp: Date.now() });
-    router.push("/strategy");
+    setLoading(true);
+    try {
+      await joinGame(trimmed, role);
+      router.push("/strategy");
+    } catch {
+      setError("입장 중 오류가 발생했습니다. 다시 시도해주세요.");
+      setLoading(false);
+    }
   }
 
   return (
@@ -61,7 +83,6 @@ export default function JoinPage() {
           maxLength={20}
           autoFocus
           className="w-full bg-transparent border-b-2 border-white/25 px-0 py-3 text-white text-3xl font-bold placeholder-white/25 focus:outline-none transition-colors"
-          style={{ borderBottomColor: undefined }}
           onFocus={e => (e.target.style.borderBottomColor = "#a855f7")}
           onBlur={e => (e.target.style.borderBottomColor = "")}
         />
@@ -74,12 +95,14 @@ export default function JoinPage() {
           역할 선택
         </label>
         {ROLES.map(({ value, label, desc }, i) => {
-          const sel = role === value;
+          const disabled = value === "participant" && participantBlocked;
+          const sel = role === value && !disabled;
           return (
             <button
               key={value}
-              onClick={() => setRole(value)}
-              className={`w-full flex items-start gap-4 py-5 text-left ${i === 0 ? "border-b border-white/10" : ""}`}
+              onClick={() => { if (!disabled) setRole(value); }}
+              disabled={disabled}
+              className={`w-full flex items-start gap-4 py-5 text-left ${i === 0 ? "border-b border-white/10" : ""} ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
             >
               <div
                 className="w-5 h-5 border-2 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors"
@@ -89,7 +112,9 @@ export default function JoinPage() {
               </div>
               <div>
                 <p className={`font-bold text-lg ${sel ? "text-white" : "text-white/60"}`}>{label}</p>
-                <p className="text-white/55 text-sm mt-1 leading-snug">{desc}</p>
+                <p className="text-white/55 text-sm mt-1 leading-snug">
+                  {disabled ? (auctionLive ? "경매가 진행 중입니다. 관전으로만 입장 가능합니다." : "경매가 시작되어 참여자로 입장할 수 없습니다.") : desc}
+                </p>
               </div>
             </button>
           );
@@ -99,14 +124,15 @@ export default function JoinPage() {
       <div className="mt-auto">
         <button
           onClick={handleJoin}
-          className="w-full py-5 font-bold text-lg text-white transition-all active:scale-[0.98] active:opacity-90"
+          disabled={loading}
+          className="w-full py-5 font-bold text-lg text-white transition-all active:scale-[0.98] active:opacity-90 disabled:opacity-50"
           style={{
             background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
             borderRadius: "10px",
             boxShadow: "0 4px 24px rgba(139,92,246,0.45)",
           }}
         >
-          {role === "participant" ? "참여자로 입장 →" : "관전자로 입장 →"}
+          {loading ? "입장 중..." : role === "participant" ? "참여자로 입장 →" : "관전자로 입장 →"}
         </button>
       </div>
     </main>

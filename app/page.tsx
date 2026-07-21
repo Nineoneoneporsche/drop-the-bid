@@ -3,16 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  useGame,
-  formatKRW,
-  MOCK_PARTICIPANT_COUNT,
-  MOCK_SPECTATOR_COUNT,
-} from "./context/GameContext";
+import { useGame, formatKRW } from "./context/GameContext";
 import { ProductThumb } from "./components/ProductImage";
 import BottomNav from "./components/BottomNav";
-
-const COUNTDOWN_START = 28 * 60 + 34; // 00:28:34
 
 function fmtCountdown(s: number) {
   const h = Math.floor(s / 3600);
@@ -25,14 +18,22 @@ export default function HomePage() {
   const { state } = useGame();
   const router = useRouter();
 
-  const [countdown, setCountdown] = useState(COUNTDOWN_START);
+  const { participantCount, spectatorCount, phase } = state;
+  const gameStartTime = state.config.gameStartTime;
+  const auctionLive = phase === "strategy" || phase === "game";
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   useEffect(() => {
-    const t = setInterval(() => {
-      setCountdown((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
+    if (!gameStartTime) {
+      setCountdown(null);
+      return;
+    }
+    const target = new Date(gameStartTime).getTime();
+    const update = () => setCountdown(Math.max(0, Math.floor((target - Date.now()) / 1000)));
+    update();
+    const t = setInterval(update, 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [gameStartTime]);
 
   const start = state.config.startPrice;
 
@@ -69,7 +70,7 @@ export default function HomePage() {
               className="text-white text-xs tabular-nums font-medium"
               style={{ textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}
             >
-              👥 {MOCK_PARTICIPANT_COUNT} · 👁 {MOCK_SPECTATOR_COUNT.toLocaleString()}
+              👥 {participantCount} · 👁 {spectatorCount.toLocaleString()}
             </span>
           </div>
         </div>
@@ -119,7 +120,7 @@ export default function HomePage() {
           >
             👥{" "}
             <span className="text-orange-400 font-bold tabular-nums">
-              {MOCK_PARTICIPANT_COUNT}명
+              {participantCount}명
             </span>
             이 기다리고 있습니다.
           </p>
@@ -172,7 +173,7 @@ export default function HomePage() {
                 참가자 수
               </p>
               <p className="text-white font-bold text-[1.35rem] leading-none">
-                <span className="tabular-nums">{MOCK_PARTICIPANT_COUNT}</span>
+                <span className="tabular-nums">{participantCount}</span>
                 <span className="text-sm ml-0.5">명</span>
               </p>
               <p className="text-white/45 text-[10px] mt-1">현재 경쟁 중</p>
@@ -181,19 +182,35 @@ export default function HomePage() {
             {/* DTB까지 남은시간 */}
             <div className="px-4 py-3.5">
               <p className="text-[10px] uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
-                DTB까지 남은시간
+                경매 상태
               </p>
               <p
                 className="font-black tabular-nums font-mono leading-none"
                 style={{
-                  fontSize: "1.65rem",
-                  color: "#f5f3ff",
-                  textShadow: "0 0 6px rgba(255,255,255,0.7), 0 0 14px #c084fc, 0 0 28px #a855f7",
+                  fontSize: auctionLive || countdown === null ? "1.1rem" : "1.65rem",
+                  color: auctionLive ? "#f87171" : "#f5f3ff",
+                  textShadow: auctionLive
+                    ? "0 0 6px rgba(255,255,255,0.5), 0 0 14px #f87171, 0 0 28px #ef4444"
+                    : "0 0 6px rgba(255,255,255,0.7), 0 0 14px #c084fc, 0 0 28px #a855f7",
                 }}
               >
-                {fmtCountdown(countdown)}
+                {auctionLive
+                  ? "경매 진행 중"
+                  : countdown === null
+                  ? "지금 참여가능"
+                  : countdown === 0
+                  ? "참여 마감"
+                  : fmtCountdown(countdown)}
               </p>
-              <p className="text-[10px] mt-1" style={{ color: "#a855f7" }}>곧 시작됩니다</p>
+              <p className="text-[10px] mt-1" style={{ color: auctionLive ? "#f87171" : "#a855f7" }}>
+                {auctionLive
+                  ? "관전만 가능합니다"
+                  : countdown === null
+                  ? "바로 시작하세요!"
+                  : countdown === 0
+                  ? "관전만 가능합니다"
+                  : "곧 시작됩니다"}
+              </p>
             </div>
 
           </div>
@@ -224,20 +241,38 @@ export default function HomePage() {
 
         {/* CTAs */}
         <div className="flex flex-col gap-2">
-          <button
-            onClick={() => router.push("/join")}
-            className="w-full font-black text-lg text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1"
-            style={{
-              background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
-              borderRadius: "10px",
-              boxShadow: "0 4px 24px rgba(139,92,246,0.50), 0 0 0 1px rgba(167,139,250,0.20)",
-            }}
-          >
-            <span>🔥 경매 참여하기</span>
-            <span className="text-[11px] font-medium text-white/60 tracking-normal">
-              경매에 참여하고 낙찰 기회를 잡으세요!
-            </span>
-          </button>
+          {auctionLive ? (
+            <button
+              onClick={() => router.push("/join")}
+              className="w-full font-black text-lg text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1"
+              style={{
+                background: "linear-gradient(135deg, #374151 0%, #1f2937 100%)",
+                borderRadius: "10px",
+                border: "1px solid rgba(248,113,113,0.35)",
+                boxShadow: "0 4px 24px rgba(239,68,68,0.15)",
+              }}
+            >
+              <span>👁 관전하기</span>
+              <span className="text-[11px] font-medium text-white/50 tracking-normal">
+                경매가 진행 중입니다 · 관전만 가능합니다
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push("/join")}
+              className="w-full font-black text-lg text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1"
+              style={{
+                background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+                borderRadius: "10px",
+                boxShadow: "0 4px 24px rgba(139,92,246,0.50), 0 0 0 1px rgba(167,139,250,0.20)",
+              }}
+            >
+              <span>🔥 경매 참여하기</span>
+              <span className="text-[11px] font-medium text-white/60 tracking-normal">
+                경매에 참여하고 낙찰 기회를 잡으세요!
+              </span>
+            </button>
+          )}
         </div>
 
       </div>

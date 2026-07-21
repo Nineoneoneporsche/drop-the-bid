@@ -8,8 +8,6 @@ import {
   useGame,
   formatKRW,
   formatTime,
-  MOCK_PARTICIPANT_COUNT,
-  MOCK_SPECTATOR_COUNT,
 } from "../context/GameContext";
 import { ProductThumb } from "../components/ProductImage";
 import RightActionMenu from "../components/RightActionMenu";
@@ -83,7 +81,7 @@ const LOUNGE_MESSAGES: { nickname: string; message: string }[] = [
   { nickname: "라이브러버",  message: "라이브 쇼핑 너무 좋아요" },
 ];
 
-// ── In-game rapid chat (time-based, fires every ~3-5s) ───────────────────────
+// ── In-game rapid chat ────────────────────────────────────────────────────────
 const RAPID_CHATS = shuffle([
   { nickname: "관전자K",    message: "아직 아무도 안 눌렀네" },
   { nickname: "두근두근",   message: "손이 떨려요 ㅋㅋ" },
@@ -104,10 +102,10 @@ const RAPID_CHATS = shuffle([
   { nickname: "긴장맥스",   message: "저면 지금 당장 눌렀을 것 같은데 ㅋ" },
   { nickname: "뚝심파",     message: "단합 단합!!" },
   { nickname: "관전자K",    message: "이거 얼마까지 내려갈 수 있는 거예요?" },
-  { nickname: "두근두근",   message: "손가락이 저절로 가려고 해요 ㅠ" },
+  { nickname: "두근두근",   message: "손가락이 저절로 가려고 해요 㠠" },
 ]);
 
-// ── In-game chat events (price threshold) ────────────────────────────────────
+// ── In-game chat events (price threshold %) ───────────────────────────────────
 const CHAT_EVENTS = [
   { threshold: 97, nickname: "버티기대장", message: "자 오늘 목표가 얼마까지예요? 저는 최소 70만원까지는 버텨볼 거예요" },
   { threshold: 95, nickname: "신중한민수", message: "저는 75만원 선을 생각하고 있어요. 거기까지면 꽤 좋은 가격이죠" },
@@ -143,7 +141,7 @@ const NARRATOR_EVENTS = [
 ];
 
 export default function StrategyPage() {
-  const { state, dispatch } = useGame();
+  const { state, sendMessage, addLocalMessage, raiseHand, startGame, resetGame, leaveGame } = useGame();
   const router = useRouter();
 
   // Shared
@@ -162,10 +160,10 @@ export default function StrategyPage() {
   const [forcedWatcher, setForcedWatcher] = useState(false);
   const [showWatchConfirm, setShowWatchConfirm] = useState(false);
   const [showAuctionFailed, setShowAuctionFailed] = useState(false);
+  const [showOtherWon, setShowOtherWon] = useState(false);
   const [tickFlash, setTickFlash] = useState(false);
   const [djKey, setDjKey] = useState(0);
   const [showDJ, setShowDJ] = useState(false);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const djTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const djIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const firedChatRef = useRef(new Set<number>());
@@ -173,10 +171,38 @@ export default function StrategyPage() {
   const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rapidIdxRef = useRef(0);
 
+  const handleGoHome = useCallback(async () => {
+    await leaveGame();
+    router.replace("/");
+  }, [leaveGame, router]);
+
   // ── Redirect guards ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (!state.currentUser) { router.replace("/"); return; }
-  }, [state.currentUser, router]);
+    if (!state.currentUser) {
+      localStorage.removeItem("dtb_user");
+      router.replace("/");
+      return;
+    }
+    if (state.phase === "home") {
+      // Game was reset by admin while user was in — clean up participant row too
+      leaveGame().then(() => router.replace("/"));
+    }
+  }, [state.currentUser, state.phase, router, leaveGame]);
+
+  // ── Remove participant on browser close/refresh ──────────────────────────
+  useEffect(() => {
+    const onUnload = () => {
+      const guestId = state.currentUser?.guestId;
+      if (guestId) {
+        // sendBeacon is fire-and-forget, works even when tab closes
+        navigator.sendBeacon(
+          `https://ivnoxbsqzeodnoouqped.supabase.co/rest/v1/participants?guest_id=eq.${guestId}`,
+        );
+      }
+    };
+    window.addEventListener("beforeunload", onUnload);
+    return () => window.removeEventListener("beforeunload", onUnload);
+  }, [state.currentUser?.guestId]);
 
   // ── Schedule lounge messages once ────────────────────────────────────────
   useEffect(() => {
@@ -201,24 +227,30 @@ export default function StrategyPage() {
       scheduleRef.current.forEach((item, idx) => {
         if (elapsed >= item.atSecond && !firedLoungeRef.current.has(idx)) {
           firedLoungeRef.current.add(idx);
-          dispatch({ type: "SEND_MESSAGE", nickname: item.nickname, message: item.message, timestamp: Date.now() });
+          addLocalMessage({
+            id: `lounge-${idx}`,
+            nickname: item.nickname,
+            message: item.message,
+            kind: "chat",
+            timestamp: Date.now(),
+          });
         }
       });
-      if (remaining === 0) dispatch({ type: "START_GAME", timestamp: Date.now() });
     };
     update();
     const t = setInterval(update, 500);
     return () => clearInterval(t);
-  }, [state.phase, state.strategyStartedAt, state.config.strategyDuration, dispatch]);
+  }, [state.phase, state.strategyStartedAt, state.config.strategyDuration, addLocalMessage]);
 
-  // ── Game tick + DJ interval ──────────────────────────────────────────────
+  // ── Game tick flash + DJ interval + rapid chat ───────────────────────────
   useEffect(() => {
     if (state.phase !== "game") return;
-    tickRef.current = setInterval(() => {
-      dispatch({ type: "TICK" });
+
+    const flashInterval = setInterval(() => {
       setTickFlash(true);
       setTimeout(() => setTickFlash(false), 220);
     }, 1000);
+
     function triggerDJ() {
       setDjKey((k) => k + 1);
       setShowDJ(true);
@@ -226,30 +258,27 @@ export default function StrategyPage() {
       djTimerRef.current = setTimeout(() => setShowDJ(false), 2500);
     }
     djIntervalRef.current = setInterval(triggerDJ, 20_000);
+
     rapidIdxRef.current = 0;
     rapidChatRef.current = setInterval(() => {
       const msg = RAPID_CHATS[rapidIdxRef.current % RAPID_CHATS.length];
       rapidIdxRef.current += 1;
-      dispatch({ type: "SEND_MESSAGE", nickname: msg.nickname, message: msg.message, timestamp: Date.now() });
+      addLocalMessage({
+        id: `rapid-${Date.now()}-${rapidIdxRef.current}`,
+        nickname: msg.nickname,
+        message: msg.message,
+        kind: "chat",
+        timestamp: Date.now(),
+      });
     }, 3500);
 
     return () => {
-      if (tickRef.current) clearInterval(tickRef.current);
+      clearInterval(flashInterval);
       if (djIntervalRef.current) clearInterval(djIntervalRef.current);
       if (djTimerRef.current) clearTimeout(djTimerRef.current);
       if (rapidChatRef.current) clearInterval(rapidChatRef.current);
     };
-  }, [state.phase, dispatch]);
-
-  // ── Auction failure detection ────────────────────────────────────────────
-  useEffect(() => {
-    if (state.phase !== "game" || raised || showAuctionFailed) return;
-    if (state.currentPrice <= state.config.floorPrice) {
-      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-      if (rapidChatRef.current) { clearInterval(rapidChatRef.current); rapidChatRef.current = null; }
-      setShowAuctionFailed(true);
-    }
-  }, [state.currentPrice, state.phase, raised, showAuctionFailed, state.config.floorPrice]);
+  }, [state.phase, addLocalMessage]);
 
   // ── Game chat / narrator events ──────────────────────────────────────────
   useEffect(() => {
@@ -258,16 +287,45 @@ export default function StrategyPage() {
     for (const evt of CHAT_EVENTS) {
       if (pct <= evt.threshold && !firedChatRef.current.has(evt.threshold)) {
         firedChatRef.current.add(evt.threshold);
-        dispatch({ type: "SEND_MESSAGE", nickname: evt.nickname, message: evt.message, timestamp: Date.now() });
+        addLocalMessage({
+          id: `chat-${evt.threshold}`,
+          nickname: evt.nickname,
+          message: evt.message,
+          kind: "chat",
+          timestamp: Date.now(),
+        });
       }
     }
     for (const evt of NARRATOR_EVENTS) {
       if (pct <= evt.threshold && !firedNarratorRef.current.has(evt.threshold)) {
         firedNarratorRef.current.add(evt.threshold);
-        dispatch({ type: "SEND_NARRATOR", message: evt.message, timestamp: Date.now() + 1 });
+        addLocalMessage({
+          id: `narrator-${evt.threshold}`,
+          nickname: "narrator",
+          message: evt.message,
+          kind: "narrator",
+          timestamp: Date.now() + 1,
+        });
       }
     }
-  }, [state.currentPrice, state.config.startPrice, state.phase, dispatch]);
+  }, [state.currentPrice, state.config.startPrice, state.phase, addLocalMessage]);
+
+  // ── Auction failure detection ────────────────────────────────────────────
+  useEffect(() => {
+    if (state.phase !== "game" || raised || showAuctionFailed) return;
+    if (state.currentPrice <= state.config.floorPrice) {
+      if (rapidChatRef.current) { clearInterval(rapidChatRef.current); rapidChatRef.current = null; }
+      setShowAuctionFailed(true);
+    }
+  }, [state.currentPrice, state.phase, raised, showAuctionFailed, state.config.floorPrice]);
+
+  // ── Other user won detection ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!state.winner) return;
+    if (state.winner.id !== state.currentUser?.guestId) {
+      setShowOtherWon(true);
+    }
+  }, [state.winner, state.currentUser]);
 
   // ── Auto-scroll chat ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -275,18 +333,22 @@ export default function StrategyPage() {
   }, [state.chatMessages]);
 
   // ── Actions ──────────────────────────────────────────────────────────────
-  const handleRaiseHand = useCallback(() => {
+  const handleRaiseHand = useCallback(async () => {
     if (state.phase !== "game") return;
-    if (!state.currentUser || state.currentUser.role !== "participant" || raised) return;
-    setBidPrice(state.currentPrice);
-    setRaised(true);
-    if (tickRef.current) clearInterval(tickRef.current);
-    dispatch({ type: "RAISE_HAND", nickname: state.currentUser.nickname, price: state.currentPrice });
-  }, [state.phase, state.currentUser, state.currentPrice, raised, dispatch]);
+    if (!state.currentUser || state.currentUser.role !== "participant" || raised || forcedWatcher) return;
+    const price = state.currentPrice;
+    const won = await raiseHand(state.currentUser.nickname, price);
+    if (won) {
+      setBidPrice(price);
+      setRaised(true);
+    } else {
+      setShowOtherWon(true);
+    }
+  }, [state.phase, state.currentUser, state.currentPrice, raised, forcedWatcher, raiseHand]);
 
-  function sendMessage() {
+  function handleSendMessage() {
     if (!message.trim() || !state.currentUser) return;
-    dispatch({ type: "SEND_MESSAGE", nickname: state.currentUser.nickname, message: message.trim(), timestamp: Date.now() });
+    sendMessage(state.currentUser.nickname, message.trim());
     setMessage("");
     inputRef.current?.focus();
   }
@@ -300,7 +362,6 @@ export default function StrategyPage() {
   const start = state.config.startPrice;
   const isUrgent = timeLeft <= 15;
 
-  // Game-phase price values
   const barPct = start > floor
     ? Math.min(100, Math.max(0, ((start - state.currentPrice) / (start - floor)) * 100))
     : 0;
@@ -310,7 +371,6 @@ export default function StrategyPage() {
   const currentSavings    = start - state.currentPrice;
   const currentSavingsPct = start > 0 ? Math.round((currentSavings / start) * 100) : 0;
 
-  // Winner overlay values (captured at bid moment)
   const bidSaved    = start - bidPrice;
   const bidDiscount = start > 0 ? Math.round((bidSaved / start) * 100) : 0;
   const winnerNick  = state.currentUser?.nickname ?? "";
@@ -350,11 +410,42 @@ export default function StrategyPage() {
               아무도 낙찰받지 않아 경매가 종료됐어요.
             </p>
             <button
-              onClick={() => { dispatch({ type: "RESET" }); router.replace("/"); }}
+              onClick={async () => { await resetGame(); await leaveGame(); router.replace("/"); }}
               className="w-full py-3.5 font-bold text-base text-white rounded-xl"
               style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
             >
               확인
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Other user won popup ── */}
+      {showOtherWon && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center px-6" style={{ background: "rgba(10,10,10,0.85)" }}>
+          <div className="w-full max-w-xs bg-[#1a1a1a] border border-white/15 rounded-2xl p-6 text-center relative">
+            <button
+              onClick={() => setShowOtherWon(false)}
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-white/40 hover:text-white/80 transition-colors rounded-full hover:bg-white/10"
+              aria-label="닫기"
+            >
+              ✕
+            </button>
+            <div className="text-5xl mb-3">🏁</div>
+            <p className="text-white font-black text-lg mb-1.5">낙찰 완료</p>
+            {state.winner && (
+              <p className="text-white/70 text-sm mb-1">
+                <span className="font-black text-white">{state.winner.nickname}</span>님이{" "}
+                <span className="font-bold" style={{ color: "#c084fc" }}>{formatKRW(state.winner.price)}</span>에 낙찰받았습니다.
+              </p>
+            )}
+            <p className="text-white/45 text-xs mb-6">다음 경매를 기대해주세요!</p>
+            <button
+              onClick={handleGoHome}
+              className="w-full py-3.5 font-bold text-base text-white rounded-xl"
+              style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
+            >
+              홈으로
             </button>
           </div>
         </div>
@@ -416,15 +507,24 @@ export default function StrategyPage() {
         </div>
       )}
 
-      {/* ── Right action menu — sits above chat input + buttons ── */}
+      {/* ── Right action menu ── */}
       <RightActionMenu containerClassName="absolute right-3 bottom-[210px] z-40 flex flex-col gap-3" />
 
       {/* ── Main content ── */}
       <div className="relative z-10 flex flex-col h-full">
 
-        {/* Top bar: HomeButton + LIVE only */}
+        {/* Top bar */}
         <div className="flex-shrink-0 flex items-center gap-2 px-4 pt-10 pb-3">
-          <HomeButton />
+          <button
+            onClick={handleGoHome}
+            className="inline-flex items-center justify-center w-8 h-8 text-white/35 hover:text-white/75 transition-colors"
+            aria-label="메인화면"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+              <polyline points="9 21 9 12 15 12 15 21"/>
+            </svg>
+          </button>
           <div className="w-px h-3.5 bg-white/15 flex-shrink-0" />
           <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-red-500">
             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
@@ -433,15 +533,15 @@ export default function StrategyPage() {
           <div className="ml-auto flex items-center gap-1 text-[11px] text-white/40 tabular-nums">
             {isStrategy ? null : (
               <>
-                <span>✋{MOCK_PARTICIPANT_COUNT - 31}</span>
+                <span>✋{state.participantCount}</span>
                 <span className="text-white/20">·</span>
-                <span>👁{MOCK_SPECTATOR_COUNT.toLocaleString()}</span>
+                <span>👁{state.spectatorCount.toLocaleString()}</span>
               </>
             )}
           </div>
           {isStrategy && (
             <button
-              onClick={() => dispatch({ type: "START_GAME", timestamp: Date.now() })}
+              onClick={() => startGame()}
               className="text-[11px] font-bold text-white/50 border border-white/15 px-2.5 py-1 rounded-lg transition-colors hover:text-white/80 hover:border-white/30 active:scale-95"
             >
               바로시작 →
@@ -449,7 +549,7 @@ export default function StrategyPage() {
           )}
         </div>
 
-        {/* ── Product info ── */}
+        {/* Product info */}
         <div className="flex-shrink-0 px-4 pr-[72px] pt-2 pb-2">
           <div className="h-px bg-white/8 mb-2" />
           <div className="flex items-center gap-3">
@@ -463,7 +563,7 @@ export default function StrategyPage() {
           </div>
         </div>
 
-        {/* ── Live chat — flex-1 ── */}
+        {/* Live chat */}
         <div className="relative flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto no-scrollbar px-4 pt-2 pb-2 chat-fade-top">
             {state.chatMessages.map((msg) => {
@@ -503,7 +603,7 @@ export default function StrategyPage() {
           </div>
         </div>
 
-        {/* ── Chat input ── */}
+        {/* Chat input */}
         <div className="flex-shrink-0 px-4 pt-2 pb-1.5 border-t border-white/8">
           {chatBlocked ? (
             <div className="flex items-center justify-center py-2.5 bg-white/4 rounded-xl border border-white/8">
@@ -516,12 +616,12 @@ export default function StrategyPage() {
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                 placeholder={isStrategy ? "경기 전에 한 마디..." : "메시지..."}
                 className="flex-1 bg-white/5 border border-white/10 border-r-0 px-3 py-2 text-white placeholder-white/18 text-[12px] focus:outline-none focus:border-purple-500/40 transition-colors min-w-0 rounded-l-xl"
               />
               <button
-                onClick={sendMessage}
+                onClick={handleSendMessage}
                 disabled={!message.trim()}
                 className="bg-white/5 disabled:bg-white/3 disabled:text-white/10 text-white/40 w-10 font-bold text-sm flex items-center justify-center flex-shrink-0 transition-colors rounded-r-xl"
               >
@@ -531,9 +631,8 @@ export default function StrategyPage() {
           )}
         </div>
 
-        {/* ── Action buttons — bottom ── */}
+        {/* Action buttons */}
         <div className="flex-shrink-0 px-4 pt-1 pb-8">
-          {/* thin progress bar */}
           <div className="h-px bg-white/8 w-full overflow-hidden rounded-full mb-3">
             <div
               className="h-full transition-all duration-1000 rounded-full"
@@ -577,7 +676,6 @@ export default function StrategyPage() {
                 }`}
                 style={{ background: isStrategy || !isParticipant ? "rgba(255,255,255,0.07)" : undefined }}
               >
-                {/* Shimmer sweep — only during live bidding */}
                 {isGame && isParticipant && (
                   <div
                     className="bid-shimmer absolute inset-y-0 w-[40%] pointer-events-none"

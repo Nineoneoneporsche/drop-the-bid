@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ProductImageFill, ProductThumb } from "../components/ProductImage";
-import { formatKRW, MOCK_PARTICIPANT_COUNT, MOCK_SPECTATOR_COUNT } from "../context/GameContext";
+import { formatKRW } from "../context/GameContext";
 
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
 const PRODUCT_DESC = "강력한 M3 칩과 11형 Liquid Retina 디스플레이를 탑재한 iPad Air";
@@ -11,8 +11,8 @@ const FLOOR_PRICE = 550_000;
 const DROP_AMOUNT = 1_000;
 
 const STATS = [
-  { label: "참여자 수", value: `${MOCK_PARTICIPANT_COUNT}명`, icon: "✋" },
-  { label: "관전자 수", value: `${MOCK_SPECTATOR_COUNT.toLocaleString()}명`, icon: "👁" },
+  { label: "참여자 수", value: "0명", icon: "✋" },
+  { label: "관전자 수", value: "0명", icon: "👁" },
   { label: "시작가", value: formatKRW(START_PRICE), icon: "💰" },
   { label: "목표 하한가", value: formatKRW(FLOOR_PRICE), icon: "🎯" },
   { label: "하락 속도", value: `${formatKRW(DROP_AMOUNT)}/초`, icon: "📉" },
@@ -57,7 +57,7 @@ export default function DemoPage() {
             데모 상품
           </span>
           <span className="ml-auto text-gray-400 text-xs">
-            👁 {MOCK_SPECTATOR_COUNT.toLocaleString()}명 관전 중
+            👁 0명 관전 중
           </span>
         </div>
 
@@ -67,7 +67,7 @@ export default function DemoPage() {
             <ProductImageFill alt={PRODUCT_NAME} priority />
             <div className="absolute bottom-3 left-3">
               <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg float-badge">
-                ✋ {MOCK_PARTICIPANT_COUNT}명 대기 중
+                ✋ 0명 대기 중
               </span>
             </div>
             <div className="absolute top-3 right-3">

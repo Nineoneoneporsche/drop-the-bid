@@ -5,13 +5,18 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useGame, formatKRW, DEFAULT_CONFIG } from "../context/GameContext";
 
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export default function AdminPage() {
-  const { state, dispatch } = useGame();
+  const { state, updateConfig, resetGame } = useGame();
   const router = useRouter();
 
   const [form, setForm] = useState({
     productName: state.config.productName,
-    description: state.config.description,
     startPrice: state.config.startPrice.toString(),
     dropAmount: state.config.dropAmount.toString(),
     strategyDuration: state.config.strategyDuration.toString(),
@@ -25,12 +30,11 @@ export default function AdminPage() {
   useEffect(() => {
     setForm({
       productName: state.config.productName,
-      description: state.config.description,
       startPrice: state.config.startPrice.toString(),
       dropAmount: state.config.dropAmount.toString(),
       strategyDuration: state.config.strategyDuration.toString(),
       floorPrice: state.config.floorPrice.toString(),
-      gameStartTime: state.config.gameStartTime ?? "",
+      gameStartTime: state.config.gameStartTime ? toLocalInput(state.config.gameStartTime) : "",
     });
   }, [state.config]);
 
@@ -50,26 +54,22 @@ export default function AdminPage() {
     if (!strategyDuration || strategyDuration <= 0) return alert("전략 시간을 올바르게 입력해주세요");
     if (isNaN(floorPrice) || floorPrice < 0) return alert("목표 하한가를 올바르게 입력해주세요");
 
-    dispatch({
-      type: "UPDATE_CONFIG",
-      config: {
-        productName: form.productName.trim() || DEFAULT_CONFIG.productName,
-        description: form.description.trim() || DEFAULT_CONFIG.description,
-        startPrice,
-        dropAmount,
-        strategyDuration,
-        floorPrice,
-        gameStartTime: form.gameStartTime || null,
-      },
+    updateConfig({
+      productName: form.productName.trim() || DEFAULT_CONFIG.productName,
+      startPrice,
+      dropAmount,
+      strategyDuration,
+      floorPrice,
+      gameStartTime: form.gameStartTime ? new Date(form.gameStartTime).toISOString() : null,
+    }).then(() => {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
     });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
   }
 
   function handleReset() {
     if (!confirm("게임을 리셋하고 홈으로 이동할까요?")) return;
-    dispatch({ type: "RESET" });
-    router.push("/");
+    resetGame().then(() => router.push("/"));
   }
 
   function handleClearStorage() {
@@ -125,16 +125,6 @@ export default function AdminPage() {
               value={form.productName}
               onChange={(e) => set("productName", e.target.value)}
               placeholder={DEFAULT_CONFIG.productName}
-              className={INPUT}
-            />
-          </Field>
-
-          <Field label="상품 설명">
-            <input
-              type="text"
-              value={form.description}
-              onChange={(e) => set("description", e.target.value)}
-              placeholder={DEFAULT_CONFIG.description}
               className={INPUT}
             />
           </Field>
@@ -259,7 +249,6 @@ export default function AdminPage() {
           <div className="space-y-2.5">
             {[
               ["상품명", state.config.productName],
-              ["상품 설명", state.config.description],
               ["시작가", formatKRW(state.config.startPrice)],
               ["목표 하한가", formatKRW(state.config.floorPrice)],
               ["하락 금액", `${formatKRW(state.config.dropAmount)}/초`],

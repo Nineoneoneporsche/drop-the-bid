@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useEffect } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { supabase } from "../lib/supabase";
 
 export type Role = "participant" | "spectator";
 export type Phase = "home" | "strategy" | "game" | "ended";
@@ -16,238 +17,374 @@ export interface ChatMessage {
 
 export interface GameConfig {
   productName: string;
-  description: string;
   startPrice: number;
   dropAmount: number;
+  floorPrice: number;       // maps to DB minimum_price
   strategyDuration: number;
   gameStartTime: string | null;
-  floorPrice: number;
+}
+
+export interface CurrentUser {
+  guestId: string;
+  nickname: string;
+  role: Role;
 }
 
 export interface GameState {
   config: GameConfig;
   phase: Phase;
-  currentUser: { nickname: string; role: Role } | null;
+  currentUser: CurrentUser | null;
   currentPrice: number;
-  winner: { nickname: string; price: number } | null;
+  winner: { id: string; nickname: string; price: number } | null;
   chatMessages: ChatMessage[];
   strategyStartedAt: number | null;
   gameStartedAt: number | null;
+  participantCount: number;
+  spectatorCount: number;
 }
-
-export type GameAction =
-  | { type: "LOAD_CONFIG"; config: Partial<GameConfig> }
-  | { type: "UPDATE_CONFIG"; config: Partial<GameConfig> }
-  | { type: "JOIN"; user: { nickname: string; role: Role } }
-  | { type: "START_STRATEGY"; timestamp: number }
-  | { type: "START_GAME"; timestamp: number }
-  | { type: "TICK" }
-  | { type: "RAISE_HAND"; nickname: string; price: number }
-  | { type: "SEND_MESSAGE"; nickname: string; message: string; timestamp: number }
-  | { type: "SEND_NARRATOR"; message: string; timestamp: number }
-  | { type: "RESET" };
 
 export const DEFAULT_CONFIG: GameConfig = {
   productName: "Apple iPad Air 11형 Wi-Fi 128GB",
-  description: "강력한 M3 칩과 11형 Liquid Retina 디스플레이를 탑재한 iPad Air",
   startPrice: 899_000,
   dropAmount: 1_000,
+  floorPrice: 550_000,
   strategyDuration: 60,
   gameStartTime: null,
-  floorPrice: 550_000,
 };
 
-export const MOCK_PARTICIPANT_COUNT = 217;
-export const MOCK_SPECTATOR_COUNT = 3412;
-
-function makeMockMessages(baseTime: number): ChatMessage[] {
-  return [
-    {
-      id: "m0",
-      nickname: "system",
-      message: `참가자 라운지 입장 — ${MOCK_PARTICIPANT_COUNT}명 참여 중 👋`,
-      kind: "system",
-      timestamp: baseTime - 20000,
-    },
-    {
-      id: "m1",
-      nickname: "shopping_star",
-      message: "조금 더 기다려볼까요? 😊",
-      kind: "chat",
-      timestamp: baseTime - 16000,
-    },
-    {
-      id: "m2",
-      nickname: "minivelo_fan",
-      message: "20만원 밑으로 가면 좋겠네요",
-      kind: "chat",
-      timestamp: baseTime - 12000,
-    },
-    {
-      id: "m3",
-      nickname: "kid_gear_mom",
-      message: "아직은 이른 것 같아요",
-      kind: "chat",
-      timestamp: baseTime - 8000,
-    },
-    {
-      id: "m4",
-      nickname: "smart_buyer",
-      message: "다들 신중하게 가봐요 👍",
-      kind: "chat",
-      timestamp: baseTime - 4000,
-    },
-  ];
-}
-
-function gameReducer(state: GameState, action: GameAction): GameState {
-  switch (action.type) {
-    case "LOAD_CONFIG": {
-      const merged = { ...DEFAULT_CONFIG, ...action.config };
-      return {
-        ...state,
-        config: merged,
-        currentPrice: merged.startPrice,
-      };
-    }
-
-    case "UPDATE_CONFIG": {
-      const newConfig = { ...state.config, ...action.config };
-      return {
-        ...state,
-        config: newConfig,
-        currentPrice:
-          action.config.startPrice !== undefined
-            ? action.config.startPrice
-            : state.currentPrice,
-      };
-    }
-
-    case "JOIN":
-      return { ...state, currentUser: action.user };
-
-    case "START_STRATEGY":
-      return {
-        ...state,
-        phase: "strategy",
-        strategyStartedAt: action.timestamp,
-        chatMessages: makeMockMessages(action.timestamp),
-      };
-
-    case "START_GAME":
-      return {
-        ...state,
-        phase: "game",
-        gameStartedAt: action.timestamp,
-        currentPrice: state.config.startPrice,
-      };
-
-    case "TICK": {
-      if (state.phase !== "game") return state;
-      const newPrice = Math.max(0, state.currentPrice - state.config.dropAmount);
-      return { ...state, currentPrice: newPrice };
-    }
-
-    case "RAISE_HAND":
-      return {
-        ...state,
-        phase: "ended",
-        winner: { nickname: action.nickname, price: action.price },
-      };
-
-    case "SEND_MESSAGE":
-      return {
-        ...state,
-        chatMessages: [
-          ...state.chatMessages,
-          {
-            id: String(action.timestamp),
-            nickname: action.nickname,
-            message: action.message,
-            kind: "chat" as MessageKind,
-            timestamp: action.timestamp,
-          },
-        ],
-      };
-
-    case "SEND_NARRATOR":
-      return {
-        ...state,
-        chatMessages: [
-          ...state.chatMessages,
-          {
-            id: `n${action.timestamp}`,
-            nickname: "narrator",
-            message: action.message,
-            kind: "narrator" as MessageKind,
-            timestamp: action.timestamp,
-          },
-        ],
-      };
-
-    case "RESET":
-      return {
-        ...state,
-        phase: "home",
-        currentUser: null,
-        currentPrice: state.config.startPrice,
-        winner: null,
-        chatMessages: [],
-        strategyStartedAt: null,
-        gameStartedAt: null,
-      };
-
-    default:
-      return state;
-  }
-}
 
 interface GameContextValue {
   state: GameState;
-  dispatch: React.Dispatch<GameAction>;
+  joinGame: (nickname: string, role: Role) => Promise<void>;
+  leaveGame: () => Promise<void>;
+  sendMessage: (nickname: string, message: string, kind?: MessageKind) => Promise<void>;
+  addLocalMessage: (msg: ChatMessage) => void;
+  raiseHand: (nickname: string, price: number) => Promise<boolean>;
+  startGame: () => Promise<void>;
+  resetGame: () => Promise<void>;
+  updateConfig: (config: Partial<GameConfig>) => Promise<void>;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
 
-export function GameProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(gameReducer, {
-    config: DEFAULT_CONFIG,
-    phase: "home",
-    currentUser: null,
-    currentPrice: DEFAULT_CONFIG.startPrice,
-    winner: null,
-    chatMessages: [],
-    strategyStartedAt: null,
-    gameStartedAt: null,
-  });
+// ── DB row type (matches new schema) ──────────────────────────────────────────
+type DbRow = {
+  phase: string;
+  strategy_started_at: string | null;
+  game_started_at: string | null;
+  scheduled_start_at: string | null;
+  product_name: string;
+  start_price: number;
+  drop_amount: number;
+  minimum_price: number;
+  strategy_duration: number;
+  winner_id: string | null;
+  winner_nickname: string | null;
+  winner_price: number | null;
+};
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("dtb_config");
-      if (saved) {
-        const config = JSON.parse(saved) as Partial<GameConfig>;
-        // Product fields always come from DEFAULT_CONFIG so deploys take effect immediately
-        dispatch({ type: "LOAD_CONFIG", config: {
-          ...config,
-          productName:      DEFAULT_CONFIG.productName,
-          description:      DEFAULT_CONFIG.description,
-          startPrice:       DEFAULT_CONFIG.startPrice,
-          floorPrice:       DEFAULT_CONFIG.floorPrice,
-          dropAmount:       DEFAULT_CONFIG.dropAmount,
-          strategyDuration: DEFAULT_CONFIG.strategyDuration,
-        }});
-      }
-    } catch {
-      // ignore
-    }
+function rowToConfig(row: DbRow): GameConfig {
+  return {
+    productName:      row.product_name      ?? DEFAULT_CONFIG.productName,
+    startPrice:       row.start_price       ?? DEFAULT_CONFIG.startPrice,
+    dropAmount:       row.drop_amount       ?? DEFAULT_CONFIG.dropAmount,
+    floorPrice:       row.minimum_price     ?? DEFAULT_CONFIG.floorPrice,
+    strategyDuration: row.strategy_duration ?? DEFAULT_CONFIG.strategyDuration,
+    gameStartTime: row.scheduled_start_at ?? null,
+  };
+}
+
+function calcPrice(gameStartedAt: number, config: GameConfig): number {
+  const elapsed = Math.floor((Date.now() - gameStartedAt) / 1000);
+  return Math.max(config.floorPrice, config.startPrice - elapsed * config.dropAmount);
+}
+
+export function GameProvider({ children }: { children: React.ReactNode }) {
+  const [phase, setPhase]               = useState<Phase>("home");
+  const [config, setConfig]             = useState<GameConfig>(DEFAULT_CONFIG);
+  const [currentUser, setCurrentUser]   = useState<CurrentUser | null>(null);
+  const [currentPrice, setCurrentPrice] = useState(DEFAULT_CONFIG.startPrice);
+  const [winner, setWinner]             = useState<GameState["winner"]>(null);
+  const [messages, setMessages]         = useState<ChatMessage[]>([]);
+  const [strategyStartedAt, setStrategyStartedAt] = useState<number | null>(null);
+  const [gameStartedAt, setGameStartedAt]         = useState<number | null>(null);
+  const [participantCount, setParticipantCount]   = useState(0);
+  const [spectatorCount, setSpectatorCount]       = useState(0);
+
+  const tickRef      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const configRef    = useRef(config);
+  const gameAtRef    = useRef(gameStartedAt);
+  const userRef      = useRef(currentUser);
+  configRef.current  = config;
+  gameAtRef.current  = gameStartedAt;
+  userRef.current    = currentUser;
+
+  const applyDbRow = useCallback((row: DbRow) => {
+    const mappedPhase: Phase = row.phase === "waiting" ? "home" : (row.phase as Phase);
+    const cfg = rowToConfig(row);
+    const stratAt = row.strategy_started_at ? new Date(row.strategy_started_at).getTime() : null;
+    const gameAt  = row.game_started_at     ? new Date(row.game_started_at).getTime()     : null;
+    const w = row.winner_id
+      ? { id: row.winner_id, nickname: row.winner_nickname ?? "", price: row.winner_price ?? 0 }
+      : null;
+
+    setPhase(mappedPhase);
+    setConfig(cfg);
+    setStrategyStartedAt(stratAt);
+    setGameStartedAt(gameAt);
+    setWinner(w);
+    if (gameAt) setCurrentPrice(calcPrice(gameAt, cfg));
+    else setCurrentPrice(cfg.startPrice);
   }, []);
 
+  // Load current user from localStorage
   useEffect(() => {
-    localStorage.setItem("dtb_config", JSON.stringify(state.config));
-  }, [state.config]);
+    try {
+      const saved = localStorage.getItem("dtb_user");
+      if (saved) setCurrentUser(JSON.parse(saved) as CurrentUser);
+    } catch {}
+  }, []);
+
+  const refreshCounts = useCallback(async () => {
+    // Remove stale participants (no heartbeat in 90s)
+    await supabase
+      .from("participants")
+      .delete()
+      .lt("last_seen", new Date(Date.now() - 90_000).toISOString());
+
+    const { data } = await supabase.from("participants").select("role");
+    if (!data) return;
+    setParticipantCount(data.filter((r) => r.role === "participant").length);
+    setSpectatorCount(data.filter((r) => r.role === "spectator").length);
+  }, []);
+
+  // Fetch initial game state + recent messages
+  useEffect(() => {
+    supabase
+      .from("game_state")
+      .select("*")
+      .eq("id", 1)
+      .single()
+      .then(({ data }) => { if (data) applyDbRow(data as unknown as DbRow); });
+
+    supabase
+      .from("chat_messages")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .limit(100)
+      .then(({ data }) => {
+        if (data) {
+          setMessages(data.map((r) => ({
+            id: r.id,
+            nickname: r.nickname,
+            message: r.message,
+            kind: (r.kind ?? "chat") as MessageKind,
+            timestamp: new Date(r.created_at).getTime(),
+          })));
+        }
+      });
+
+    refreshCounts();
+  }, [applyDbRow, refreshCounts]);
+
+  // Realtime: game state changes
+  useEffect(() => {
+    const ch = supabase
+      .channel("game_state_rt")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_state" }, (p) => {
+        applyDbRow(p.new as unknown as DbRow);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [applyDbRow]);
+
+  // Realtime: participants join/leave
+  useEffect(() => {
+    const ch = supabase
+      .channel("participants_rt")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "participants" }, () => refreshCounts())
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "participants" }, () => refreshCounts())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [refreshCounts]);
+
+  // Realtime: new chat messages
+  useEffect(() => {
+    const ch = supabase
+      .channel("chat_rt")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, (p) => {
+        const r = p.new as { id: string; nickname: string; message: string; kind: string; created_at: string };
+        setMessages((prev) => [
+          ...prev,
+          { id: r.id, nickname: r.nickname, message: r.message, kind: (r.kind ?? "chat") as MessageKind, timestamp: new Date(r.created_at).getTime() },
+        ]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  // Price tick during game phase
+  useEffect(() => {
+    if (phase !== "game" || !gameStartedAt) {
+      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+      return;
+    }
+    const update = () => setCurrentPrice(calcPrice(gameAtRef.current!, configRef.current));
+    update();
+    tickRef.current = setInterval(update, 500);
+    return () => { if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; } };
+  }, [phase, gameStartedAt]);
+
+  // Auto-transition: strategy → game when countdown ends
+  useEffect(() => {
+    if (phase !== "strategy" || !strategyStartedAt) return;
+    const check = () => {
+      const elapsed = Math.floor((Date.now() - strategyStartedAt) / 1000);
+      if (elapsed >= configRef.current.strategyDuration) {
+        supabase
+          .from("game_state")
+          .update({ phase: "game", game_started_at: new Date().toISOString() })
+          .eq("id", 1)
+          .eq("phase", "strategy")
+          .then(() => {});
+      }
+    };
+    check();
+    const t = setInterval(check, 1000);
+    return () => clearInterval(t);
+  }, [phase, strategyStartedAt]);
+
+  // Heartbeat: update last_seen every 30s
+  useEffect(() => {
+    if (!currentUser) return;
+    const ping = () => {
+      supabase
+        .from("participants")
+        .update({ last_seen: new Date().toISOString() })
+        .eq("guest_id", currentUser.guestId)
+        .then(() => {});
+    };
+    ping();
+    const t = setInterval(ping, 30_000);
+    return () => clearInterval(t);
+  }, [currentUser]);
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+
+  const joinGame = useCallback(async (nickname: string, role: Role) => {
+    const guestId = crypto.randomUUID();
+    const user: CurrentUser = { guestId, nickname, role };
+    setCurrentUser(user);
+    localStorage.setItem("dtb_user", JSON.stringify(user));
+
+    // Register participant
+    await supabase.from("participants").insert({ guest_id: guestId, nickname, role });
+
+    // Start strategy phase if game is waiting; set local phase immediately
+    // so the strategy page redirect guard sees the correct phase before Realtime arrives
+    const { data } = await supabase.from("game_state").select("phase, strategy_started_at").eq("id", 1).single();
+    if (data?.phase === "waiting") {
+      const strategyAt = new Date().toISOString();
+      await supabase
+        .from("game_state")
+        .update({ phase: "strategy", strategy_started_at: strategyAt })
+        .eq("id", 1);
+      setPhase("strategy");
+      setStrategyStartedAt(new Date(strategyAt).getTime());
+    } else if (data?.phase) {
+      const mapped: Phase = data.phase === "waiting" ? "home" : (data.phase as Phase);
+      setPhase(mapped);
+      if (data.strategy_started_at) setStrategyStartedAt(new Date(data.strategy_started_at).getTime());
+    }
+
+    // Announce entry
+    await supabase.from("chat_messages").insert({
+      guest_id: guestId,
+      nickname: "system",
+      message: `${nickname}님이 ${role === "participant" ? "참여자로" : "관전자로"} 입장했습니다 👋`,
+      kind: "system",
+    });
+  }, []);
+
+  const leaveGame = useCallback(async () => {
+    const guestId = userRef.current?.guestId;
+    if (guestId) {
+      await supabase.from("participants").delete().eq("guest_id", guestId);
+    }
+    setCurrentUser(null);
+    localStorage.removeItem("dtb_user");
+  }, []);
+
+  const sendMessage = useCallback(async (nickname: string, message: string, kind: MessageKind = "chat") => {
+    const guestId = userRef.current?.guestId ?? null;
+    await supabase.from("chat_messages").insert({ guest_id: guestId, nickname, message, kind });
+  }, []);
+
+  const addLocalMessage = useCallback((msg: ChatMessage) => {
+    setMessages((prev) => [...prev, msg]);
+  }, []);
+
+  const raiseHand = useCallback(async (nickname: string, price: number): Promise<boolean> => {
+    const guestId = userRef.current?.guestId ?? null;
+    // RPC handles UPDATE + chat insert atomically; returns true only if this client won
+    const { data, error } = await supabase.rpc("claim_winner", {
+      p_guest_id: guestId,
+      p_nickname: nickname,
+      p_price:    price,
+    });
+    return !error && data === true;
+  }, []);
+
+  const startGame = useCallback(async () => {
+    await supabase
+      .from("game_state")
+      .update({ phase: "game", game_started_at: new Date().toISOString() })
+      .eq("id", 1)
+      .eq("phase", "strategy");
+  }, []);
+
+  const updateConfig = useCallback(async (newConfig: Partial<GameConfig>) => {
+    const updates: Record<string, unknown> = {};
+    if (newConfig.productName      !== undefined) updates.product_name      = newConfig.productName;
+    if (newConfig.startPrice       !== undefined) updates.start_price       = newConfig.startPrice;
+    if (newConfig.dropAmount       !== undefined) updates.drop_amount       = newConfig.dropAmount;
+    if (newConfig.floorPrice       !== undefined) updates.minimum_price     = newConfig.floorPrice;
+    if (newConfig.strategyDuration !== undefined) updates.strategy_duration = newConfig.strategyDuration;
+    if (newConfig.gameStartTime    !== undefined) updates.scheduled_start_at = newConfig.gameStartTime || null;
+    await supabase.from("game_state").update(updates).eq("id", 1);
+  }, []);
+
+  const resetGame = useCallback(async () => {
+    setCurrentUser(null);
+    setMessages([]);
+    localStorage.removeItem("dtb_user");
+    await supabase.from("chat_messages").delete().gte("created_at", "1970-01-01");
+    await supabase.from("participants").delete().gte("joined_at", "1970-01-01");
+    await supabase.from("game_state").update({
+      phase: "waiting",
+      strategy_started_at: null,
+      game_started_at: null,
+      winner_id: null,
+      winner_nickname: null,
+      winner_price: null,
+    }).eq("id", 1);
+  }, []);
+
+  const state: GameState = {
+    config,
+    phase,
+    currentUser,
+    currentPrice,
+    winner,
+    chatMessages: messages,
+    strategyStartedAt,
+    gameStartedAt,
+    participantCount,
+    spectatorCount,
+  };
 
   return (
-    <GameContext.Provider value={{ state, dispatch }}>
+    <GameContext.Provider value={{ state, joinGame, leaveGame, sendMessage, addLocalMessage, raiseHand, startGame, resetGame, updateConfig }}>
       {children}
     </GameContext.Provider>
   );
