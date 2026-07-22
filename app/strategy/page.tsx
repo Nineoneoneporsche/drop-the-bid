@@ -171,7 +171,8 @@ export default function StrategyPage() {
   const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rapidIdxRef = useRef(0);
 
-  // ── Background music ──────────────────────────────────────────────────────
+  // ── Background video + music ──────────────────────────────────────────────
+  const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [muted, setMuted] = useState(false);
 
@@ -180,22 +181,22 @@ export default function StrategyPage() {
     audio.loop = true;
     audio.volume = 0.105;
     audioRef.current = audio;
-
-    const tryPlay = () => {
-      if (!audio.paused) return;
-      audio.play().catch(() => {});
-    };
-
-    tryPlay();
-    window.addEventListener("click", tryPlay, { once: true });
-    window.addEventListener("touchstart", tryPlay, { once: true });
-
     return () => {
       audio.pause();
       audio.src = "";
-      window.removeEventListener("click", tryPlay);
-      window.removeEventListener("touchstart", tryPlay);
     };
+  }, []);
+
+  // 영상 1회 종료 → 영상 음소거 루프 + bgm 시작
+  const handleVideoEnded = useCallback(() => {
+    const video = videoRef.current;
+    const audio = audioRef.current;
+    if (video) {
+      video.muted = true;
+      video.loop = true;
+      video.play().catch(() => {});
+    }
+    if (audio) audio.play().catch(() => {});
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -407,7 +408,11 @@ export default function StrategyPage() {
 
       {/* ── Background video ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <video autoPlay loop muted playsInline
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          onEnded={handleVideoEnded}
           className="absolute inset-0 w-full h-full object-cover"
           style={{ opacity: 0.45 }}
         >
