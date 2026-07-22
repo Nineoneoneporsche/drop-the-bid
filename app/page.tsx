@@ -110,7 +110,7 @@ export default function HomePage() {
           <h1
             className="font-black leading-[1.08] mb-3"
             style={{
-              fontSize: "2.7rem",
+              fontSize: "1.7rem",
               letterSpacing: "-0.025em",
             }}
           >
