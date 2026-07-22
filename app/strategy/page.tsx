@@ -188,7 +188,7 @@ export default function StrategyPage() {
 
       // 금색 shimmer 파티클 (CSS 기반)
       setShowSparkle(true);
-      setTimeout(() => setShowSparkle(false), 1400);
+      setTimeout(() => setShowSparkle(false), 2600);
 
       setMilestonePopup({ label: `-${hit}%`, key: Date.now() });
       setTimeout(() => setMilestonePopup(null), 4000);
@@ -466,20 +466,25 @@ export default function StrategyPage() {
       {/* ── Sparkle overlay ── */}
       {showSparkle && (
         <div className="absolute inset-0 z-[64] pointer-events-none overflow-hidden">
-          {Array.from({ length: 18 }).map((_, i) => (
-            <div
-              key={i}
-              className="sparkle-dot absolute rounded-full"
-              style={{
-                width: `${3 + (i % 3) * 2}px`,
-                height: `${3 + (i % 3) * 2}px`,
-                left: `${5 + (i * 5.5) % 90}%`,
-                top: `${10 + (i * 7) % 40}%`,
-                background: i % 3 === 0 ? "#FFD700" : i % 3 === 1 ? "#f5f3ff" : "#c084fc",
-                animationDelay: `${(i * 0.06).toFixed(2)}s`,
-              }}
-            />
-          ))}
+          {Array.from({ length: 22 }).map((_, i) => {
+            const color = i % 3 === 0 ? "#FFD700" : i % 3 === 1 ? "#f5f3ff" : "#c084fc";
+            const size = 8 + (i % 4) * 4; // 8~20px
+            return (
+              <div
+                key={i}
+                className="sparkle-dot absolute rounded-full"
+                style={{
+                  width: size,
+                  height: size,
+                  left: `${4 + (i * 4.3) % 92}%`,
+                  top: `${30 + (i * 6.7) % 55}%`,
+                  background: color,
+                  boxShadow: `0 0 ${size}px ${size / 2}px ${color}88`,
+                  animationDelay: `${(i * 0.055).toFixed(2)}s`,
+                }}
+              />
+            );
+          })}
         </div>
       )}
 
