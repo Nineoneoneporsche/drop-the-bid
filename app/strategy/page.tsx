@@ -172,31 +172,31 @@ export default function StrategyPage() {
   const rapidIdxRef = useRef(0);
 
   // ── Background video + music ──────────────────────────────────────────────
-  const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [muted, setMuted] = useState(false);
 
   useEffect(() => {
-    const audio = new Audio("/bgm.mp3");
-    audio.loop = true;
-    audio.volume = 0.105;
-    audioRef.current = audio;
-    return () => {
-      audio.pause();
-      audio.src = "";
-    };
-  }, []);
+    const intro = new Audio("/intro.mp3");
+    const bgm   = new Audio("/bgm.mp3");
+    bgm.loop    = true;
+    bgm.volume  = 0.105;
+    audioRef.current = bgm;
 
-  // 영상 1회 종료 → 영상 음소거 루프 + bgm 시작
-  const handleVideoEnded = useCallback(() => {
-    const video = videoRef.current;
-    const audio = audioRef.current;
-    if (video) {
-      video.muted = true;
-      video.loop = true;
-      video.play().catch(() => {});
-    }
-    if (audio) audio.play().catch(() => {});
+    // intro 종료 시 bgm 시작
+    intro.addEventListener("ended", () => { bgm.play().catch(() => {}); });
+
+    // 입장 직전 버튼 탭이 있으므로 바로 시도, 실패 시 첫 터치에 재시도
+    const tryIntro = () => { intro.play().catch(() => {}); };
+    tryIntro();
+    window.addEventListener("click",      tryIntro, { once: true });
+    window.addEventListener("touchstart", tryIntro, { once: true });
+
+    return () => {
+      intro.pause(); intro.src = "";
+      bgm.pause();   bgm.src   = "";
+      window.removeEventListener("click",      tryIntro);
+      window.removeEventListener("touchstart", tryIntro);
+    };
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -408,11 +408,7 @@ export default function StrategyPage() {
 
       {/* ── Background video ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          onEnded={handleVideoEnded}
+        <video autoPlay loop muted playsInline
           className="absolute inset-0 w-full h-full object-cover"
           style={{ opacity: 0.45 }}
         >
