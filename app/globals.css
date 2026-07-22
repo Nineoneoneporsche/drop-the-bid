@@ -174,8 +174,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .bid-btn-purple-plain {
-  background: linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%) !important;
-  box-shadow: 0 2px 18px rgba(168,85,247,0.55), inset 0 1px 0 rgba(255,255,255,0.20);
+  background: linear-gradient(180deg, #a855f7 0%, #9333ea 55%, #7c3aed 100%) !important;
+  box-shadow: 0 2px 18px rgba(147,51,234,0.6), inset 0 1px 0 rgba(255,255,255,0.18);
 }
 
 /* Signup step enter */
