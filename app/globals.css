@@ -226,6 +226,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: none;
   animation: gold-shimmer 2.8s linear infinite;
 }
 
