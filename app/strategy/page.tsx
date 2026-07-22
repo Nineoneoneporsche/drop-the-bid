@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import confetti from "canvas-confetti";
-import { Black_Han_Sans } from "next/font/google";
+import { Do_Hyeon } from "next/font/google";
 
-const blackHanSans = Black_Han_Sans({ weight: "400", subsets: ["latin"], preload: false });
+const doHyeon = Do_Hyeon({ weight: "400", subsets: ["latin"], preload: false });
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -508,7 +508,7 @@ export default function StrategyPage() {
       {milestonePopup && (
         <div
           key={milestonePopup.key}
-          className={`milestone-text absolute z-[65] pointer-events-none text-center ${blackHanSans.className}`}
+          className={`milestone-text absolute z-[65] pointer-events-none text-center ${doHyeon.className}`}
           style={{ top: "50%", left: "50%", whiteSpace: "nowrap" }}
         >
           <span
@@ -672,7 +672,9 @@ export default function StrategyPage() {
               style={{ opacity: muted ? 0.3 : 0.75 }}
               aria-label={muted ? "음악 켜기" : "음악 끄기"}
             >
-              {muted ? "🔇" : "🎵"}
+              <span className="material-symbols-outlined text-white" style={{ fontSize: "20px" }}>
+                {muted ? "volume_off" : "volume_up"}
+              </span>
             </button>
           </div>
           {isStrategy && (
@@ -789,7 +791,7 @@ export default function StrategyPage() {
               onClick={() => isParticipant ? setShowWatchConfirm(true) : undefined}
               className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl h-[88px]"
             >
-              <span className="text-xl leading-none">👁</span>
+              <span className="material-symbols-outlined text-white" style={{ fontSize: "22px", lineHeight: 1 }}>visibility</span>
               <span className="text-[11px] font-bold text-white/45 mt-0.5">{forcedWatcher ? "관전 중" : "관전"}</span>
             </button>
 
