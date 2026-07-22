@@ -69,6 +69,13 @@ export default function HomePage() {
               "linear-gradient(180deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.38) 18%, rgba(0,0,0,0.0) 36%, rgba(0,0,0,0.0) 62%, rgba(0,0,0,0.55) 82%, rgba(0,0,0,0.94) 100%)",
           }}
         />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 45%, transparent 25%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.82) 100%)",
+          }}
+        />
 
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-10">
