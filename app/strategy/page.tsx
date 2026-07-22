@@ -182,8 +182,21 @@ export default function StrategyPage() {
     bgm.volume  = 0.105;
     audioRef.current = bgm;
 
-    // intro 종료 시 bgm 시작
-    intro.addEventListener("ended", () => { bgm.play().catch(() => {}); });
+    // intro 종료 시 bgm 페이드인 시작
+    intro.addEventListener("ended", () => {
+      bgm.volume = 0;
+      bgm.play().catch(() => {});
+      const target = 0.105;
+      const step = target / 40; // 2초 (50ms × 40)
+      const fade = setInterval(() => {
+        if (bgm.volume + step >= target) {
+          bgm.volume = target;
+          clearInterval(fade);
+        } else {
+          bgm.volume += step;
+        }
+      }, 50);
+    });
 
     // 입장 직전 버튼 탭이 있으므로 바로 시도, 실패 시 첫 터치에 재시도
     const tryIntro = () => { intro.play().catch(() => {}); };
