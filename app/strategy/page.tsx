@@ -186,14 +186,17 @@ export default function StrategyPage() {
     if (hit >= 10 && !firedMilestonesRef.current.has(hit)) {
       firedMilestonesRef.current.add(hit);
 
-      // 폭죽 효과
-      confetti({ particleCount: 90, spread: 80, startVelocity: 35, origin: { x: 0.3, y: 0.45 },
-        colors: ["#FFD700","#FF6B6B","#4ECDC4","#a855f7","#FFEAA7"] });
-      confetti({ particleCount: 90, spread: 80, startVelocity: 35, origin: { x: 0.7, y: 0.45 },
-        colors: ["#FFD700","#FF6B6B","#4ECDC4","#a855f7","#FFEAA7"] });
+      // 좌우 대각선 캐논 버스트
+      const palette = ["#FFD700", "#f5f3ff", "#c084fc", "#a855f7", "#fbbf24"];
+      confetti({ angle: 55, spread: 48, particleCount: 70, startVelocity: 52,
+        gravity: 0.85, scalar: 1.1, shapes: ["circle"],
+        origin: { x: 0.05, y: 0.72 }, colors: palette });
+      confetti({ angle: 125, spread: 48, particleCount: 70, startVelocity: 52,
+        gravity: 0.85, scalar: 1.1, shapes: ["circle"],
+        origin: { x: 0.95, y: 0.72 }, colors: palette });
 
-      setMilestonePopup({ label: `-${hit}% 도달!`, key: Date.now() });
-      setTimeout(() => setMilestonePopup(null), 2200);
+      setMilestonePopup({ label: `-${hit}%`, key: Date.now() });
+      setTimeout(() => setMilestonePopup(null), 4000);
     }
   }, [state.currentPrice, state.phase, state.config.startPrice, state.config]);
 
@@ -465,20 +468,33 @@ export default function StrategyPage() {
         </div>
       )}
 
-      {/* ── Milestone popup ── */}
+      {/* ── Milestone banner ── */}
       {milestonePopup && (
         <div
           key={milestonePopup.key}
-          className="milestone-pop absolute z-[65] pointer-events-none"
-          style={{ top: "42%", left: "50%" }}
+          className="milestone-banner absolute top-0 left-0 right-0 z-[65] pointer-events-none px-4"
+          style={{ paddingTop: "96px" }}
         >
-          <div className="text-center px-10 py-5 rounded-2xl"
-            style={{ background: "rgba(10,10,10,0.82)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(12px)" }}
+          <div
+            className="flex items-center gap-4 px-5 py-4 rounded-2xl"
+            style={{
+              background: "rgba(8,8,8,0.88)",
+              border: "1px solid rgba(255,215,0,0.30)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,215,0,0.08), inset 0 1px 0 rgba(255,215,0,0.12)",
+              backdropFilter: "blur(20px)",
+            }}
           >
-            <p className="text-5xl mb-2">🎉</p>
-            <p className="font-black text-white tracking-tight" style={{ fontSize: "2rem" }}>
-              {milestonePopup.label}
-            </p>
+            {/* 금색 left accent */}
+            <div className="w-[3px] self-stretch rounded-full flex-shrink-0"
+              style={{ background: "linear-gradient(180deg, #FFD700 0%, #f59e0b 100%)" }} />
+            <div className="flex-1">
+              <p className="text-[10px] uppercase tracking-[0.22em] font-bold mb-0.5"
+                style={{ color: "#FFD700", opacity: 0.75 }}>할인 돌파</p>
+              <p className="font-black text-white leading-none" style={{ fontSize: "1.6rem", letterSpacing: "-0.02em" }}>
+                {milestonePopup.label} <span className="font-bold" style={{ color: "#FFD700" }}>도달</span>
+              </p>
+            </div>
+            <p className="text-xl flex-shrink-0" style={{ color: "#FFD700", opacity: 0.6 }}>✦</p>
           </div>
         </div>
       )}

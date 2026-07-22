@@ -191,16 +191,15 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   transform: translateY(0);
 }
 
-/* Milestone discount popup */
-@keyframes milestone-pop {
-  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.65); }
-  18%  { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
-  28%  { transform: translate(-50%, -50%) scale(1); }
-  68%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.88); }
+/* Milestone discount banner */
+@keyframes milestone-banner {
+  0%   { transform: translateY(-110%); opacity: 0; }
+  10%  { transform: translateY(0);     opacity: 1; }
+  84%  { transform: translateY(0);     opacity: 1; }
+  100% { transform: translateY(0);     opacity: 0; }
 }
-.milestone-pop {
-  animation: milestone-pop 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.milestone-banner {
+  animation: milestone-banner 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .bid-btn-critical {
