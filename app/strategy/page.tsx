@@ -178,7 +178,7 @@ export default function StrategyPage() {
   useEffect(() => {
     const audio = new Audio("/bgm.mp3");
     audio.loop = true;
-    audio.volume = 0.35;
+    audio.volume = 0.30;
     audioRef.current = audio;
 
     const tryPlay = () => {
