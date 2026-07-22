@@ -644,7 +644,7 @@ export default function StrategyPage() {
         <div className="flex-shrink-0 flex items-center gap-2 px-4 pt-10 pb-3">
           <button
             onClick={handleGoHome}
-            className="inline-flex items-center justify-center w-8 h-8 text-white/35 hover:text-white/75 transition-colors"
+            className="inline-flex items-center justify-center w-8 h-8 text-white transition-colors"
             aria-label="메인화면"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -669,7 +669,7 @@ export default function StrategyPage() {
             <button
               onClick={toggleMute}
               className="text-[16px] leading-none transition-opacity active:scale-90"
-              style={{ opacity: muted ? 0.3 : 0.75 }}
+              style={{ opacity: muted ? 0.4 : 1 }}
               aria-label={muted ? "음악 켜기" : "음악 끄기"}
             >
               <span className="material-symbols-outlined text-white" style={{ fontSize: "20px" }}>
