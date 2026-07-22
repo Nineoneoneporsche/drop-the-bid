@@ -221,7 +221,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   100% { background-position: 200% center; }
 }
 .gold-shimmer-text {
-  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 35%, #fef3c7 50%, #fbbf24 65%, #f59e0b 100%);
+  background: linear-gradient(90deg, #fcd34d 0%, #fef08a 35%, #ffffff 50%, #fef08a 65%, #fcd34d 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
