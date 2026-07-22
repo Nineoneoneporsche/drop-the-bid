@@ -171,6 +171,41 @@ export default function StrategyPage() {
   const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rapidIdxRef = useRef(0);
 
+  // ── Background music ──────────────────────────────────────────────────────
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [muted, setMuted] = useState(false);
+
+  useEffect(() => {
+    const audio = new Audio("/bgm.mp3");
+    audio.loop = true;
+    audio.volume = 0.35;
+    audioRef.current = audio;
+
+    const tryPlay = () => {
+      if (!audio.paused) return;
+      audio.play().catch(() => {});
+    };
+
+    tryPlay();
+    window.addEventListener("click", tryPlay, { once: true });
+    window.addEventListener("touchstart", tryPlay, { once: true });
+
+    return () => {
+      audio.pause();
+      audio.src = "";
+      window.removeEventListener("click", tryPlay);
+      window.removeEventListener("touchstart", tryPlay);
+    };
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) audio.play().catch(() => {});
+    audio.muted = !audio.muted;
+    setMuted(audio.muted);
+  }, []);
+
   const handleGoHome = useCallback(async () => {
     await leaveGame();
     router.replace("/");
@@ -520,14 +555,23 @@ export default function StrategyPage() {
             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
             LIVE
           </span>
-          <div className="ml-auto flex items-center gap-1 text-[11px] text-white/40 tabular-nums">
+          <div className="ml-auto flex items-center gap-2 text-[11px] text-white/40 tabular-nums">
             {isStrategy ? null : (
               <>
                 <span>✋{state.participantCount}</span>
                 <span className="text-white/20">·</span>
                 <span>👁{state.spectatorCount.toLocaleString()}</span>
+                <span className="text-white/20">·</span>
               </>
             )}
+            <button
+              onClick={toggleMute}
+              className="text-[16px] leading-none transition-opacity active:scale-90"
+              style={{ opacity: muted ? 0.3 : 0.75 }}
+              aria-label={muted ? "음악 켜기" : "음악 끄기"}
+            >
+              {muted ? "🔇" : "🎵"}
+            </button>
           </div>
           {isStrategy && (
             <button
