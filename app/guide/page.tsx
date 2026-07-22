@@ -130,8 +130,8 @@ export default function GuidePage() {
                   <span className="w-1 h-1 bg-white rounded-full animate-pulse inline-block" />
                   LIVE
                 </span>
-                <span className="text-white/65 text-xs">✋ <b className="text-white/80">186명</b></span>
-                <span className="text-white/65 text-xs">👁 <b className="text-white/80">3,412명</b></span>
+                <span className="text-white/65 text-xs flex items-center gap-0.5"><span className="material-symbols-outlined" style={{fontSize:"13px"}}>back_hand</span><b className="text-white/80">186명</b></span>
+                <span className="text-white/65 text-xs flex items-center gap-0.5"><span className="material-symbols-outlined" style={{fontSize:"13px"}}>visibility</span><b className="text-white/80">3,412명</b></span>
               </div>
 
               <div className="flex items-center gap-2 mb-2.5">
@@ -193,14 +193,18 @@ export default function GuidePage() {
                     : "0 2px 14px rgba(168,85,247,0.55)",
                 }}
               >
-                {buttonPressed ? "✅ 낙찰 완료!" : "🔥 낙찰받기"}
+                {buttonPressed ? (
+                  <span className="flex items-center justify-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"18px"}}>check_circle</span>낙찰 완료!</span>
+                ) : (
+                  <span className="flex items-center justify-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"18px"}}>local_fire_department</span>낙찰받기</span>
+                )}
               </div>
             </div>
 
             {/* Success overlay */}
             {showSuccess && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0f0f0f]/95 z-10 px-6 success-pop rounded-2xl">
-                <div className="text-4xl mb-3">🎉</div>
+                <div className="mb-3"><span className="material-symbols-outlined" style={{fontSize:"2.5rem"}}>celebration</span></div>
                 <p className="text-[10px] uppercase tracking-widest text-white/55 mb-1 font-medium">낙찰 성공</p>
                 <p
                   className="font-black font-mono tabular-nums leading-none mb-2"

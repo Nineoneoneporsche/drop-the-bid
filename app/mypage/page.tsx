@@ -29,12 +29,12 @@ const HISTORY = [
 ];
 
 const ACHIEVEMENTS = [
-  { emoji: "🏆", label: "첫 낙찰",    unlocked: true  },
-  { emoji: "⚡", label: "반응왕",      unlocked: true  },
-  { emoji: "💪", label: "버티기 고수", unlocked: false },
-  { emoji: "🎯", label: "연습왕",      unlocked: false },
-  { emoji: "👑", label: "레전드",      unlocked: false },
-  { emoji: "🔥", label: "연속 참가",   unlocked: false },
+  { icon: "emoji_events",          label: "첫 낙찰",    unlocked: true  },
+  { icon: "bolt",                  label: "반응왕",      unlocked: true  },
+  { icon: "fitness_center",        label: "버티기 고수", unlocked: false },
+  { icon: "gps_fixed",             label: "연습왕",      unlocked: false },
+  { icon: "workspace_premium",     label: "레전드",      unlocked: false },
+  { icon: "local_fire_department", label: "연속 참가",   unlocked: false },
 ];
 
 const MENU = [
@@ -240,7 +240,7 @@ export default function MyPage() {
           </div>
           {HISTORY.map((item, i) => (
             <div key={i} className={`flex items-center gap-3 px-5 py-3.5 ${i < HISTORY.length - 1 ? "border-b border-white/8" : ""}`}>
-              <span className={`text-sm flex-shrink-0 ${item.won ? "" : "opacity-30"}`}>{item.won ? "🏆" : "😔"}</span>
+              <span className={`material-symbols-outlined flex-shrink-0 ${item.won ? "" : "opacity-30"}`} style={{fontSize:"20px"}}>{item.won ? "emoji_events" : "sentiment_dissatisfied"}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-base font-semibold text-white/80 truncate">{item.product}</p>
                 <p className="text-sm text-white/50 mt-0.5">{item.date}</p>
@@ -261,10 +261,10 @@ export default function MyPage() {
             <span className="text-xs text-white/50">{ACHIEVEMENTS.filter(a => a.unlocked).length}/{ACHIEVEMENTS.length}</span>
           </div>
           <div className="flex gap-5">
-            {ACHIEVEMENTS.map(({ emoji, label, unlocked }) => (
+            {ACHIEVEMENTS.map(({ icon, label, unlocked }) => (
               <div key={label} className="flex flex-col items-center gap-1">
-                <span className="text-3xl leading-none" style={{ filter: unlocked ? "none" : "grayscale(1) opacity(0.25)" }}>
-                  {emoji}
+                <span className="material-symbols-outlined leading-none" style={{ fontSize: "1.8rem", opacity: unlocked ? 1 : 0.25 }}>
+                  {icon}
                 </span>
                 <p className={`text-xs font-medium text-center ${unlocked ? "text-white/70" : "text-white/40"}`}>{label}</p>
               </div>

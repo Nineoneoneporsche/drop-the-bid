@@ -607,7 +607,7 @@ export default function StrategyPage() {
       {raised && (
         <div className="absolute inset-0 z-[45] flex items-center justify-center px-5" style={{ background: "rgba(10,10,10,0.82)" }}>
           <div className="success-pop w-full text-center" style={{ border: "1px solid rgba(139,92,246,0.35)", background: "#111", padding: "2rem 1.5rem", boxShadow: "0 0 60px rgba(139,92,246,0.2)" }}>
-            <div className="text-5xl mb-3">🎉</div>
+            <div className="mb-3"><span className="material-symbols-outlined" style={{fontSize:"3rem"}}>celebration</span></div>
             <p className="text-[10px] uppercase tracking-[0.18em] font-bold mb-1" style={{ color: "#c084fc" }}>낙찰 성공</p>
             <p className="text-white/80 text-sm mb-4">
               <span className="font-black text-white">{winnerNick}</span>님, 축하합니다!
@@ -660,9 +660,9 @@ export default function StrategyPage() {
           <div className="ml-auto flex items-center gap-2 text-[11px] text-white/40 tabular-nums">
             {isStrategy ? null : (
               <>
-                <span>✋{state.participantCount}</span>
+                <span><span className="material-symbols-outlined" style={{fontSize:"13px",verticalAlign:"-1px"}}>back_hand</span>{state.participantCount}</span>
                 <span className="text-white/20">·</span>
-                <span>👁{state.spectatorCount.toLocaleString()}</span>
+                <span><span className="material-symbols-outlined" style={{fontSize:"13px",verticalAlign:"-1px"}}>visibility</span>{state.spectatorCount.toLocaleString()}</span>
                 <span className="text-white/20">·</span>
               </>
             )}
@@ -745,7 +745,7 @@ export default function StrategyPage() {
         <div className="flex-shrink-0 px-4 pt-2 pb-1.5 border-t border-white/8">
           {chatBlocked ? (
             <div className="flex items-center justify-center py-2.5 bg-white/4 rounded-xl border border-white/8">
-              <span className="text-white/35 text-[11px]">🔇 경매 중 채팅에 참여할 수 없어요</span>
+              <span className="text-white/35 text-[11px] flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"13px"}}>volume_off</span>경매 중 채팅에 참여할 수 없어요</span>
             </div>
           ) : (
             <div className="flex">
@@ -847,7 +847,7 @@ export default function StrategyPage() {
                     </span>
                     <div className={`flex items-center gap-2 mt-1 transition-opacity duration-300 ${currentSavings > 0 ? "opacity-100" : "opacity-0"}`}>
                       <span className="text-[11px] font-bold text-white">-{currentSavingsPct}% · {formatKRW(currentSavings)} 절약</span>
-                      <span className="text-sm font-black text-white">🔥 낙찰받기</span>
+                      <span className="text-sm font-black text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>local_fire_department</span>낙찰받기</span>
                     </div>
                   </>
                 )}

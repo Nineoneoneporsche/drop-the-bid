@@ -81,7 +81,7 @@ export default function HomePage() {
               className="text-white text-xs tabular-nums font-medium"
               style={{ textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}
             >
-              👥 {participantCount} · 👁 {spectatorCount.toLocaleString()}
+              <span className="material-symbols-outlined" style={{fontSize:"12px",verticalAlign:"-1px"}}>group</span> {participantCount} · <span className="material-symbols-outlined" style={{fontSize:"12px",verticalAlign:"-1px"}}>visibility</span> {spectatorCount.toLocaleString()}
             </span>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function HomePage() {
               textShadow: "0 2px 8px rgba(0,0,0,1), 0 4px 24px rgba(0,0,0,1)",
             }}
           >
-            👥{" "}
+            <span className="material-symbols-outlined" style={{fontSize:"15px",verticalAlign:"-3px"}}>group</span>{" "}
             <span className="text-orange-400 font-bold tabular-nums">
               {participantCount}명
             </span>
@@ -267,7 +267,7 @@ export default function HomePage() {
                 boxShadow: "0 4px 24px rgba(239,68,68,0.15)",
               }}
             >
-              <span>👁 관전하기</span>
+              <span className="flex items-center gap-2"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>visibility</span>관전하기</span>
               <span className="text-[11px] font-medium text-white/50 tracking-normal">
                 경매가 진행 중입니다 · 관전만 가능합니다
               </span>
@@ -282,7 +282,7 @@ export default function HomePage() {
                 boxShadow: "0 4px 24px rgba(139,92,246,0.50), 0 0 0 1px rgba(167,139,250,0.20)",
               }}
             >
-              <span>🔥 경매 참여하기</span>
+              <span className="flex items-center gap-2"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>local_fire_department</span>경매 참여하기</span>
               <span className="text-[11px] font-medium text-white/60 tracking-normal">
                 경매에 참여하고 낙찰 기회를 잡으세요!
               </span>

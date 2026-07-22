@@ -193,8 +193,8 @@ export default function PracticePage() {
                   <span className="w-1 h-1 bg-white rounded-full animate-pulse inline-block" />
                   LIVE
                 </span>
-                <span className="text-white/65 text-xs">✋ <b className="text-white/80">38명</b></span>
-                <span className="text-white/65 text-xs">👁 <b className="text-white/80">124명</b></span>
+                <span className="text-white/65 text-xs flex items-center gap-0.5"><span className="material-symbols-outlined" style={{fontSize:"13px"}}>back_hand</span><b className="text-white/80">38명</b></span>
+                <span className="text-white/65 text-xs flex items-center gap-0.5"><span className="material-symbols-outlined" style={{fontSize:"13px"}}>visibility</span><b className="text-white/80">124명</b></span>
                 <span className="ml-auto bg-white/12 text-white/65 text-[10px] font-bold px-2 py-0.5 rounded-full">연습모드</span>
               </div>
 
@@ -247,7 +247,7 @@ export default function PracticePage() {
                 onClick={handlePress}
                 className={`w-full py-5 text-xl font-bold text-white transition-all active:scale-[0.98] rounded-xl ${isTense ? "bid-btn-critical" : "bid-btn-purple"}`}
               >
-                🔥 낙찰받기
+                <span className="flex items-center justify-center gap-1.5"><span className="material-symbols-outlined" style={{fontSize:"22px"}}>local_fire_department</span>낙찰받기</span>
               </button>
               <p className="text-white/42 text-[11px] text-center mt-1.5">
                 지금 누르면{" "}
@@ -268,7 +268,7 @@ export default function PracticePage() {
             ref={setRef(2)}
             className="card-rise bg-[#141414] border border-white/10 rounded-2xl px-6 py-8 text-center"
           >
-            <div className="text-5xl mb-4">🎉</div>
+            <div className="mb-4"><span className="material-symbols-outlined" style={{fontSize:"3rem"}}>celebration</span></div>
             <p className="text-[10px] uppercase tracking-widest text-white/60 mb-2 font-medium">모의 낙찰 성공</p>
             <p
               className="font-black font-mono tabular-nums leading-none mb-1"

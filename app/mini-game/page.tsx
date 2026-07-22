@@ -195,7 +195,7 @@ export default function MiniGamePage() {
         {phase === "ready" && (
           <div className="space-y-3">
             <div className="bg-[#141414] border border-white/15 px-5 py-6 text-center">
-              <div className="text-5xl mb-4">⚡</div>
+              <div className="mb-4"><span className="material-symbols-outlined" style={{fontSize:"3rem"}}>bolt</span></div>
               <h2 className="text-xl font-black text-white mb-2">반응속도 테스트</h2>
               <p className="text-white/65 text-sm leading-relaxed mb-6">
                 버튼이 나타나면 최대한 빨리 누르세요.<br />
@@ -272,7 +272,7 @@ export default function MiniGamePage() {
               className="w-60 h-60 rounded-full text-white font-black text-2xl leading-tight select-none bid-btn-purple"
               style={{ touchAction: "manipulation" }}
             >
-              🔥<br />낙찰받기
+              <span className="material-symbols-outlined" style={{fontSize:"2.5rem",display:"block",marginBottom:"6px"}}>local_fire_department</span>낙찰받기
             </button>
           </div>
         )}
@@ -280,7 +280,7 @@ export default function MiniGamePage() {
         {/* FALSE START */}
         {phase === "false_start" && (
           <div className="bg-[#141414] border border-red-500/30 px-6 py-8 text-center">
-            <div className="text-5xl mb-3">🙈</div>
+            <div className="mb-3"><span className="material-symbols-outlined" style={{fontSize:"3rem"}}>do_not_touch</span></div>
             <h2 className="text-xl font-black text-white mb-1">성급했습니다!</h2>
             <p className="text-white/70 text-sm mb-1">낙찰 버튼이 나오기 전에 누르면 실패입니다.</p>
             <p className="text-white/60 text-xs mb-6">버튼이 나타날 때까지 침착하게 기다리세요.</p>

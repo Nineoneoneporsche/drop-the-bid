@@ -11,19 +11,19 @@ const FLOOR_PRICE = 550_000;
 const DROP_AMOUNT = 1_000;
 
 const STATS = [
-  { label: "참여자 수", value: "0명", icon: "✋" },
-  { label: "관전자 수", value: "0명", icon: "👁" },
-  { label: "시작가", value: formatKRW(START_PRICE), icon: "💰" },
-  { label: "목표 하한가", value: formatKRW(FLOOR_PRICE), icon: "🎯" },
-  { label: "하락 속도", value: `${formatKRW(DROP_AMOUNT)}/초`, icon: "📉" },
-  { label: "최대 절약", value: formatKRW(START_PRICE - FLOOR_PRICE), icon: "✨" },
+  { label: "참여자 수", value: "0명", icon: "back_hand" },
+  { label: "관전자 수", value: "0명", icon: "visibility" },
+  { label: "시작가", value: formatKRW(START_PRICE), icon: "payments" },
+  { label: "목표 하한가", value: formatKRW(FLOOR_PRICE), icon: "gps_fixed" },
+  { label: "하락 속도", value: `${formatKRW(DROP_AMOUNT)}/초`, icon: "trending_down" },
+  { label: "최대 절약", value: formatKRW(START_PRICE - FLOOR_PRICE), icon: "auto_awesome" },
 ];
 
 const FLOW_STEPS = [
-  { emoji: "💬", title: "전략 회의 1분", desc: "참여자들과 실시간 채팅으로 전략을 세워요" },
-  { emoji: "📉", title: "가격 하락 시작", desc: `초당 ${formatKRW(DROP_AMOUNT)} 씩 자동으로 내려가요` },
-  { emoji: "✋", title: "손들기", desc: "원하는 가격이 됐을 때 손을 들어요" },
-  { emoji: "🏆", title: "낙찰 확정", desc: "가장 먼저 손든 참여자가 그 가격에 낙찰!" },
+  { icon: "chat_bubble",   title: "전략 회의 1분", desc: "참여자들과 실시간 채팅으로 전략을 세워요" },
+  { icon: "trending_down", title: "가격 하락 시작", desc: `초당 ${formatKRW(DROP_AMOUNT)} 씩 자동으로 내려가요` },
+  { icon: "back_hand",     title: "손들기", desc: "원하는 가격이 됐을 때 손을 들어요" },
+  { icon: "emoji_events",  title: "낙찰 확정", desc: "가장 먼저 손든 참여자가 그 가격에 낙찰!" },
 ];
 
 export default function DemoPage() {
@@ -56,8 +56,8 @@ export default function DemoPage() {
           <span className="bg-amber-100 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-amber-200">
             데모 상품
           </span>
-          <span className="ml-auto text-gray-400 text-xs">
-            👁 0명 관전 중
+          <span className="ml-auto text-gray-400 text-xs flex items-center gap-1">
+            <span className="material-symbols-outlined" style={{fontSize:"13px"}}>visibility</span>0명 관전 중
           </span>
         </div>
 
@@ -67,7 +67,7 @@ export default function DemoPage() {
             <ProductImageFill alt={PRODUCT_NAME} priority />
             <div className="absolute bottom-3 left-3">
               <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg float-badge">
-                ✋ 0명 대기 중
+                <span className="material-symbols-outlined" style={{fontSize:"13px",verticalAlign:"-2px"}}>back_hand</span> 0명 대기 중
               </span>
             </div>
             <div className="absolute top-3 right-3">
@@ -113,7 +113,7 @@ export default function DemoPage() {
               key={label}
               className="bg-white rounded-2xl p-3 text-center border border-gray-100 shadow-sm"
             >
-              <div className="text-xl mb-1">{icon}</div>
+              <div className="mb-1"><span className="material-symbols-outlined text-gray-400" style={{fontSize:"22px"}}>{icon}</span></div>
               <p className="text-gray-900 font-bold text-sm leading-tight">{value}</p>
               <p className="text-gray-400 text-[10px] mt-0.5">{label}</p>
             </div>
@@ -126,13 +126,13 @@ export default function DemoPage() {
             진행 방식
           </p>
           <div className="space-y-4">
-            {FLOW_STEPS.map(({ emoji, title, desc }, i) => (
+            {FLOW_STEPS.map(({ icon, title, desc }, i) => (
               <div key={title} className="flex items-start gap-3">
                 <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-sm flex-shrink-0 font-bold text-orange-500">
                   {i + 1}
                 </div>
                 <div>
-                  <p className="text-gray-800 text-sm font-semibold">{emoji} {title}</p>
+                  <p className="text-gray-800 text-sm font-semibold flex items-center gap-1"><span className="material-symbols-outlined text-gray-400" style={{fontSize:"15px"}}>{icon}</span>{title}</p>
                   <p className="text-gray-400 text-xs mt-0.5">{desc}</p>
                 </div>
               </div>
@@ -166,7 +166,7 @@ export default function DemoPage() {
         {/* Social proof */}
         <div className="bg-white rounded-3xl shadow-sm border border-amber-100 p-5 mb-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-xl">💬</span>
+            <span className="material-symbols-outlined text-amber-500" style={{fontSize:"20px"}}>chat_bubble</span>
             <span className="text-amber-600 text-xs font-semibold uppercase tracking-wider">
               참여자 후기
             </span>
