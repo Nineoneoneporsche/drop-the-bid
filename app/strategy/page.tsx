@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import confetti from "canvas-confetti";
+import { Black_Han_Sans } from "next/font/google";
+
+const blackHanSans = Black_Han_Sans({ weight: "400", subsets: ["latin"], preload: false });
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -505,25 +508,20 @@ export default function StrategyPage() {
       {milestonePopup && (
         <div
           key={milestonePopup.key}
-          className="milestone-text absolute z-[65] pointer-events-none text-center"
+          className={`milestone-text absolute z-[65] pointer-events-none text-center ${blackHanSans.className}`}
           style={{ top: "50%", left: "50%", whiteSpace: "nowrap" }}
         >
           <span
-            className="font-black"
             style={{
-              fontSize: "3rem",
+              fontSize: "3.6rem",
               color: "#ffffff",
-              letterSpacing: "-0.02em",
               textShadow:
-                "0 0 16px rgba(255,255,255,1), 0 0 36px rgba(255,255,255,0.75), 0 0 72px rgba(255,255,255,0.4)",
+                "0 0 18px rgba(168,85,247,1), 0 0 40px rgba(168,85,247,0.85), 0 0 80px rgba(168,85,247,0.5)",
             }}
           >
             {milestonePopup.label}
           </span>
-          <span
-            className="font-black"
-            style={{ fontSize: "3rem", color: "#ffffff", letterSpacing: "-0.02em" }}
-          >
+          <span style={{ fontSize: "3.6rem", color: "#ffffff" }}>
             {" "}도달!
           </span>
         </div>
