@@ -18,10 +18,12 @@ export default function HomePage() {
   const { state } = useGame();
   const router = useRouter();
 
-  const { participantCount, spectatorCount, phase } = state;
+  const { participantCount, spectatorCount, phase, strategyStartedAt } = state;
   const gameStartTime = state.config.gameStartTime;
-  const auctionLive = phase === "strategy" || phase === "game";
+  const auctionLive = phase === "game";
+  const strategizing = phase === "strategy";
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [strategyLeft, setStrategyLeft] = useState<number | null>(null);
 
   useEffect(() => {
     if (!gameStartTime) {
@@ -34,6 +36,15 @@ export default function HomePage() {
     const t = setInterval(update, 1000);
     return () => clearInterval(t);
   }, [gameStartTime]);
+
+  useEffect(() => {
+    if (!strategizing || !strategyStartedAt) { setStrategyLeft(null); return; }
+    const dur = state.config.strategyDuration;
+    const update = () => setStrategyLeft(Math.max(0, dur - Math.floor((Date.now() - strategyStartedAt) / 1000)));
+    update();
+    const t = setInterval(update, 1000);
+    return () => clearInterval(t);
+  }, [strategizing, strategyStartedAt, state.config.strategyDuration]);
 
   const start = state.config.startPrice;
 
@@ -187,24 +198,30 @@ export default function HomePage() {
               <p
                 className="font-black tabular-nums font-mono leading-none"
                 style={{
-                  fontSize: auctionLive || countdown === null ? "1.1rem" : "1.65rem",
-                  color: auctionLive ? "#f87171" : "#f5f3ff",
+                  fontSize: auctionLive || strategizing ? "1.1rem" : countdown === null ? "1.1rem" : "1.65rem",
+                  color: auctionLive ? "#f87171" : strategizing ? "#fbbf24" : "#f5f3ff",
                   textShadow: auctionLive
                     ? "0 0 6px rgba(255,255,255,0.5), 0 0 14px #f87171, 0 0 28px #ef4444"
+                    : strategizing
+                    ? "0 0 6px rgba(255,255,255,0.3), 0 0 14px #fbbf24, 0 0 28px #f59e0b"
                     : "0 0 6px rgba(255,255,255,0.7), 0 0 14px #c084fc, 0 0 28px #a855f7",
                 }}
               >
                 {auctionLive
                   ? "경매 진행 중"
+                  : strategizing
+                  ? strategyLeft !== null ? `${strategyLeft}초 후 시작` : "곧 시작"
                   : countdown === null
                   ? "지금 참여가능"
                   : countdown === 0
                   ? "참여 마감"
                   : fmtCountdown(countdown)}
               </p>
-              <p className="text-[10px] mt-1" style={{ color: auctionLive ? "#f87171" : "#a855f7" }}>
+              <p className="text-[10px] mt-1" style={{ color: auctionLive ? "#f87171" : strategizing ? "#fbbf24" : "#a855f7" }}>
                 {auctionLive
                   ? "관전만 가능합니다"
+                  : strategizing
+                  ? "전략 시간 진행 중"
                   : countdown === null
                   ? "바로 시작하세요!"
                   : countdown === 0

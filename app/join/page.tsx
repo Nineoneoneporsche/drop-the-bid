@@ -35,7 +35,7 @@ export default function JoinPage() {
   const countdownExpired = state.config.gameStartTime
     ? new Date(state.config.gameStartTime).getTime() <= now
     : false;
-  const auctionLive = state.phase === "strategy" || state.phase === "game";
+  const auctionLive = state.phase === "game";
   const participantBlocked = auctionLive || countdownExpired;
 
   useEffect(() => {
