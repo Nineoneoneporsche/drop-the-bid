@@ -73,7 +73,7 @@ export default function HomePage() {
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at 50% 45%, transparent 25%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.82) 100%)",
+              "linear-gradient(to right, rgba(0,0,0,0.75) 0%, transparent 32%, transparent 68%, rgba(0,0,0,0.75) 100%)",
           }}
         />
 
