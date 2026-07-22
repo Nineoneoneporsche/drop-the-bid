@@ -87,7 +87,7 @@ export default function HomePage() {
         </div>
 
         {/* Headline */}
-        <div className="absolute left-0 right-0 pl-10 pr-5" style={{ top: "27%" }}>
+        <div className="absolute left-0 right-0 pl-10 pr-5" style={{ top: "42%" }}>
           <h1
             className="font-black leading-[1.08] mb-3"
             style={{
