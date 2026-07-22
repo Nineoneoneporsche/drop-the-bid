@@ -41,6 +41,7 @@ export interface GameState {
   gameStartedAt: number | null;
   participantCount: number;
   spectatorCount: number;
+  isLoaded: boolean;
 }
 
 export const DEFAULT_CONFIG: GameConfig = {
@@ -110,6 +111,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [gameStartedAt, setGameStartedAt]         = useState<number | null>(null);
   const [participantCount, setParticipantCount]   = useState(0);
   const [spectatorCount, setSpectatorCount]       = useState(0);
+  const [isLoaded, setIsLoaded]                   = useState(false);
 
   const tickRef      = useRef<ReturnType<typeof setInterval> | null>(null);
   const configRef    = useRef(config);
@@ -165,7 +167,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       .select("*")
       .eq("id", 1)
       .single()
-      .then(({ data }) => { if (data) applyDbRow(data as unknown as DbRow); });
+      .then(({ data }) => {
+        if (data) applyDbRow(data as unknown as DbRow);
+        setIsLoaded(true);
+      });
 
     supabase
       .from("chat_messages")
@@ -381,6 +386,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     gameStartedAt,
     participantCount,
     spectatorCount,
+    isLoaded,
   };
 
   return (

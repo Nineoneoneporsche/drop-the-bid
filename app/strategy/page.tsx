@@ -178,16 +178,16 @@ export default function StrategyPage() {
 
   // ── Redirect guards ──────────────────────────────────────────────────────
   useEffect(() => {
+    if (!state.isLoaded) return; // wait for Supabase initial fetch before redirecting
     if (!state.currentUser) {
       localStorage.removeItem("dtb_user");
       router.replace("/");
       return;
     }
     if (state.phase === "home") {
-      // Game was reset by admin while user was in — clean up participant row too
       leaveGame().then(() => router.replace("/"));
     }
-  }, [state.currentUser, state.phase, router, leaveGame]);
+  }, [state.isLoaded, state.currentUser, state.phase, router, leaveGame]);
 
   // ── Remove participant on browser close/refresh ──────────────────────────
   useEffect(() => {
