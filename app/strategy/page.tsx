@@ -194,21 +194,6 @@ export default function StrategyPage() {
     }
   }, [state.isLoaded, state.currentUser, state.phase, router, leaveGame]);
 
-  // ── Remove participant on browser close/refresh ──────────────────────────
-  useEffect(() => {
-    const onUnload = () => {
-      const guestId = state.currentUser?.guestId;
-      if (guestId) {
-        // sendBeacon is fire-and-forget, works even when tab closes
-        navigator.sendBeacon(
-          `https://ivnoxbsqzeodnoouqped.supabase.co/rest/v1/participants?guest_id=eq.${guestId}`,
-        );
-      }
-    };
-    window.addEventListener("beforeunload", onUnload);
-    return () => window.removeEventListener("beforeunload", onUnload);
-  }, [state.currentUser?.guestId]);
-
   // ── Schedule lounge messages once ────────────────────────────────────────
   useEffect(() => {
     const pool = shuffle(LOUNGE_MESSAGES);
