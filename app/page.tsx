@@ -117,7 +117,7 @@ export default function HomePage() {
           >
             <span className="text-white">과연 누가,</span>
             <br />
-            <span style={{ color: "#fbbf24" }}>가장 낮은 가격에</span>
+            <span className="gold-shimmer-text">가장 낮은 가격에</span>
             <br />
             <span className="text-white">가져갈까요?</span>
           </h1>
