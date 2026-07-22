@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import confetti from "canvas-confetti";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -186,9 +187,21 @@ export default function StrategyPage() {
     if (hit >= 10 && !firedMilestonesRef.current.has(hit)) {
       firedMilestonesRef.current.add(hit);
 
-      // 금색 shimmer 파티클 (CSS 기반)
+      // 중앙 폭발 버스트
+      confetti({
+        particleCount: 180,
+        spread: 360,
+        startVelocity: 42,
+        decay: 0.91,
+        gravity: 0.55,
+        scalar: 1.3,
+        shapes: ["circle"],
+        origin: { x: 0.5, y: 0.52 },
+        colors: ["#FFD700", "#fbbf24", "#f5f3ff", "#c084fc", "#a855f7"],
+      });
+      // 충격파 링
       setShowSparkle(true);
-      setTimeout(() => setShowSparkle(false), 2600);
+      setTimeout(() => setShowSparkle(false), 900);
 
       setMilestonePopup({ label: `-${hit}%`, key: Date.now() });
       setTimeout(() => setMilestonePopup(null), 4000);
@@ -465,26 +478,26 @@ export default function StrategyPage() {
 
       {/* ── Sparkle overlay ── */}
       {showSparkle && (
-        <div className="absolute inset-0 z-[64] pointer-events-none overflow-hidden">
-          {Array.from({ length: 22 }).map((_, i) => {
-            const color = i % 3 === 0 ? "#FFD700" : i % 3 === 1 ? "#f5f3ff" : "#c084fc";
-            const size = 8 + (i % 4) * 4; // 8~20px
-            return (
-              <div
-                key={i}
-                className="sparkle-dot absolute rounded-full"
-                style={{
-                  width: size,
-                  height: size,
-                  left: `${4 + (i * 4.3) % 92}%`,
-                  top: `${30 + (i * 6.7) % 55}%`,
-                  background: color,
-                  boxShadow: `0 0 ${size}px ${size / 2}px ${color}88`,
-                  animationDelay: `${(i * 0.055).toFixed(2)}s`,
-                }}
-              />
-            );
-          })}
+        <div className="absolute inset-0 z-[64] pointer-events-none">
+          {[
+            { delay: "0s",    color: "#FFD700", size: 80 },
+            { delay: "0.12s", color: "#c084fc", size: 130 },
+            { delay: "0.26s", color: "#f5f3ff", size: 200 },
+          ].map((ring, i) => (
+            <div
+              key={i}
+              className="shockwave-ring absolute rounded-full"
+              style={{
+                width: ring.size,
+                height: ring.size,
+                left: "50%",
+                top: "52%",
+                borderColor: ring.color,
+                boxShadow: `0 0 12px 2px ${ring.color}66`,
+                animationDelay: ring.delay,
+              }}
+            />
+          ))}
         </div>
       )}
 

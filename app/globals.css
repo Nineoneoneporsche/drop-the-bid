@@ -191,15 +191,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   transform: translateY(0);
 }
 
-/* Milestone sparkle dots */
-@keyframes sparkle-rise {
-  0%   { transform: translateY(0)    scale(0); opacity: 0; }
-  25%  { transform: translateY(-30px) scale(1); opacity: 1; }
-  75%  { opacity: 1; }
-  100% { transform: translateY(-120px) scale(0.2); opacity: 0; }
+/* Milestone shockwave ring */
+@keyframes shockwave {
+  0%   { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(6); opacity: 0; }
 }
-.sparkle-dot {
-  animation: sparkle-rise 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.shockwave-ring {
+  border: 2px solid;
+  animation: shockwave 0.75s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
 }
 
 /* Milestone discount banner */
