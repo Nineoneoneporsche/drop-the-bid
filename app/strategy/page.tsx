@@ -501,34 +501,31 @@ export default function StrategyPage() {
         </div>
       )}
 
-      {/* ── Milestone banner ── */}
+      {/* ── Milestone text ── */}
       {milestonePopup && (
         <div
           key={milestonePopup.key}
-          className="milestone-banner absolute top-0 left-0 right-0 z-[65] pointer-events-none px-4"
-          style={{ paddingTop: "96px" }}
+          className="milestone-text absolute z-[65] pointer-events-none text-center"
+          style={{ top: "50%", left: "50%", whiteSpace: "nowrap" }}
         >
-          <div
-            className="flex items-center gap-4 px-5 py-4 rounded-2xl"
+          <span
+            className="font-black"
             style={{
-              background: "rgba(8,8,8,0.88)",
-              border: "1px solid rgba(255,215,0,0.30)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,215,0,0.08), inset 0 1px 0 rgba(255,215,0,0.12)",
-              backdropFilter: "blur(20px)",
+              fontSize: "3rem",
+              color: "#ffffff",
+              letterSpacing: "-0.02em",
+              textShadow:
+                "0 0 16px rgba(255,255,255,1), 0 0 36px rgba(255,255,255,0.75), 0 0 72px rgba(255,255,255,0.4)",
             }}
           >
-            {/* 금색 left accent */}
-            <div className="w-[3px] self-stretch rounded-full flex-shrink-0"
-              style={{ background: "linear-gradient(180deg, #FFD700 0%, #f59e0b 100%)" }} />
-            <div className="flex-1">
-              <p className="text-[10px] uppercase tracking-[0.22em] font-bold mb-0.5"
-                style={{ color: "#FFD700", opacity: 0.75 }}>할인 돌파</p>
-              <p className="font-black text-white leading-none" style={{ fontSize: "1.6rem", letterSpacing: "-0.02em" }}>
-                {milestonePopup.label} <span className="font-bold" style={{ color: "#FFD700" }}>도달</span>
-              </p>
-            </div>
-            <p className="text-xl flex-shrink-0" style={{ color: "#FFD700", opacity: 0.6 }}>✦</p>
-          </div>
+            {milestonePopup.label}
+          </span>
+          <span
+            className="font-black"
+            style={{ fontSize: "3rem", color: "#ffffff", letterSpacing: "-0.02em" }}
+          >
+            {" "}도달!
+          </span>
         </div>
       )}
 

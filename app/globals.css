@@ -201,15 +201,16 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   animation: shockwave 0.75s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
 }
 
-/* Milestone discount banner */
-@keyframes milestone-banner {
-  0%   { transform: translateY(-110%); opacity: 0; }
-  10%  { transform: translateY(0);     opacity: 1; }
-  84%  { transform: translateY(0);     opacity: 1; }
-  100% { transform: translateY(0);     opacity: 0; }
+/* Milestone center text */
+@keyframes milestone-text {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.75); }
+  12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+  22%  { transform: translate(-50%, -50%) scale(1); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
 }
-.milestone-banner {
-  animation: milestone-banner 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.milestone-text {
+  animation: milestone-text 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .bid-btn-critical {
