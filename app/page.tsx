@@ -199,11 +199,9 @@ export default function HomePage() {
                 className="font-black tabular-nums font-mono leading-none"
                 style={{
                   fontSize: auctionLive || strategizing ? "1.1rem" : countdown === null ? "1.1rem" : "1.65rem",
-                  color: auctionLive ? "#f87171" : strategizing ? "#fbbf24" : "#f5f3ff",
-                  textShadow: auctionLive
-                    ? "0 0 6px rgba(255,255,255,0.5), 0 0 14px #f87171, 0 0 28px #ef4444"
-                    : strategizing
-                    ? "0 0 6px rgba(255,255,255,0.3), 0 0 14px #fbbf24, 0 0 28px #f59e0b"
+                  color: auctionLive ? "#ff2d2d" : strategizing ? "#e8ff00" : "#f5f3ff",
+                  textShadow: auctionLive || strategizing
+                    ? "none"
                     : "0 0 6px rgba(255,255,255,0.7), 0 0 14px #c084fc, 0 0 28px #a855f7",
                 }}
               >
@@ -217,7 +215,7 @@ export default function HomePage() {
                   ? "참여 마감"
                   : fmtCountdown(countdown)}
               </p>
-              <p className="text-[10px] mt-1" style={{ color: auctionLive ? "#f87171" : strategizing ? "#fbbf24" : "#a855f7" }}>
+              <p className="text-[10px] mt-1" style={{ color: auctionLive ? "#ff2d2d" : strategizing ? "#e8ff00" : "#a855f7" }}>
                 {auctionLive
                   ? "관전만 가능합니다"
                   : strategizing
