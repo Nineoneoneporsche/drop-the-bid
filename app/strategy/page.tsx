@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import confetti from "canvas-confetti";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -171,6 +170,7 @@ export default function StrategyPage() {
   const firedNarratorRef = useRef(new Set<number>());
   const firedMilestonesRef = useRef(new Set<number>());
   const [milestonePopup, setMilestonePopup] = useState<{ label: string; key: number } | null>(null);
+  const [showSparkle, setShowSparkle] = useState(false);
   const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rapidIdxRef = useRef(0);
 
@@ -186,14 +186,9 @@ export default function StrategyPage() {
     if (hit >= 10 && !firedMilestonesRef.current.has(hit)) {
       firedMilestonesRef.current.add(hit);
 
-      // 좌우 대각선 캐논 버스트
-      const palette = ["#FFD700", "#f5f3ff", "#c084fc", "#a855f7", "#fbbf24"];
-      confetti({ angle: 55, spread: 48, particleCount: 70, startVelocity: 52,
-        gravity: 0.85, scalar: 1.1, shapes: ["circle"],
-        origin: { x: 0.05, y: 0.72 }, colors: palette });
-      confetti({ angle: 125, spread: 48, particleCount: 70, startVelocity: 52,
-        gravity: 0.85, scalar: 1.1, shapes: ["circle"],
-        origin: { x: 0.95, y: 0.72 }, colors: palette });
+      // 금색 shimmer 파티클 (CSS 기반)
+      setShowSparkle(true);
+      setTimeout(() => setShowSparkle(false), 1400);
 
       setMilestonePopup({ label: `-${hit}%`, key: Date.now() });
       setTimeout(() => setMilestonePopup(null), 4000);
@@ -465,6 +460,26 @@ export default function StrategyPage() {
       {showDJ && (
         <div key={djKey} className="dj-pop absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
           <Image src="/gamedj.png" alt="DJ" width={320} height={320} style={{ objectFit: "contain" }} priority />
+        </div>
+      )}
+
+      {/* ── Sparkle overlay ── */}
+      {showSparkle && (
+        <div className="absolute inset-0 z-[64] pointer-events-none overflow-hidden">
+          {Array.from({ length: 18 }).map((_, i) => (
+            <div
+              key={i}
+              className="sparkle-dot absolute rounded-full"
+              style={{
+                width: `${3 + (i % 3) * 2}px`,
+                height: `${3 + (i % 3) * 2}px`,
+                left: `${5 + (i * 5.5) % 90}%`,
+                top: `${10 + (i * 7) % 40}%`,
+                background: i % 3 === 0 ? "#FFD700" : i % 3 === 1 ? "#f5f3ff" : "#c084fc",
+                animationDelay: `${(i * 0.06).toFixed(2)}s`,
+              }}
+            />
+          ))}
         </div>
       )}
 
