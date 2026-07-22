@@ -16,10 +16,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <head>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=volume_off,volume_up,visibility" rel="stylesheet" />
-      </head>
-      <body className="antialiased bg-gray-950 text-white min-h-screen">
+<body className="antialiased bg-gray-950 text-white min-h-screen">
         <GameProvider>{children}</GameProvider>
       </body>
     </html>
