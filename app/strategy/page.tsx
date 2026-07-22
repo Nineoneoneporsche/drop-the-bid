@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import confetti from "canvas-confetti";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -168,8 +169,33 @@ export default function StrategyPage() {
   const djIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const firedChatRef = useRef(new Set<number>());
   const firedNarratorRef = useRef(new Set<number>());
+  const firedMilestonesRef = useRef(new Set<number>());
+  const [milestonePopup, setMilestonePopup] = useState<{ label: string; key: number } | null>(null);
   const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rapidIdxRef = useRef(0);
+
+  // ── Milestone discount popups ────────────────────────────────────────────
+  useEffect(() => {
+    if (state.phase !== "game") return;
+    const { startPrice } = state.config;
+    if (startPrice <= 0) return;
+
+    const dropPct = Math.floor((1 - state.currentPrice / startPrice) * 100);
+    const hit = Math.floor(dropPct / 10) * 10;
+
+    if (hit >= 10 && !firedMilestonesRef.current.has(hit)) {
+      firedMilestonesRef.current.add(hit);
+
+      // 폭죽 효과
+      confetti({ particleCount: 90, spread: 80, startVelocity: 35, origin: { x: 0.3, y: 0.45 },
+        colors: ["#FFD700","#FF6B6B","#4ECDC4","#a855f7","#FFEAA7"] });
+      confetti({ particleCount: 90, spread: 80, startVelocity: 35, origin: { x: 0.7, y: 0.45 },
+        colors: ["#FFD700","#FF6B6B","#4ECDC4","#a855f7","#FFEAA7"] });
+
+      setMilestonePopup({ label: `-${hit}% 도달!`, key: Date.now() });
+      setTimeout(() => setMilestonePopup(null), 2200);
+    }
+  }, [state.currentPrice, state.phase, state.config.startPrice, state.config]);
 
   // ── Background video + music ──────────────────────────────────────────────
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -436,6 +462,24 @@ export default function StrategyPage() {
       {showDJ && (
         <div key={djKey} className="dj-pop absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
           <Image src="/gamedj.png" alt="DJ" width={320} height={320} style={{ objectFit: "contain" }} priority />
+        </div>
+      )}
+
+      {/* ── Milestone popup ── */}
+      {milestonePopup && (
+        <div
+          key={milestonePopup.key}
+          className="milestone-pop absolute z-[65] pointer-events-none"
+          style={{ top: "42%", left: "50%" }}
+        >
+          <div className="text-center px-10 py-5 rounded-2xl"
+            style={{ background: "rgba(10,10,10,0.82)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(12px)" }}
+          >
+            <p className="text-5xl mb-2">🎉</p>
+            <p className="font-black text-white tracking-tight" style={{ fontSize: "2rem" }}>
+              {milestonePopup.label}
+            </p>
+          </div>
         </div>
       )}
 
