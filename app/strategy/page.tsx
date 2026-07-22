@@ -178,7 +178,12 @@ export default function StrategyPage() {
 
   // ── Redirect guards ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (!state.isLoaded) return; // wait for Supabase initial fetch before redirecting
+    // Skip on the very first mount after joinGame — phase update may not be committed yet
+    if (sessionStorage.getItem("dtb_joining")) {
+      sessionStorage.removeItem("dtb_joining");
+      return;
+    }
+    if (!state.isLoaded) return;
     if (!state.currentUser) {
       localStorage.removeItem("dtb_user");
       router.replace("/");

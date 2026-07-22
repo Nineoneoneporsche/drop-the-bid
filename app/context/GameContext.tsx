@@ -281,6 +281,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const user: CurrentUser = { guestId, nickname, role };
     setCurrentUser(user);
     localStorage.setItem("dtb_user", JSON.stringify(user));
+    // Signal to strategy page redirect guard: don't kick on first mount
+    sessionStorage.setItem("dtb_joining", "1");
 
     // Register participant
     await supabase.from("participants").insert({ guest_id: guestId, nickname, role });
