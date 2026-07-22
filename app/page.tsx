@@ -112,7 +112,7 @@ export default function HomePage() {
             style={{
               fontSize: "2.7rem",
               letterSpacing: "-0.025em",
-              textShadow: "3px 4px 0 #000",
+              filter: "drop-shadow(3px 4px 0 #000)",
             }}
           >
             <span className="text-white">과연 누가,</span>
