@@ -262,13 +262,9 @@ export default function HomePage() {
           ) : (
             <button
               onClick={() => router.push("/join")}
-              className="w-full font-black text-lg text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1"
-              style={{
-                background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
-                borderRadius: "10px",
-                boxShadow: "0 4px 24px rgba(139,92,246,0.50), 0 0 0 1px rgba(167,139,250,0.20)",
-              }}
+              className="w-full font-black text-lg text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1 bid-btn-purple-plain rounded-[10px] relative overflow-hidden"
             >
+              <div className="bid-shimmer absolute inset-y-0 w-[40%]" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)" }} />
               <span className="flex items-center gap-2"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>local_fire_department</span>경매 참여하기</span>
               <span className="text-[11px] font-medium text-white/60 tracking-normal">
                 경매에 참여하고 낙찰 기회를 잡으세요!
