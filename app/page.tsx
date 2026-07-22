@@ -88,29 +88,10 @@ export default function HomePage() {
 
         {/* Headline */}
         <div className="absolute left-0 right-0 pl-10 pr-5" style={{ top: "27%" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <span
-              className="text-[11px] font-black uppercase tracking-widest px-2.5 py-1 leading-none"
-              style={{
-                background: "linear-gradient(90deg, #f97316, #fbbf24)",
-                color: "#0a0a0a",
-                borderRadius: "3px",
-              }}
-            >
-              DROP THE BID
-            </span>
-            <span
-              className="text-white/55 text-[11px] font-bold uppercase tracking-wider"
-              style={{ textShadow: "0 2px 8px rgba(0,0,0,1), 0 4px 24px rgba(0,0,0,1)" }}
-            >
-              WHO WILL WIN?
-            </span>
-          </div>
-
           <h1
             className="font-black leading-[1.08] mb-3"
             style={{
-              fontSize: "1.7rem",
+              fontSize: "2.1rem",
               letterSpacing: "-0.025em",
             }}
           >
