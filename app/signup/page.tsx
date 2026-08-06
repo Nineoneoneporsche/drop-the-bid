@@ -375,6 +375,7 @@ export default function SignupPage() {
         since: new Date().toISOString().slice(0, 7).replace("-", "."),
       };
       localStorage.setItem("dtb_user", JSON.stringify(user));
+      localStorage.setItem("dtb_session", "1");
       router.push("/mypage");
     }
   }
@@ -388,6 +389,7 @@ export default function SignupPage() {
       since: new Date().toISOString().slice(0, 7).replace("-", "."),
     };
     localStorage.setItem("dtb_user", JSON.stringify(user));
+    localStorage.setItem("dtb_session", "1");
     router.push("/mypage");
   }
 

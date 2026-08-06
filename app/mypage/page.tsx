@@ -61,7 +61,7 @@ function LoggedOut() {
         setLoginErr("이메일 또는 비밀번호가 올바르지 않아요.");
         return;
       }
-      // Force a page reload so MyPage re-reads localStorage
+      localStorage.setItem("dtb_session", "1");
       window.location.reload();
     } catch {
       setLoginErr("로그인 중 오류가 발생했어요.");
@@ -165,8 +165,9 @@ export default function MyPage() {
 
   useEffect(() => {
     try {
+      const session = localStorage.getItem("dtb_session");
       const raw = localStorage.getItem("dtb_user");
-      if (raw) setUser(JSON.parse(raw));
+      if (session === "1" && raw) setUser(JSON.parse(raw));
     } catch { }
     setLoaded(true);
   }, []);
@@ -186,7 +187,7 @@ export default function MyPage() {
   }, [loaded, user]);
 
   function handleLogout() {
-    localStorage.removeItem("dtb_user");
+    localStorage.removeItem("dtb_session");
     setUser(null);
   }
 
