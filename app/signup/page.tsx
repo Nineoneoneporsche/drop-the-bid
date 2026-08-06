@@ -344,6 +344,15 @@ export default function SignupPage() {
     if (step === 2) {
       if (!form.name.trim()) e.name = "이름을 입력하세요";
       if (form.phone.replace(/\D/g, "").length < 10) e.phone = "올바른 휴대폰 번호를 입력하세요";
+      if (!form.dob) {
+        e.dob = "생년월일을 입력하세요";
+      } else {
+        const birth = new Date(form.dob);
+        const today = new Date();
+        const age = today.getFullYear() - birth.getFullYear()
+          - (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
+        if (age < 14) e.dob = "만 14세 이상만 가입할 수 있습니다";
+      }
     }
     if (step === 3) {
       if (!form.postcode) e.postcode = "우편번호를 입력하세요";
@@ -459,9 +468,10 @@ export default function SignupPage() {
               value={form.phone}
               onChange={e => set("phone", fmtPhone(e.target.value))}
               error={errors.phone} autoComplete="tel" />
-            <Field label="생년월일" type="date" placeholder="YYYY-MM-DD"
+            <Field label="생년월일" required type="date" placeholder="YYYY-MM-DD"
               value={form.dob} onChange={e => set("dob", e.target.value)}
-              hint="만 14세 이상만 가입할 수 있어요" />
+              error={errors.dob}
+              hint={!errors.dob ? "만 14세 이상만 가입할 수 있어요" : undefined} />
           </div>
         )}
 
