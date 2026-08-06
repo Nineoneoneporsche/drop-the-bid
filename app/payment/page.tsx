@@ -2,20 +2,13 @@
 
 import { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { ProductThumb } from "../components/ProductImage";
 import HomeButton from "../components/HomeButton";
 
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
+const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? "test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq";
 
-type PayMethod = {
-  id: string;
-  label: string;
-  bg?: string;
-  letter?: string;
-  dark?: boolean;
-};
-
+type PayMethod = { id: string; label: string; bg?: string; letter?: string; dark?: boolean };
 const METHODS: PayMethod[] = [
   { id: "card",  label: "신용/체크카드" },
   { id: "kakao", label: "카카오페이",  bg: "#FEE500", letter: "K", dark: true  },
@@ -38,7 +31,8 @@ function PaymentInner() {
   const [expired,  setExpired]  = useState(false);
   const [method,   setMethod]   = useState("card");
   const [agreed,   setAgreed]   = useState(false);
-  const [paid,     setPaid]     = useState(false);
+  const [paying,   setPaying]   = useState(false);
+  const [error,    setError]    = useState("");
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -53,53 +47,48 @@ function PaymentInner() {
     return () => clearInterval(t);
   }, []);
 
-  const canPay = agreed && !expired;
+  const canPay = agreed && !expired && !paying;
 
-  function handlePay() {
+  async function handlePay() {
     if (!canPay) return;
-    if (timerRef.current) clearInterval(timerRef.current);
-    setPaid(true);
-  }
+    setError("");
+    setPaying(true);
 
-  if (paid) {
-    return (
-      <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4">
-        <div className="w-full max-w-md text-center success-pop">
-          <div className="text-6xl mb-5">✅</div>
-          <p className="text-[10px] uppercase tracking-[0.14em] text-white/60 font-medium mb-2">결제 완료</p>
-          <h1 className="text-3xl font-black text-white mb-2">낙찰이 확정되었습니다.</h1>
-          <p className="text-white/65 text-sm mb-8 leading-relaxed">
-            배송 정보는 등록된 연락처로 안내드립니다.
-          </p>
-          <div className="bg-[#141414] border border-white/15 p-5 mb-6 text-left">
-            <div className="flex gap-4 items-center">
-              <ProductThumb alt={PRODUCT_NAME} size={60} rounded="rounded-sm" />
-              <div>
-                <p className="text-white/70 text-sm font-semibold leading-snug">{PRODUCT_NAME}</p>
-                <p className="text-[#c084fc] font-black text-xl font-mono tabular-nums mt-1">{fmt(PRICE)}</p>
-                <p className="text-white/60 text-xs mt-0.5">배송 준비 중</p>
-              </div>
-            </div>
-          </div>
-          <Link
-            href="/"
-            className="block w-full py-4 text-white font-bold text-base transition-opacity active:opacity-80"
-            style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
-          >
-            홈으로 가기
-          </Link>
-        </div>
-      </main>
-    );
+    try {
+      const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
+      const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
+
+      let customerKey: string;
+      try {
+        const stored = localStorage.getItem("dtb_user");
+        customerKey = stored ? JSON.parse(stored).guestId : crypto.randomUUID();
+      } catch {
+        customerKey = crypto.randomUUID();
+      }
+
+      const payment = tossPayments.payment({ customerKey });
+      const orderId = `DTB-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+
+      await payment.requestPayment({
+        method: "CARD",
+        amount: { currency: "KRW", value: PRICE },
+        orderId,
+        orderName: PRODUCT_NAME,
+        successUrl: `${window.location.origin}/payment/success`,
+        failUrl:    `${window.location.origin}/payment/fail`,
+      });
+    } catch (e: unknown) {
+      setPaying(false);
+      const msg = e instanceof Error ? e.message : "결제 중 오류가 발생했습니다.";
+      if (!msg.includes("취소")) setError(msg);
+    }
   }
 
   return (
     <main className="min-h-screen bg-[#0f0f0f] flex flex-col max-w-md mx-auto">
       {/* Header */}
       <div className="bg-[#141414] px-4 pt-10 pb-4 border-b border-white/15 flex-shrink-0">
-        <div className="mb-3">
-          <HomeButton />
-        </div>
+        <div className="mb-3"><HomeButton /></div>
         <div className="flex items-end justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-[0.12em] text-white/55 font-medium mb-1">Drop The Bid</p>
@@ -108,11 +97,9 @@ function PaymentInner() {
           </div>
           <div className="text-right">
             <p className="text-[10px] uppercase tracking-wider text-white/60 mb-0.5">남은 시간</p>
-            <p
-              className={`font-black font-mono text-2xl tabular-nums leading-none ${
-                expired ? "text-white/45" : timeLeft < 60 ? "text-red-500" : "text-[#a855f7]"
-              }`}
-            >
+            <p className={`font-black font-mono text-2xl tabular-nums leading-none ${
+              expired ? "text-white/45" : timeLeft < 60 ? "text-red-500" : "text-[#a855f7]"
+            }`}>
               {fmtTime(timeLeft)}
             </p>
           </div>
@@ -124,6 +111,11 @@ function PaymentInner() {
         {expired && (
           <div className="px-4 py-3 bg-red-500/10 border-b border-red-500/20">
             <p className="text-red-400 text-sm font-bold text-center">결제 시간이 만료되었습니다.</p>
+          </div>
+        )}
+        {error && (
+          <div className="px-4 py-3 bg-red-500/10 border-b border-red-500/20">
+            <p className="text-red-400 text-sm text-center">{error}</p>
           </div>
         )}
 
@@ -159,21 +151,17 @@ function PaymentInner() {
             {METHODS.map((m) => {
               const sel = method === m.id;
               return (
-                <button
-                  key={m.id}
-                  onClick={() => setMethod(m.id)}
+                <button key={m.id} onClick={() => setMethod(m.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 text-left border transition-colors ${
                     sel ? "border-[#a855f7] bg-[#a855f7]/10" : "border-white/15 bg-white/5 hover:border-white/20"
                   }`}
                 >
-                  <div
-                    className="w-8 h-8 rounded-sm flex items-center justify-center flex-shrink-0"
+                  <div className="w-8 h-8 rounded-sm flex items-center justify-center flex-shrink-0"
                     style={{ background: m.id === "card" ? "rgba(255,255,255,0.1)" : m.bg }}
                   >
                     {m.id === "card" ? (
                       <svg viewBox="0 0 24 24" className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="1" y="4" width="22" height="16" rx="2" />
-                        <line x1="1" y1="10" x2="23" y2="10" />
+                        <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
                       </svg>
                     ) : (
                       <span className="text-xs font-black" style={{ color: m.dark ? "#000" : "#fff" }}>{m.letter}</span>
@@ -186,6 +174,7 @@ function PaymentInner() {
                 </button>
               );
             })}
+            <p className="text-white/35 text-[11px] pt-1">결제 수단 선택 후 토스페이먼츠 창에서 최종 확인합니다.</p>
           </div>
         </div>
 
@@ -193,9 +182,7 @@ function PaymentInner() {
         <div className="px-4 py-5 border-b border-white/15">
           <div className="flex items-center justify-between mb-4">
             <p className="text-[10px] uppercase tracking-[0.12em] text-white/60 font-medium">배송지</p>
-            <button disabled className="text-[11px] text-white/45 border border-white/20 px-2.5 py-1 cursor-not-allowed">
-              배송지 변경
-            </button>
+            <button disabled className="text-[11px] text-white/45 border border-white/20 px-2.5 py-1 cursor-not-allowed">배송지 변경</button>
           </div>
           <p className="text-white/70 text-sm font-bold">김샘플 · 010-0000-0000</p>
           <p className="text-white/70 text-sm mt-1">서울특별시 강남구 테헤란로 123</p>
@@ -226,17 +213,21 @@ function PaymentInner() {
         <button
           onClick={handlePay}
           disabled={!canPay}
-          className="w-full py-4 text-base font-bold transition-opacity active:opacity-80 disabled:cursor-not-allowed"
+          className="w-full py-4 text-base font-bold transition-all active:opacity-80 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           style={canPay ? { background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)", color: "#fff" } : { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.2)" }}
         >
-          {fmt(PRICE)} 결제하기
+          {paying ? (
+            <>
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+              </svg>
+              결제창 열리는 중...
+            </>
+          ) : `${fmt(PRICE)} 결제하기`}
         </button>
-        {!agreed && !expired && (
-          <p className="text-center text-white/55 text-xs mt-2">동의 후 결제 가능합니다.</p>
-        )}
-        {expired && (
-          <p className="text-center text-red-400 text-xs mt-2">결제 가능 시간이 만료되었습니다.</p>
-        )}
+        {!agreed && !expired && <p className="text-center text-white/55 text-xs mt-2">동의 후 결제 가능합니다.</p>}
+        {expired && <p className="text-center text-red-400 text-xs mt-2">결제 가능 시간이 만료되었습니다.</p>}
       </div>
     </main>
   );
