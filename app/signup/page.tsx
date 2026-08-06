@@ -391,9 +391,27 @@ export default function SignupPage() {
     router.push("/mypage");
   }
 
-  function mockPostcodeSearch() {
-    set("postcode", "06236");
-    set("addressBase", "서울특별시 강남구 테헤란로 123");
+  function handlePostcodeSearch() {
+    function openPostcode() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      new (window as any).daum.Postcode({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        oncomplete: (data: any) => {
+          set("postcode", data.zonecode);
+          set("addressBase", data.roadAddress || data.jibunAddress);
+        },
+      }).open();
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).daum?.Postcode) {
+      openPostcode();
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+      script.onload = openPostcode;
+      document.head.appendChild(script);
+    }
   }
 
   const modalConfig: Record<NonNullable<ModalType>, { title: string; content: string; agreeKey?: keyof Form }> = {
@@ -491,7 +509,7 @@ export default function SignupPage() {
                 />
                 <button
                   type="button"
-                  onClick={mockPostcodeSearch}
+                  onClick={handlePostcodeSearch}
                   className="flex-shrink-0 px-4 py-3 text-sm font-bold text-white rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
                 >
                   주소 검색
