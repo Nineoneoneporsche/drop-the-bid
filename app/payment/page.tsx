@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { ProductThumb } from "../components/ProductImage";
 import HomeButton from "../components/HomeButton";
+import { supabase } from "../lib/supabase";
 
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
 const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? "test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq";
@@ -23,9 +23,11 @@ function fmtTime(s: number) {
   return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-function PaymentInner() {
-  const searchParams = useSearchParams();
-  const PRICE = parseInt(searchParams.get("price") ?? "550000", 10);
+export default function PaymentPage() {
+  const [verifying, setVerifying]   = useState(true);
+  const [notWinner, setNotWinner]   = useState(false);
+  const [PRICE,     setPRICE]       = useState(0);
+  const [guestId,   setGuestId]     = useState("");
 
   const [timeLeft, setTimeLeft] = useState(600);
   const [expired,  setExpired]  = useState(false);
@@ -36,7 +38,38 @@ function PaymentInner() {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Verify winner from Supabase — price comes from DB, not URL
   useEffect(() => {
+    async function verify() {
+      let gId = "";
+      try {
+        const stored = localStorage.getItem("dtb_guest");
+        gId = stored ? JSON.parse(stored).guestId : "";
+      } catch { /* empty */ }
+
+      if (!gId) { setNotWinner(true); setVerifying(false); return; }
+
+      const { data } = await supabase
+        .from("game_state")
+        .select("winner_id, winner_price")
+        .eq("id", 1)
+        .single();
+
+      if (!data || data.winner_id !== gId || !data.winner_price) {
+        setNotWinner(true);
+        setVerifying(false);
+        return;
+      }
+
+      setGuestId(gId);
+      setPRICE(data.winner_price);
+      setVerifying(false);
+    }
+    verify();
+  }, []);
+
+  useEffect(() => {
+    if (verifying || notWinner) return;
     const t = setInterval(() => {
       setTimeLeft((s) => {
         if (s <= 1) { clearInterval(t); setExpired(true); return 0; }
@@ -45,9 +78,9 @@ function PaymentInner() {
     }, 1000);
     timerRef.current = t;
     return () => clearInterval(t);
-  }, []);
+  }, [verifying, notWinner]);
 
-  const canPay = agreed && !expired && !paying;
+  const canPay = agreed && !expired && !paying && PRICE > 0;
 
   async function handlePay() {
     if (!canPay) return;
@@ -58,13 +91,7 @@ function PaymentInner() {
       const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
       const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
 
-      let customerKey: string;
-      try {
-        const stored = localStorage.getItem("dtb_user");
-        customerKey = stored ? JSON.parse(stored).guestId : crypto.randomUUID();
-      } catch {
-        customerKey = crypto.randomUUID();
-      }
+      const customerKey = guestId || crypto.randomUUID();
 
       const payment = tossPayments.payment({ customerKey });
       const orderId = `DTB-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
@@ -82,6 +109,33 @@ function PaymentInner() {
       const msg = e instanceof Error ? e.message : "결제 중 오류가 발생했습니다.";
       if (!msg.includes("취소")) setError(msg);
     }
+  }
+
+  if (verifying) {
+    return (
+      <main className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
+        <div className="text-center">
+          <svg className="animate-spin w-8 h-8 text-[#a855f7] mx-auto mb-4" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+          </svg>
+          <p className="text-white/60 text-sm">낙찰 정보를 확인하고 있습니다...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (notWinner) {
+    return (
+      <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-white/8 flex items-center justify-center mb-5">
+          <span className="material-symbols-outlined text-white/40" style={{ fontSize: "32px" }}>block</span>
+        </div>
+        <h1 className="text-xl font-black text-white mb-2">접근할 수 없습니다</h1>
+        <p className="text-white/50 text-sm leading-relaxed mb-8">낙찰받은 경매의 결제 페이지에만<br/>접근할 수 있습니다.</p>
+        <a href="/" className="text-[#a855f7] text-sm font-semibold">← 홈으로 돌아가기</a>
+      </main>
+    );
   }
 
   return (
@@ -233,10 +287,3 @@ function PaymentInner() {
   );
 }
 
-export default function PaymentPage() {
-  return (
-    <Suspense fallback={null}>
-      <PaymentInner />
-    </Suspense>
-  );
-}

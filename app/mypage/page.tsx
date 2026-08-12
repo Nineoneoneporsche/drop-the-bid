@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
+import { supabase } from "../lib/supabase";
 
 function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
 
 interface StoredUser {
   nickname: string;
   email: string;
-  password: string;
   phone: string;
   since: string;
 }
@@ -51,21 +51,14 @@ function LoggedOut() {
   const [pw, setPw] = useState("");
   const [loginErr, setLoginErr] = useState("");
 
-  function handleLogin() {
+  async function handleLogin() {
     setLoginErr("");
-    try {
-      const raw = localStorage.getItem("dtb_user");
-      if (!raw) { setLoginErr("가입된 계정을 찾을 수 없어요."); return; }
-      const stored: StoredUser = JSON.parse(raw);
-      if (stored.email !== email || stored.password !== pw) {
-        setLoginErr("이메일 또는 비밀번호가 올바르지 않아요.");
-        return;
-      }
-      localStorage.setItem("dtb_session", "1");
-      window.location.reload();
-    } catch {
-      setLoginErr("로그인 중 오류가 발생했어요.");
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
+    if (error) {
+      setLoginErr("이메일 또는 비밀번호가 올바르지 않아요.");
+      return;
     }
+    window.location.reload();
   }
 
   return (
@@ -164,12 +157,18 @@ export default function MyPage() {
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
-    try {
-      const session = localStorage.getItem("dtb_session");
-      const raw = localStorage.getItem("dtb_user");
-      if (session === "1" && raw) setUser(JSON.parse(raw));
-    } catch { }
-    setLoaded(true);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const meta = session.user.user_metadata ?? {};
+        setUser({
+          nickname: meta.name || session.user.email?.split("@")[0] || "사용자",
+          email: session.user.email ?? "",
+          phone: meta.phone ?? "",
+          since: meta.since ?? session.user.created_at?.slice(0, 7).replace("-", ".") ?? "",
+        });
+      }
+      setLoaded(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -186,8 +185,8 @@ export default function MyPage() {
     return () => observer.disconnect();
   }, [loaded, user]);
 
-  function handleLogout() {
-    localStorage.removeItem("dtb_session");
+  async function handleLogout() {
+    await supabase.auth.signOut();
     setUser(null);
   }
 

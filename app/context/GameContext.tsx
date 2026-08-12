@@ -139,10 +139,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     else setCurrentPrice(cfg.startPrice);
   }, []);
 
-  // Load current user from localStorage
+  // Load current game guest from localStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("dtb_user");
+      const saved = localStorage.getItem("dtb_guest");
       if (saved) setCurrentUser(JSON.parse(saved) as CurrentUser);
     } catch {}
   }, []);
@@ -280,7 +280,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const guestId = crypto.randomUUID();
     const user: CurrentUser = { guestId, nickname, role };
     setCurrentUser(user);
-    localStorage.setItem("dtb_user", JSON.stringify(user));
+    localStorage.setItem("dtb_guest", JSON.stringify(user));
     // Signal to strategy page redirect guard: don't kick on first mount
     sessionStorage.setItem("dtb_joining", "1");
 
@@ -319,7 +319,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       await supabase.from("participants").delete().eq("guest_id", guestId);
     }
     setCurrentUser(null);
-    localStorage.removeItem("dtb_user");
+    localStorage.removeItem("dtb_guest");
   }, []);
 
   const sendMessage = useCallback(async (nickname: string, message: string, kind: MessageKind = "chat") => {
@@ -364,7 +364,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const resetGame = useCallback(async () => {
     setCurrentUser(null);
     setMessages([]);
-    localStorage.removeItem("dtb_user");
+    localStorage.removeItem("dtb_guest");
     await supabase.from("chat_messages").delete().gte("created_at", "1970-01-01");
     await supabase.from("participants").delete().gte("joined_at", "1970-01-01");
     await supabase.from("game_state").update({

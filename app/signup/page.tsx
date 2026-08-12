@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HomeButton from "../components/HomeButton";
+import { supabase } from "../lib/supabase";
 
 /* ── Terms content ──────────────────────────────────────────────────── */
 const TERMS_OF_SERVICE = `제1조 (목적)
@@ -362,35 +363,43 @@ export default function SignupPage() {
     return Object.keys(e).length === 0;
   }
 
+  const [submitting, setSubmitting] = useState(false);
+  const [submitErr, setSubmitErr] = useState("");
+
+  async function finishSignup() {
+    setSubmitting(true);
+    setSubmitErr("");
+    const since = new Date().toISOString().slice(0, 7).replace("-", ".");
+    const { error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: { name: form.name, phone: form.phone, since },
+      },
+    });
+    if (error) {
+      setSubmitErr(error.message === "User already registered"
+        ? "이미 가입된 이메일입니다."
+        : error.message);
+      setSubmitting(false);
+      return;
+    }
+    // Auto sign-in (works when Supabase email confirmation is disabled)
+    await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+    router.push("/mypage");
+  }
+
   function handleNext() {
     if (!validate()) return;
     if (step < 4) {
       setStep(s => s + 1);
     } else {
-      const user = {
-        nickname: form.name,
-        email: form.email,
-        password: form.password,
-        phone: form.phone,
-        since: new Date().toISOString().slice(0, 7).replace("-", "."),
-      };
-      localStorage.setItem("dtb_user", JSON.stringify(user));
-      localStorage.setItem("dtb_session", "1");
-      router.push("/mypage");
+      finishSignup();
     }
   }
 
   function handleSkipCard() {
-    const user = {
-      nickname: form.name,
-      email: form.email,
-      password: form.password,
-      phone: form.phone,
-      since: new Date().toISOString().slice(0, 7).replace("-", "."),
-    };
-    localStorage.setItem("dtb_user", JSON.stringify(user));
-    localStorage.setItem("dtb_session", "1");
-    router.push("/mypage");
+    finishSignup();
   }
 
   function handlePostcodeSearch() {
@@ -561,12 +570,13 @@ export default function SignupPage() {
 
         {/* ── Buttons ── */}
         <div className="mt-6 space-y-2">
-          <button onClick={handleNext} className="w-full py-4 text-white font-bold text-base bid-btn-purple rounded-xl">
-            {step < 4 ? "다음" : "가입 완료"}
+          {submitErr && <p className="text-red-400 text-sm text-center">{submitErr}</p>}
+          <button onClick={handleNext} disabled={submitting} className="w-full py-4 text-white font-bold text-base bid-btn-purple rounded-xl disabled:opacity-50">
+            {submitting ? "처리 중..." : step < 4 ? "다음" : "가입 완료"}
           </button>
 
           {step === 4 && (
-            <button onClick={handleSkipCard} className="w-full py-3 text-white/50 text-sm border border-white/12 rounded-xl transition-colors hover:border-white/25">
+            <button onClick={handleSkipCard} disabled={submitting} className="w-full py-3 text-white/50 text-sm border border-white/12 rounded-xl transition-colors hover:border-white/25 disabled:opacity-40">
               나중에 등록할게요
             </button>
           )}

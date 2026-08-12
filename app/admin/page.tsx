@@ -109,12 +109,23 @@ export default function AdminPage() {
             <h1 className="text-xl font-black text-gray-900">관리자 설정</h1>
             <p className="text-gray-400 text-sm">Rabbit</p>
           </div>
-          <button
-            onClick={() => router.push("/")}
-            className="text-gray-400 hover:text-orange-500 border border-gray-200 rounded-xl px-3 py-1.5 text-sm transition-colors bg-white shadow-sm"
-          >
-            ← 홈
-          </button>
+          <div className="flex flex-col gap-2 items-end">
+            <button
+              onClick={() => router.push("/")}
+              className="text-gray-400 hover:text-orange-500 border border-gray-200 rounded-xl px-3 py-1.5 text-sm transition-colors bg-white shadow-sm"
+            >
+              ← 홈
+            </button>
+            <button
+              onClick={async () => {
+                await fetch("/api/admin/logout", { method: "POST" });
+                router.push("/admin/login");
+              }}
+              className="text-gray-400 hover:text-red-500 border border-gray-200 rounded-xl px-3 py-1.5 text-sm transition-colors bg-white shadow-sm"
+            >
+              로그아웃
+            </button>
+          </div>
         </div>
 
         {/* Form */}
