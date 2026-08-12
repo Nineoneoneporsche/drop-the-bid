@@ -13,6 +13,9 @@ interface StoredUser {
   email: string;
   phone: string;
   since: string;
+  postcode: string;
+  address: string;
+  addressDetail: string;
 }
 
 const STATS = [
@@ -161,10 +164,13 @@ export default function MyPage() {
       if (session?.user) {
         const meta = session.user.user_metadata ?? {};
         setUser({
-          nickname: meta.name || session.user.email?.split("@")[0] || "사용자",
-          email: session.user.email ?? "",
-          phone: meta.phone ?? "",
-          since: meta.since ?? session.user.created_at?.slice(0, 7).replace("-", ".") ?? "",
+          nickname:      meta.name          || session.user.email?.split("@")[0] || "사용자",
+          email:         session.user.email ?? "",
+          phone:         meta.phone         ?? "",
+          since:         meta.since         ?? session.user.created_at?.slice(0, 7).replace("-", ".") ?? "",
+          postcode:      meta.postcode      ?? "",
+          address:       meta.address       ?? "",
+          addressDetail: meta.addressDetail ?? "",
         });
       }
       setLoaded(true);
@@ -188,6 +194,54 @@ export default function MyPage() {
   async function handleLogout() {
     await supabase.auth.signOut();
     setUser(null);
+  }
+
+  const [editingAddr, setEditingAddr] = useState(false);
+  const [addrForm, setAddrForm] = useState({ postcode: "", address: "", addressDetail: "", phone: "" });
+  const [addrSaving, setAddrSaving] = useState(false);
+  const [addrSaved, setAddrSaved] = useState(false);
+
+  function openAddrEdit() {
+    setAddrForm({
+      postcode:      user?.postcode      ?? "",
+      address:       user?.address       ?? "",
+      addressDetail: user?.addressDetail ?? "",
+      phone:         user?.phone         ?? "",
+    });
+    setEditingAddr(true);
+  }
+
+  function searchPostcode() {
+    function open() {
+      new (window as any).daum.Postcode({ // eslint-disable-line @typescript-eslint/no-explicit-any
+        oncomplete: (data: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          setAddrForm(f => ({ ...f, postcode: data.zonecode, address: data.roadAddress || data.jibunAddress }));
+        },
+      }).open();
+    }
+    if ((window as any).daum?.Postcode) { open(); return; } // eslint-disable-line @typescript-eslint/no-explicit-any
+    const s = document.createElement("script");
+    s.src = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    s.onload = open;
+    document.head.appendChild(s);
+  }
+
+  async function saveAddr() {
+    setAddrSaving(true);
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        phone:         addrForm.phone,
+        postcode:      addrForm.postcode,
+        address:       addrForm.address,
+        addressDetail: addrForm.addressDetail,
+      },
+    });
+    setAddrSaving(false);
+    if (!error) {
+      setUser(u => u ? { ...u, ...addrForm } : u);
+      setAddrSaved(true);
+      setTimeout(() => { setAddrSaved(false); setEditingAddr(false); }, 1200);
+    }
   }
 
   const setRef = (i: number) => (el: HTMLElement | null) => { cardRefs.current[i] = el; };
@@ -254,8 +308,100 @@ export default function MyPage() {
           ))}
         </div>
 
+        {/* Delivery address */}
+        <div ref={setRef(5)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "225ms" }}>
+          <div className="flex items-center justify-between px-5 pt-4 pb-3">
+            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">배송지</p>
+            {!editingAddr && (
+              <button onClick={openAddrEdit} className="text-[11px] text-[#a855f7] font-semibold">
+                {user.address ? "수정" : "등록"}
+              </button>
+            )}
+          </div>
+
+          {!editingAddr ? (
+            <div className="px-5 pb-4">
+              {user.address ? (
+                <>
+                  <p className="text-white/75 text-sm font-semibold">{user.nickname}{user.phone ? ` · ${user.phone}` : ""}</p>
+                  {user.postcode && <p className="text-white/45 text-xs mt-0.5">({user.postcode})</p>}
+                  <p className="text-white/65 text-sm mt-1">{user.address}</p>
+                  {user.addressDetail && <p className="text-white/65 text-sm">{user.addressDetail}</p>}
+                </>
+              ) : (
+                <p className="text-white/35 text-sm pb-1">등록된 배송지가 없습니다.</p>
+              )}
+            </div>
+          ) : (
+            <div className="px-5 pb-5 space-y-3">
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">휴대폰 번호</label>
+                <input
+                  type="tel"
+                  value={addrForm.phone}
+                  onChange={e => setAddrForm(f => ({ ...f, phone: e.target.value }))}
+                  placeholder="010-0000-0000"
+                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">우편번호</label>
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={addrForm.postcode}
+                    placeholder="우편번호"
+                    className="flex-1 bg-white/5 border border-white/12 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl"
+                  />
+                  <button
+                    type="button"
+                    onClick={searchPostcode}
+                    className="flex-shrink-0 px-4 py-2.5 text-sm font-bold text-white rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    검색
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">기본 주소</label>
+                <input
+                  readOnly
+                  value={addrForm.address}
+                  placeholder="주소 검색 후 자동 입력"
+                  className="w-full bg-white/5 border border-white/12 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">상세 주소</label>
+                <input
+                  value={addrForm.addressDetail}
+                  onChange={e => setAddrForm(f => ({ ...f, addressDetail: e.target.value }))}
+                  placeholder="동·호수, 건물명 등"
+                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setEditingAddr(false)}
+                  className="flex-1 py-2.5 text-sm text-white/45 border border-white/12 rounded-xl"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={saveAddr}
+                  disabled={addrSaving || !addrForm.address}
+                  className="flex-[2] py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
+                  style={{ background: addrSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
+                >
+                  {addrSaved ? "저장 완료!" : addrSaving ? "저장 중..." : "저장"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Achievements */}
-        <div ref={setRef(5)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 px-5 py-4" style={{ transitionDelay: "240ms" }}>
+        <div ref={setRef(6)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 px-5 py-4" style={{ transitionDelay: "260ms" }}>
           <div className="flex items-baseline justify-between mb-4">
             <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">획득 배지</p>
             <span className="text-xs text-white/50">{ACHIEVEMENTS.filter(a => a.unlocked).length}/{ACHIEVEMENTS.length}</span>
@@ -273,7 +419,7 @@ export default function MyPage() {
         </div>
 
         {/* Quick links */}
-        <div ref={setRef(6)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "280ms" }}>
+        <div ref={setRef(7)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "300ms" }}>
           <div className="px-5 pt-4 pb-1">
             <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">바로가기</p>
           </div>
@@ -289,7 +435,7 @@ export default function MyPage() {
         </div>
 
         {/* App info */}
-        <div ref={setRef(7)} className="card-rise mb-6 space-y-1.5" style={{ transitionDelay: "320ms" }}>
+        <div ref={setRef(8)} className="card-rise mb-6 space-y-1.5" style={{ transitionDelay: "340ms" }}>
           {[["버전", "0.4.0 (MVP Demo)"], ["제작", "Drop The Bid Team"], ["문의", "hello@dtb.kr"]].map(([k, v]) => (
             <div key={k} className="flex justify-between">
               <span className="text-[10px] uppercase tracking-wider text-white/45 font-medium">{k}</span>
@@ -298,7 +444,7 @@ export default function MyPage() {
           ))}
         </div>
 
-        <div ref={setRef(8)} className="card-rise space-y-2" style={{ transitionDelay: "360ms" }}>
+        <div ref={setRef(9)} className="card-rise space-y-2" style={{ transitionDelay: "380ms" }}>
           <Link href="/" className="block w-full py-4 text-white font-bold text-base text-center bid-btn-purple rounded-xl">
             오늘의 DTB 참여하기 →
           </Link>
