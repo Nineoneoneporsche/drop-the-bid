@@ -374,7 +374,14 @@ export default function SignupPage() {
       email: form.email,
       password: form.password,
       options: {
-        data: { name: form.name, phone: form.phone, since },
+        data: {
+          name: form.name,
+          phone: form.phone,
+          since,
+          postcode: form.postcode,
+          address: form.addressBase,
+          addressDetail: form.addressDetail,
+        },
       },
     });
     if (error) {

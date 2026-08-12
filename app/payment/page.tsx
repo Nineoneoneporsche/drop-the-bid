@@ -28,6 +28,7 @@ export default function PaymentPage() {
   const [notWinner, setNotWinner]   = useState(false);
   const [PRICE,     setPRICE]       = useState(0);
   const [guestId,   setGuestId]     = useState("");
+  const [profile,   setProfile]     = useState<{ name: string; phone: string; address: string; addressDetail: string; postcode: string } | null>(null);
 
   const [timeLeft, setTimeLeft] = useState(600);
   const [expired,  setExpired]  = useState(false);
@@ -63,6 +64,20 @@ export default function PaymentPage() {
 
       setGuestId(gId);
       setPRICE(data.winner_price);
+
+      // Load member profile from Supabase Auth session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const m = session.user.user_metadata ?? {};
+        setProfile({
+          name:          m.name        ?? "",
+          phone:         m.phone       ?? "",
+          postcode:      m.postcode    ?? "",
+          address:       m.address     ?? "",
+          addressDetail: m.addressDetail ?? "",
+        });
+      }
+
       setVerifying(false);
     }
     verify();
@@ -238,10 +253,17 @@ export default function PaymentPage() {
             <p className="text-[10px] uppercase tracking-[0.12em] text-white/60 font-medium">배송지</p>
             <button disabled className="text-[11px] text-white/45 border border-white/20 px-2.5 py-1 cursor-not-allowed">배송지 변경</button>
           </div>
-          <p className="text-white/70 text-sm font-bold">김샘플 · 010-0000-0000</p>
-          <p className="text-white/70 text-sm mt-1">서울특별시 강남구 테헤란로 123</p>
-          <p className="text-white/70 text-sm">역삼 ○○빌딩 12층</p>
-          <span className="inline-block mt-2 bg-white/12 text-white/65 text-[11px] font-medium px-2 py-0.5">기본 배송지</span>
+          {profile ? (
+            <>
+              <p className="text-white/70 text-sm font-bold">{profile.name}{profile.phone ? ` · ${profile.phone}` : ""}</p>
+              {profile.postcode && <p className="text-white/50 text-xs mt-0.5">({profile.postcode})</p>}
+              {profile.address && <p className="text-white/70 text-sm mt-1">{profile.address}</p>}
+              {profile.addressDetail && <p className="text-white/70 text-sm">{profile.addressDetail}</p>}
+              <span className="inline-block mt-2 bg-white/12 text-white/65 text-[11px] font-medium px-2 py-0.5">기본 배송지</span>
+            </>
+          ) : (
+            <p className="text-white/40 text-sm">배송지 정보가 없습니다. 마이페이지에서 등록해주세요.</p>
+          )}
         </div>
 
         {/* Agreement */}
