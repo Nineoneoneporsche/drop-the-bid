@@ -55,6 +55,19 @@ function LoggedOut() {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [loginErr, setLoginErr] = useState("");
+  const [forgotPw, setForgotPw] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
+  const [resetErr, setResetErr] = useState("");
+
+  async function handleResetRequest() {
+    if (!resetEmail) { setResetErr("이메일을 입력해주세요"); return; }
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) { setResetErr(error.message); return; }
+    setResetSent(true);
+  }
 
   async function handleLogin() {
     setLoginErr("");
@@ -134,7 +147,50 @@ function LoggedOut() {
                   로그인
                 </button>
                 <button onClick={() => setShowLogin(false)} className="w-full text-white/35 text-xs py-1">취소</button>
+                <button
+                  onClick={() => { setForgotPw(true); setShowLogin(false); setResetEmail(email); }}
+                  className="w-full text-white/35 text-xs py-1 hover:text-white/55 transition-colors"
+                >
+                  비밀번호를 잊으셨나요?
+                </button>
               </div>
+            </div>
+          )}
+
+          {forgotPw && (
+            <div className="step-enter text-left mt-1 border-t border-white/10 pt-4">
+              {resetSent ? (
+                <div className="text-center py-2">
+                  <p className="text-green-400 text-sm font-bold mb-1">이메일을 확인해주세요</p>
+                  <p className="text-white/45 text-xs leading-relaxed">재설정 링크를 보내드렸습니다.<br/>스팸함도 확인해보세요.</p>
+                  <button onClick={() => { setForgotPw(false); setResetSent(false); }} className="text-white/35 text-xs mt-4">← 로그인으로 돌아가기</button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-white/60 text-sm font-medium">비밀번호 재설정</p>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-white/50 font-medium mb-1.5">가입한 이메일</label>
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={e => { setResetEmail(e.target.value); setResetErr(""); }}
+                      onKeyDown={e => e.key === "Enter" && handleResetRequest()}
+                      placeholder="이메일 주소"
+                      className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                      autoComplete="email"
+                    />
+                  </div>
+                  {resetErr && <p className="text-red-400 text-xs">{resetErr}</p>}
+                  <button
+                    onClick={handleResetRequest}
+                    className="w-full py-3 text-white font-bold text-sm rounded-xl transition-opacity active:opacity-80"
+                    style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
+                  >
+                    재설정 이메일 보내기
+                  </button>
+                  <button onClick={() => setForgotPw(false)} className="w-full text-white/35 text-xs py-1">← 로그인으로 돌아가기</button>
+                </div>
+              )}
             </div>
           )}
         </div>
