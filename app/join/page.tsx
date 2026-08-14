@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGame, type Role, formatKRW } from "../context/GameContext";
+import { supabase } from "../lib/supabase";
 import HomeButton from "../components/HomeButton";
 
 const ROLES: { value: Role; label: string; desc: string }[] = [
@@ -25,11 +26,19 @@ export default function JoinPage() {
   const [role, setRole] = useState<Role>("participant");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [memberNickname, setMemberNickname] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const nick = session?.user?.user_metadata?.nickname;
+      if (nick) { setNickname(nick); setMemberNickname(nick); }
+    });
   }, []);
 
   const countdownExpired = state.config.gameStartTime
@@ -71,21 +80,38 @@ export default function JoinPage() {
 
       {/* Nickname */}
       <div className="mb-10">
-        <label className="block text-xs uppercase tracking-[0.14em] text-white/60 font-medium mb-4">
-          닉네임
-        </label>
-        <input
-          type="text"
-          value={nickname}
-          onChange={(e) => { setNickname(e.target.value); setError(""); }}
-          onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-          placeholder="닉네임을 입력하세요"
-          maxLength={20}
-          autoFocus
-          className="w-full bg-transparent border-b-2 border-white/25 px-0 py-3 text-white text-3xl font-bold placeholder-white/25 focus:outline-none transition-colors"
-          onFocus={e => (e.target.style.borderBottomColor = "#a855f7")}
-          onBlur={e => (e.target.style.borderBottomColor = "")}
-        />
+        <div className="flex items-center gap-2 mb-4">
+          <label className="block text-xs uppercase tracking-[0.14em] text-white/60 font-medium">닉네임</label>
+          {memberNickname && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(168,85,247,0.2)", color: "#c084fc" }}>
+              회원
+            </span>
+          )}
+        </div>
+        {memberNickname ? (
+          <>
+            <p className="text-3xl font-bold text-white py-3 border-b-2" style={{ borderBottomColor: "#a855f7" }}>
+              {memberNickname}
+            </p>
+            <p className="text-xs text-white/40 mt-2">회원 닉네임으로 자동 설정됩니다</p>
+          </>
+        ) : (
+          <>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => { setNickname(e.target.value); setError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && handleJoin()}
+              placeholder="닉네임을 입력하세요"
+              maxLength={20}
+              autoFocus
+              className="w-full bg-transparent border-b-2 border-white/25 px-0 py-3 text-white text-3xl font-bold placeholder-white/25 focus:outline-none transition-colors"
+              onFocus={e => (e.target.style.borderBottomColor = "#a855f7")}
+              onBlur={e => (e.target.style.borderBottomColor = "")}
+            />
+            <p className="text-xs text-white/35 mt-2">마이페이지에서 닉네임 설정 시 자동 입력돼요</p>
+          </>
+        )}
         {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
       </div>
 

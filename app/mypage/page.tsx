@@ -10,6 +10,7 @@ function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
 
 interface StoredUser {
   nickname: string;
+  name: string;
   email: string;
   phone: string;
   since: string;
@@ -165,7 +166,8 @@ export default function MyPage() {
       if (session?.user) {
         const meta = session.user.user_metadata ?? {};
         setUser({
-          nickname:      meta.name          || session.user.email?.split("@")[0] || "사용자",
+          nickname:      meta.nickname || meta.name || session.user.email?.split("@")[0] || "사용자",
+          name:          meta.name          ?? "",
           email:         session.user.email ?? "",
           phone:         meta.phone         ?? "",
           since:         meta.since         ?? session.user.created_at?.slice(0, 7).replace("-", ".") ?? "",
@@ -254,6 +256,45 @@ export default function MyPage() {
     }
   }
 
+  const [editingNick, setEditingNick] = useState(false);
+  const [nickInput, setNickInput] = useState("");
+  const [nickStatus, setNickStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [nickSaving, setNickSaving] = useState(false);
+  const [nickSaved, setNickSaved] = useState(false);
+
+  useEffect(() => {
+    if (!editingNick) return;
+    const nick = nickInput.trim();
+    if (!nick || nick === user?.nickname || !/^[가-힣a-zA-Z0-9_]{2,12}$/.test(nick)) {
+      setNickStatus("idle"); return;
+    }
+    setNickStatus("checking");
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select("id").eq("nickname", nick).maybeSingle();
+      setNickStatus(data ? "taken" : "available");
+    }, 500);
+    return () => clearTimeout(t);
+  }, [nickInput, editingNick, user?.nickname]);
+
+  async function saveNickname() {
+    const nick = nickInput.trim();
+    if (!nick || nickStatus !== "available") return;
+    setNickSaving(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) { setNickSaving(false); return; }
+    const { error } = await supabase.from("profiles").upsert({ id: session.user.id, nickname: nick });
+    if (error) {
+      if (error.code === "23505") setNickStatus("taken");
+      setNickSaving(false);
+      return;
+    }
+    await supabase.auth.updateUser({ data: { nickname: nick } });
+    setUser(u => u ? { ...u, nickname: nick } : u);
+    setNickSaving(false);
+    setNickSaved(true);
+    setTimeout(() => { setNickSaved(false); setEditingNick(false); }, 1200);
+  }
+
   const setRef = (i: number) => (el: HTMLElement | null) => { cardRefs.current[i] = el; };
 
   if (!loaded) return null;
@@ -337,7 +378,7 @@ export default function MyPage() {
             <div className="px-5 pb-4">
               {user.address ? (
                 <>
-                  <p className="text-white/75 text-sm font-semibold">{user.nickname}{user.phone ? ` · ${user.phone}` : ""}</p>
+                  <p className="text-white/75 text-sm font-semibold">{user.name || user.nickname}{user.phone ? ` · ${user.phone}` : ""}</p>
                   {user.postcode && <p className="text-white/45 text-xs mt-0.5">({user.postcode})</p>}
                   <p className="text-white/65 text-sm mt-1">{user.address}</p>
                   {user.addressDetail && <p className="text-white/65 text-sm">{user.addressDetail}</p>}
@@ -408,6 +449,64 @@ export default function MyPage() {
                   style={{ background: addrSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
                 >
                   {addrSaved ? "저장 완료!" : addrSaving ? "저장 중..." : "저장"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Nickname */}
+        <div ref={setRef(10)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "240ms" }}>
+          <div className="flex items-center justify-between px-5 pt-4 pb-3">
+            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">게임 닉네임</p>
+            {!editingNick && (
+              <button onClick={() => { setNickInput(user.nickname); setEditingNick(true); setNickStatus("idle"); }}
+                className="text-[11px] text-[#a855f7] font-semibold">
+                {user.nickname ? "변경" : "설정"}
+              </button>
+            )}
+          </div>
+
+          {!editingNick ? (
+            <div className="px-5 pb-4">
+              <p className="text-white/80 text-base font-bold">{user.nickname}</p>
+              <p className="text-white/35 text-xs mt-1">게임 입장 시 이 닉네임이 자동으로 사용됩니다</p>
+            </div>
+          ) : (
+            <div className="px-5 pb-5 space-y-3">
+              <div>
+                <div className="relative">
+                  <input
+                    value={nickInput}
+                    onChange={e => { setNickInput(e.target.value.replace(/\s/g, "")); setNickStatus("idle"); }}
+                    placeholder="새 닉네임"
+                    maxLength={12}
+                    className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors pr-24"
+                  />
+                  {nickStatus !== "idle" && (
+                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
+                      nickStatus === "checking" ? "text-white/40" :
+                      nickStatus === "available" ? "text-green-400" : "text-red-400"
+                    }`}>
+                      {nickStatus === "checking" ? "확인 중..." :
+                       nickStatus === "available" ? "✓ 사용 가능" : "✗ 중복"}
+                    </span>
+                  )}
+                </div>
+                <p className="text-white/35 text-[11px] mt-1">한글·영문·숫자·밑줄(_) 2-12자</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setEditingNick(false)}
+                  className="flex-1 py-2.5 text-sm text-white/45 border border-white/12 rounded-xl">
+                  취소
+                </button>
+                <button
+                  onClick={saveNickname}
+                  disabled={nickSaving || nickStatus !== "available"}
+                  className="flex-[2] py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
+                  style={{ background: nickSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
+                >
+                  {nickSaved ? "저장 완료!" : nickSaving ? "저장 중..." : "저장"}
                 </button>
               </div>
             </div>

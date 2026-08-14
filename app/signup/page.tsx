@@ -123,7 +123,7 @@ type ModalType = "terms" | "privacy" | "marketing" | null;
 interface Form {
   email: string; password: string; passwordConfirm: string;
   agreeTerms: boolean; agreePrivacy: boolean; agreeMarketing: boolean;
-  name: string; phone: string; dob: string;
+  name: string; nickname: string; phone: string; dob: string;
   postcode: string; addressBase: string; addressDetail: string;
   cardNumber: string; cardExpiry: string; cardCvc: string; cardHolder: string;
 }
@@ -132,7 +132,7 @@ type Errors = Partial<Record<keyof Form, string>>;
 const INIT: Form = {
   email: "", password: "", passwordConfirm: "",
   agreeTerms: false, agreePrivacy: false, agreeMarketing: false,
-  name: "", phone: "", dob: "",
+  name: "", nickname: "", phone: "", dob: "",
   postcode: "", addressBase: "", addressDetail: "",
   cardNumber: "", cardExpiry: "", cardCvc: "", cardHolder: "",
 };
@@ -344,6 +344,16 @@ export default function SignupPage() {
     }
     if (step === 2) {
       if (!form.name.trim()) e.name = "이름을 입력하세요";
+      const nick = form.nickname.trim();
+      if (!nick) {
+        e.nickname = "닉네임을 입력하세요";
+      } else if (!/^[가-힣a-zA-Z0-9_]{2,12}$/.test(nick)) {
+        e.nickname = "2-12자, 한글·영문·숫자·밑줄만 사용 가능합니다";
+      } else if (nicknameStatus === "taken") {
+        e.nickname = "이미 사용 중인 닉네임입니다";
+      } else if (nicknameStatus !== "available") {
+        e.nickname = "닉네임 확인 중입니다. 잠시 후 다시 시도해주세요";
+      }
       if (form.phone.replace(/\D/g, "").length < 10) e.phone = "올바른 휴대폰 번호를 입력하세요";
       if (!form.dob) {
         e.dob = "생년월일을 입력하세요";
@@ -365,10 +375,33 @@ export default function SignupPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
+  const [nicknameStatus, setNicknameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+
+  useEffect(() => {
+    if (step !== 2) return;
+    const nick = form.nickname.trim();
+    if (!nick || !/^[가-힣a-zA-Z0-9_]{2,12}$/.test(nick)) { setNicknameStatus("idle"); return; }
+    setNicknameStatus("checking");
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select("id").eq("nickname", nick).maybeSingle();
+      setNicknameStatus(data ? "taken" : "available");
+    }, 500);
+    return () => clearTimeout(t);
+  }, [form.nickname, step]);
 
   async function finishSignup() {
     setSubmitting(true);
     setSubmitErr("");
+    const nick = form.nickname.trim();
+
+    // Final uniqueness check
+    const { data: taken } = await supabase.from("profiles").select("id").eq("nickname", nick).maybeSingle();
+    if (taken) {
+      setSubmitErr("이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.");
+      setSubmitting(false);
+      return;
+    }
+
     const since = new Date().toISOString().slice(0, 7).replace("-", ".");
     const { error } = await supabase.auth.signUp({
       email: form.email,
@@ -376,6 +409,7 @@ export default function SignupPage() {
       options: {
         data: {
           name: form.name,
+          nickname: nick,
           phone: form.phone,
           since,
           postcode: form.postcode,
@@ -391,8 +425,14 @@ export default function SignupPage() {
       setSubmitting(false);
       return;
     }
-    // Auto sign-in (works when Supabase email confirmation is disabled)
     await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+
+    // Save nickname to profiles table
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      await supabase.from("profiles").insert({ id: session.user.id, nickname: nick });
+    }
+
     router.push("/mypage");
   }
 
@@ -500,6 +540,33 @@ export default function SignupPage() {
           <div key="step2" className="step-enter">
             <Field label="이름" required placeholder="실명을 입력하세요"
               value={form.name} onChange={e => set("name", e.target.value)} error={errors.name} autoComplete="name" />
+            <div className="mb-4">
+              <label className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-white/55 font-medium mb-1.5">
+                닉네임 <span className="text-[#a855f7] normal-case tracking-normal text-xs">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none transition-colors rounded-xl pr-24 ${
+                    errors.nickname ? "border-red-500/60 focus:border-red-500/80" : "border-white/12 focus:border-[#a855f7]/60"
+                  }`}
+                  placeholder="게임에서 사용할 닉네임"
+                  value={form.nickname}
+                  onChange={e => { set("nickname", e.target.value.replace(/\s/g, "")); }}
+                  maxLength={12}
+                />
+                {nicknameStatus !== "idle" && (
+                  <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
+                    nicknameStatus === "checking" ? "text-white/40" :
+                    nicknameStatus === "available" ? "text-green-400" : "text-red-400"
+                  }`}>
+                    {nicknameStatus === "checking" ? "확인 중..." :
+                     nicknameStatus === "available" ? "✓ 사용 가능" : "✗ 중복"}
+                  </span>
+                )}
+              </div>
+              <p className="text-white/40 text-[11px] mt-1">한글·영문·숫자·밑줄(_) 2-12자</p>
+              {errors.nickname && <p className="text-red-400 text-xs mt-1">{errors.nickname}</p>}
+            </div>
             <Field label="휴대폰 번호" required type="tel" placeholder="010-0000-0000"
               value={form.phone}
               onChange={e => set("phone", fmtPhone(e.target.value))}
