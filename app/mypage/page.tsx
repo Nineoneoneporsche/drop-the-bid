@@ -25,11 +25,11 @@ const STATS = [
   { label: "승률",  value: "25%"      },
 ];
 
-const HISTORY = [
-  { product: "Apple iPad Air 11형 Wi-Fi 128GB", date: "2025.12.01", price: 680_000, won: true  },
-  { product: "배민 상품권 50,000원",             date: "2025.11.28", price: null,    won: false },
-  { product: "iPad Pro 11형",                    date: "2025.11.15", price: null,    won: false },
-];
+interface Order {
+  product_name: string;
+  amount: number;
+  created_at: string;
+}
 
 const ACHIEVEMENTS = [
   { icon: "emoji_events",          label: "첫 낙찰",    unlocked: true  },
@@ -157,10 +157,11 @@ function LoggedOut() {
 export default function MyPage() {
   const [user, setUser] = useState<StoredUser | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const meta = session.user.user_metadata ?? {};
         setUser({
@@ -172,6 +173,15 @@ export default function MyPage() {
           address:       meta.address       ?? "",
           addressDetail: meta.addressDetail ?? "",
         });
+
+        // Load real order history
+        const { data } = await supabase
+          .from("orders")
+          .select("product_name, amount, created_at")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (data) setOrders(data);
       }
       setLoaded(true);
     });
@@ -290,22 +300,26 @@ export default function MyPage() {
         {/* History */}
         <div ref={setRef(4)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "200ms" }}>
           <div className="px-5 pt-4 pb-1">
-            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">참여 내역</p>
+            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">낙찰 내역</p>
           </div>
-          {HISTORY.map((item, i) => (
-            <div key={i} className={`flex items-center gap-3 px-5 py-3.5 ${i < HISTORY.length - 1 ? "border-b border-white/8" : ""}`}>
-              <span className={`material-symbols-outlined flex-shrink-0 ${item.won ? "" : "opacity-30"}`} style={{fontSize:"20px"}}>{item.won ? "emoji_events" : "sentiment_dissatisfied"}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-base font-semibold text-white/80 truncate">{item.product}</p>
-                <p className="text-sm text-white/50 mt-0.5">{item.date}</p>
-              </div>
-              <div className="text-right flex-shrink-0">
-                {item.won
-                  ? <p className="text-sm font-black font-mono" style={{ color: "#c084fc" }}>{fmt(item.price!)}</p>
-                  : <p className="text-xs text-white/40">미낙찰</p>}
-              </div>
+          {orders.length === 0 ? (
+            <div className="px-5 py-4">
+              <p className="text-white/35 text-sm">아직 낙찰 내역이 없습니다.</p>
             </div>
-          ))}
+          ) : orders.map((order, i) => {
+            const date = new Date(order.created_at);
+            const dateStr = `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,"0")}.${String(date.getDate()).padStart(2,"0")}`;
+            return (
+              <div key={i} className={`flex items-center gap-3 px-5 py-3.5 ${i < orders.length - 1 ? "border-b border-white/8" : ""}`}>
+                <span className="material-symbols-outlined flex-shrink-0" style={{fontSize:"20px"}}>emoji_events</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white/80 truncate">{order.product_name}</p>
+                  <p className="text-xs text-white/50 mt-0.5">{dateStr}</p>
+                </div>
+                <p className="text-sm font-black font-mono flex-shrink-0" style={{ color: "#c084fc" }}>{fmt(order.amount)}</p>
+              </div>
+            );
+          })}
         </div>
 
         {/* Delivery address */}
