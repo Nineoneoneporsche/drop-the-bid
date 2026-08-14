@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
@@ -156,6 +157,7 @@ function LoggedOut() {
 
 /* ── Logged-in view ───────────────────────────────────────────────── */
 export default function MyPage() {
+  const router = useRouter();
   const [user, setUser] = useState<StoredUser | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -253,6 +255,26 @@ export default function MyPage() {
       setUser(u => u ? { ...u, ...addrForm } : u);
       setAddrSaved(true);
       setTimeout(() => { setAddrSaved(false); setEditingAddr(false); }, 1200);
+    }
+  }
+
+  const [withdrawConfirm, setWithdrawConfirm] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  async function handleWithdraw() {
+    setWithdrawing(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setWithdrawing(false); return; }
+    const res = await fetch("/api/account/delete", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (res.ok) {
+      await supabase.auth.signOut();
+      router.push("/");
+    } else {
+      setWithdrawing(false);
+      setWithdrawConfirm(false);
     }
   }
 
@@ -567,6 +589,38 @@ export default function MyPage() {
           >
             로그아웃
           </button>
+
+          {!withdrawConfirm ? (
+            <button
+              onClick={() => setWithdrawConfirm(true)}
+              className="w-full py-2 text-white/20 text-xs transition-colors hover:text-red-400/50"
+            >
+              회원 탈퇴
+            </button>
+          ) : (
+            <div className="bg-red-500/8 border border-red-500/20 rounded-xl p-4 space-y-3">
+              <p className="text-red-400 text-sm font-bold text-center">정말 탈퇴하시겠어요?</p>
+              <p className="text-white/40 text-xs text-center leading-relaxed">
+                낙찰 내역, 프로필 등 모든 데이터가 삭제되며<br/>복구할 수 없습니다.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setWithdrawConfirm(false)}
+                  className="flex-1 py-2.5 text-sm text-white/50 border border-white/12 rounded-xl"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleWithdraw}
+                  disabled={withdrawing}
+                  className="flex-1 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50"
+                  style={{ background: "rgba(239,68,68,0.65)" }}
+                >
+                  {withdrawing ? "처리 중..." : "탈퇴 확인"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

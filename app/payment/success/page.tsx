@@ -4,8 +4,10 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ProductThumb } from "../../components/ProductImage";
+import { supabase } from "../../lib/supabase";
 
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
+const RETAIL_PRICE = 899_000;
 function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
 
 function getTodayPlus(days: number) {
@@ -20,27 +22,29 @@ function SuccessInner() {
   const orderId    = params.get("orderId")    ?? "";
   const amount     = parseInt(params.get("amount") ?? "0", 10);
 
-  const [status, setStatus]   = useState<"loading" | "done" | "error">("loading");
+  const [status, setStatus]     = useState<"loading" | "done" | "error">("loading");
   const [payMethod, setPayMethod] = useState("");
 
   useEffect(() => {
     if (!paymentKey || !orderId || !amount) { setStatus("error"); return; }
 
-    fetch("/api/payment/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentKey, orderId, amount }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.ok) {
-          setPayMethod(data.data?.method ?? "카드");
-          setStatus("done");
-        } else {
-          setStatus("done"); // 데모: 에러여도 완료로 처리
-        }
-      })
-      .catch(() => setStatus("done")); // 데모: 네트워크 오류도 완료 처리
+    async function confirm() {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+
+      try {
+        const res = await fetch("/api/payment/confirm", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ paymentKey, orderId, amount }),
+        });
+        const data = await res.json();
+        setPayMethod(data.data?.method ?? "카드");
+      } catch { /* 데모: 네트워크 오류도 완료 처리 */ }
+      setStatus("done");
+    }
+    confirm();
   }, [paymentKey, orderId, amount]);
 
   if (status === "loading") {
@@ -57,7 +61,7 @@ function SuccessInner() {
     );
   }
 
-  const displayOrderId = orderId || `DTB-${Date.now()}`;
+  const displayOrderId = orderId || "";
 
   return (
     <main className="min-h-screen bg-[#0f0f0f] flex flex-col max-w-md mx-auto px-4 pt-12 pb-12">
@@ -84,7 +88,7 @@ function SuccessInner() {
           <div>
             <p className="text-white/80 text-sm font-semibold leading-snug">{PRODUCT_NAME}</p>
             <p className="text-[#c084fc] font-black text-xl font-mono tabular-nums mt-1">{fmt(amount)}</p>
-            <p className="text-white/45 text-xs mt-0.5 line-through">정가 ₩899,000</p>
+            <p className="text-white/45 text-xs mt-0.5 line-through">정가 {fmt(RETAIL_PRICE)}</p>
           </div>
         </div>
         <div className="px-4 py-4 space-y-2.5">
@@ -92,7 +96,7 @@ function SuccessInner() {
             ["주문번호", displayOrderId.slice(0, 24)],
             ["결제 수단", payMethod || "신용카드"],
             ["결제 금액", fmt(amount)],
-            ["배송비", "무료"],
+            ["배송비",   "무료"],
             ["예상 배송일", `${getTodayPlus(2)} ~ ${getTodayPlus(4)}`],
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between items-center">
@@ -109,7 +113,7 @@ function SuccessInner() {
           <p className="text-[11px] text-[#c084fc] font-bold uppercase tracking-wider mb-0.5">절약 금액</p>
           <p className="text-white/70 text-xs">정가 대비 아낀 금액</p>
         </div>
-        <p className="text-[#c084fc] font-black text-xl font-mono tabular-nums">{fmt(899000 - amount)}</p>
+        <p className="text-[#c084fc] font-black text-xl font-mono tabular-nums">{fmt(RETAIL_PRICE - amount)}</p>
       </div>
 
       {/* Actions */}
