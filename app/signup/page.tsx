@@ -336,7 +336,13 @@ export default function SignupPage() {
   function validate(): boolean {
     const e: Errors = {};
     if (step === 1) {
-      if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) e.email = "유효한 이메일 주소를 입력하세요";
+      if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) {
+        e.email = "유효한 이메일 주소를 입력하세요";
+      } else if (emailStatus === "taken") {
+        e.email = "이미 가입된 이메일입니다";
+      } else if (emailStatus === "checking") {
+        e.email = "이메일 확인 중입니다. 잠시 후 다시 시도해주세요";
+      }
       if (form.password.length < 8) e.password = "8자 이상 입력하세요";
       if (form.password !== form.passwordConfirm) e.passwordConfirm = "비밀번호가 일치하지 않습니다";
       if (!form.agreeTerms) e.agreeTerms = "이용약관 동의가 필요합니다";
@@ -375,7 +381,21 @@ export default function SignupPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [nicknameStatus, setNicknameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+
+  useEffect(() => {
+    if (step !== 1) return;
+    const email = form.email.trim().toLowerCase();
+    if (!email || !/\S+@\S+\.\S+/.test(email)) { setEmailStatus("idle"); return; }
+    setEmailStatus("checking");
+    const t = setTimeout(async () => {
+      const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
+      const { exists } = await res.json();
+      setEmailStatus(exists ? "taken" : "available");
+    }, 600);
+    return () => clearTimeout(t);
+  }, [form.email, step]);
 
   useEffect(() => {
     if (step !== 2) return;
@@ -494,8 +514,33 @@ export default function SignupPage() {
         {/* ── Step 1: 계정 정보 ── */}
         {step === 1 && (
           <div key="step1" className="step-enter">
-            <Field label="이메일" required type="email" placeholder="example@email.com"
-              value={form.email} onChange={e => set("email", e.target.value)} error={errors.email} autoComplete="email" />
+            <div className="mb-4">
+              <label className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-white/55 font-medium mb-1.5">
+                이메일 <span className="text-[#a855f7] normal-case tracking-normal text-xs">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  placeholder="example@email.com"
+                  value={form.email}
+                  onChange={e => { set("email", e.target.value.trim()); setEmailStatus("idle"); }}
+                  autoComplete="email"
+                  className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none transition-colors rounded-xl pr-28 ${
+                    errors.email ? "border-red-500/60 focus:border-red-500/80" : "border-white/12 focus:border-[#a855f7]/60"
+                  }`}
+                />
+                {emailStatus !== "idle" && (
+                  <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
+                    emailStatus === "checking" ? "text-white/40" :
+                    emailStatus === "available" ? "text-green-400" : "text-red-400"
+                  }`}>
+                    {emailStatus === "checking" ? "확인 중..." :
+                     emailStatus === "available" ? "✓ 사용 가능" : "✗ 이미 가입됨"}
+                  </span>
+                )}
+              </div>
+              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
+            </div>
             <Field label="비밀번호" required type="password" placeholder="8자 이상"
               value={form.password} onChange={e => set("password", e.target.value)} error={errors.password}
               hint="영문, 숫자, 특수문자 조합 8자 이상" autoComplete="new-password" />
