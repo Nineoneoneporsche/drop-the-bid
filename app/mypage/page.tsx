@@ -20,12 +20,10 @@ interface StoredUser {
   addressDetail: string;
 }
 
-const STATS = [
-  { label: "참여",  value: "12회"     },
-  { label: "낙찰",  value: "3회"      },
-  { label: "절약",  value: "₩387,000" },
-  { label: "승률",  value: "25%"      },
-];
+interface Stats {
+  wins: number;
+  savings: number;
+}
 
 interface Order {
   product_name: string;
@@ -217,6 +215,7 @@ export default function MyPage() {
   const [user, setUser] = useState<StoredUser | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState<Stats>({ wins: 0, savings: 0 });
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
@@ -234,14 +233,22 @@ export default function MyPage() {
           addressDetail: meta.addressDetail ?? "",
         });
 
-        // Load real order history
-        const { data } = await supabase
-          .from("orders")
-          .select("product_name, amount, created_at")
-          .eq("user_id", session.user.id)
-          .order("created_at", { ascending: false })
-          .limit(20);
-        if (data) setOrders(data);
+        // Load real order history + game_state start_price for savings calc
+        const [{ data: orderData }, { data: gsData }] = await Promise.all([
+          supabase
+            .from("orders")
+            .select("product_name, amount, created_at")
+            .eq("user_id", session.user.id)
+            .order("created_at", { ascending: false })
+            .limit(20),
+          supabase.from("game_state").select("start_price").eq("id", 1).single(),
+        ]);
+        if (orderData) {
+          setOrders(orderData);
+          const startPrice = gsData?.start_price ?? 899_000;
+          const savings = orderData.reduce((sum, o) => sum + Math.max(0, startPrice - o.amount), 0);
+          setStats({ wins: orderData.length, savings });
+        }
       }
       setLoaded(true);
     });
@@ -426,7 +433,12 @@ export default function MyPage() {
 
         {/* Stats */}
         <div ref={setRef(3)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl grid grid-cols-4 mb-5 overflow-hidden" style={{ transitionDelay: "150ms" }}>
-          {STATS.map(({ label, value }, i) => (
+          {[
+            { label: "참여",  value: "-"                                                  },
+            { label: "낙찰",  value: `${stats.wins}회`                                    },
+            { label: "절약",  value: stats.savings > 0 ? fmt(stats.savings) : "₩0"       },
+            { label: "승률",  value: "-"                                                  },
+          ].map(({ label, value }, i) => (
             <div key={label} className={`text-center py-4 ${i > 0 ? "border-l border-white/10" : ""}`}>
               <p className="text-xs uppercase tracking-wider text-white/50 font-medium mb-0.5">{label}</p>
               <p className="font-black text-base font-mono tabular-nums" style={{ color: "#c084fc" }}>{value}</p>
