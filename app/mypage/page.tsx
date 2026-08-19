@@ -334,6 +334,24 @@ export default function MyPage() {
     }
   }
 
+  const [editingPw, setEditingPw] = useState(false);
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwSaved, setPwSaved] = useState(false);
+  const [pwErr, setPwErr] = useState("");
+
+  async function changePassword() {
+    if (pwNew.length < 8) { setPwErr("8자 이상 입력하세요"); return; }
+    if (pwNew !== pwConfirm) { setPwErr("비밀번호가 일치하지 않습니다"); return; }
+    setPwSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: pwNew });
+    setPwSaving(false);
+    if (error) { setPwErr(error.message); return; }
+    setPwSaved(true);
+    setTimeout(() => { setPwSaved(false); setEditingPw(false); setPwNew(""); setPwConfirm(""); }, 1500);
+  }
+
   const [editingNick, setEditingNick] = useState(false);
   const [nickInput, setNickInput] = useState("");
   const [nickStatus, setNickStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
@@ -585,6 +603,68 @@ export default function MyPage() {
                   style={{ background: nickSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
                 >
                   {nickSaved ? "저장 완료!" : nickSaving ? "저장 중..." : "저장"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Password change */}
+        <div ref={setRef(11)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "252ms" }}>
+          <div className="flex items-center justify-between px-5 pt-4 pb-3">
+            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">비밀번호 변경</p>
+            {!editingPw && (
+              <button onClick={() => { setEditingPw(true); setPwErr(""); }}
+                className="text-[11px] text-[#a855f7] font-semibold">
+                변경
+              </button>
+            )}
+          </div>
+
+          {!editingPw ? (
+            <div className="px-5 pb-4">
+              <p className="text-white/35 text-sm">새 비밀번호로 변경할 수 있습니다.</p>
+            </div>
+          ) : (
+            <div className="px-5 pb-5 space-y-3">
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">새 비밀번호</label>
+                <input
+                  type="password"
+                  value={pwNew}
+                  onChange={e => { setPwNew(e.target.value); setPwErr(""); }}
+                  placeholder="8자 이상"
+                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">비밀번호 확인</label>
+                <input
+                  type="password"
+                  value={pwConfirm}
+                  onChange={e => { setPwConfirm(e.target.value); setPwErr(""); }}
+                  onKeyDown={e => e.key === "Enter" && changePassword()}
+                  placeholder="비밀번호 재입력"
+                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                  autoComplete="new-password"
+                />
+              </div>
+              {pwErr && <p className="text-red-400 text-xs">{pwErr}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setEditingPw(false); setPwNew(""); setPwConfirm(""); setPwErr(""); }}
+                  className="flex-1 py-2.5 text-sm text-white/45 border border-white/12 rounded-xl"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={changePassword}
+                  disabled={pwSaving || !pwNew || !pwConfirm}
+                  className="flex-[2] py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
+                  style={{ background: pwSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
+                >
+                  {pwSaved ? "변경 완료!" : pwSaving ? "변경 중..." : "변경"}
                 </button>
               </div>
             </div>
