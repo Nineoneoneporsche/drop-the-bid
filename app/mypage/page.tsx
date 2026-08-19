@@ -31,14 +31,6 @@ interface Order {
   created_at: string;
 }
 
-const ACHIEVEMENTS = [
-  { icon: "emoji_events",          label: "첫 낙찰",    unlocked: true  },
-  { icon: "bolt",                  label: "반응왕",      unlocked: true  },
-  { icon: "fitness_center",        label: "버티기 고수", unlocked: false },
-  { icon: "gps_fixed",             label: "연습왕",      unlocked: false },
-  { icon: "workspace_premium",     label: "레전드",      unlocked: false },
-  { icon: "local_fire_department", label: "연속 참가",   unlocked: false },
-];
 
 const MENU = [
   { label: "게임방법",     href: "/guide"     },
@@ -216,6 +208,7 @@ export default function MyPage() {
   const [loaded, setLoaded] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats>({ wins: 0, savings: 0 });
+  const [startPrice, setStartPrice] = useState(899_000);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
@@ -245,9 +238,10 @@ export default function MyPage() {
         ]);
         if (orderData) {
           setOrders(orderData);
-          const startPrice = gsData?.start_price ?? 899_000;
-          const savings = orderData.reduce((sum, o) => sum + Math.max(0, startPrice - o.amount), 0);
+          const sp = gsData?.start_price ?? 899_000;
+          const savings = orderData.reduce((sum, o) => sum + Math.max(0, sp - o.amount), 0);
           setStats({ wins: orderData.length, savings });
+          setStartPrice(sp);
         }
       }
       setLoaded(true);
@@ -684,22 +678,35 @@ export default function MyPage() {
         </div>
 
         {/* Achievements */}
-        <div ref={setRef(6)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 px-5 py-4" style={{ transitionDelay: "260ms" }}>
-          <div className="flex items-baseline justify-between mb-4">
-            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">획득 배지</p>
-            <span className="text-xs text-white/50">{ACHIEVEMENTS.filter(a => a.unlocked).length}/{ACHIEVEMENTS.length}</span>
-          </div>
-          <div className="flex gap-5">
-            {ACHIEVEMENTS.map(({ icon, label, unlocked }) => (
-              <div key={label} className="flex flex-col items-center gap-1">
-                <span className="material-symbols-outlined leading-none" style={{ fontSize: "1.8rem", opacity: unlocked ? 1 : 0.25 }}>
-                  {icon}
-                </span>
-                <p className={`text-xs font-medium text-center ${unlocked ? "text-white/70" : "text-white/40"}`}>{label}</p>
+        {(() => {
+          const achievements = [
+            { icon: "emoji_events",          label: "첫 낙찰",    unlocked: stats.wins >= 1,                                                hint: "첫 낙찰 달성 시" },
+            { icon: "bolt",                  label: "반응왕",      unlocked: orders.some(o => o.amount / startPrice >= 0.85),               hint: "시작가 85% 이상에서 낙찰 시" },
+            { icon: "fitness_center",        label: "버티기 고수", unlocked: orders.some(o => o.amount / startPrice <= 0.70),               hint: "시작가 70% 이하에서 낙찰 시" },
+            { icon: "gps_fixed",             label: "연습왕",      unlocked: false,                                                         hint: "모의훈련 5회 완료 시" },
+            { icon: "workspace_premium",     label: "레전드",      unlocked: stats.wins >= 3,                                               hint: "낙찰 3회 달성 시" },
+            { icon: "local_fire_department", label: "연속 참가",   unlocked: false,                                                         hint: "3일 연속 참가 시" },
+          ];
+          const unlockedCount = achievements.filter(a => a.unlocked).length;
+          return (
+            <div ref={setRef(6)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 px-5 py-4" style={{ transitionDelay: "260ms" }}>
+              <div className="flex items-baseline justify-between mb-4">
+                <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">획득 배지</p>
+                <span className="text-xs text-white/50">{unlockedCount}/{achievements.length}</span>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="flex gap-5">
+                {achievements.map(({ icon, label, unlocked, hint }) => (
+                  <div key={label} className="flex flex-col items-center gap-1" title={unlocked ? label : hint}>
+                    <span className="material-symbols-outlined leading-none" style={{ fontSize: "1.8rem", opacity: unlocked ? 1 : 0.22 }}>
+                      {icon}
+                    </span>
+                    <p className={`text-xs font-medium text-center leading-tight ${unlocked ? "text-white/70" : "text-white/30"}`}>{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Quick links */}
         <div ref={setRef(7)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "300ms" }}>
