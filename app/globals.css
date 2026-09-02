@@ -198,28 +198,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   transform: translateY(0);
 }
 
-/* Milestone shockwave ring */
-@keyframes shockwave {
-  0%   { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(6); opacity: 0; }
-}
-.shockwave-ring {
-  border: 2px solid;
-  animation: shockwave 0.75s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
-}
-
-/* Milestone center text */
-@keyframes milestone-text {
-  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.75); }
-  12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
-  22%  { transform: translate(-50%, -50%) scale(1); }
-  75%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-}
-.milestone-text {
-  animation: milestone-text 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
 /* Gold shimmer text */
 @keyframes gold-shimmer {
   0%   { background-position: -200% center; }

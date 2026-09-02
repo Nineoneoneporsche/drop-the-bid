@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useGame, formatKRW, DEFAULT_CONFIG } from "../context/GameContext";
+import { useGame, formatKRW, DEFAULT_CONFIG, validateDropZones } from "../context/GameContext";
 
 function toLocalInput(iso: string): string {
   const d = new Date(iso);
@@ -15,6 +15,10 @@ export default function AdminPage() {
   const { state, updateConfig, resetGame } = useGame();
   const router = useRouter();
 
+  function toFormNum(n: number | null): string {
+    return n == null ? "" : n.toString();
+  }
+
   const [form, setForm] = useState({
     productName: state.config.productName,
     startPrice: state.config.startPrice.toString(),
@@ -22,8 +26,13 @@ export default function AdminPage() {
     strategyDuration: state.config.strategyDuration.toString(),
     floorPrice: state.config.floorPrice.toString(),
     gameStartTime: state.config.gameStartTime ?? "",
+    fastDropPrice: toFormNum(state.config.fastDropPrice),
+    fastDropAmount: toFormNum(state.config.fastDropAmount),
+    finalDropPrice: toFormNum(state.config.finalDropPrice),
+    finalDropAmount: toFormNum(state.config.finalDropAmount),
   });
   const [saved, setSaved] = useState(false);
+  const [zoneError, setZoneError] = useState<string | null>(null);
 
   // Keep form in sync with state.config — fixes the init race where useState
   // captures DEFAULT_CONFIG before GameProvider's localStorage useEffect fires.
@@ -35,12 +44,25 @@ export default function AdminPage() {
       strategyDuration: state.config.strategyDuration.toString(),
       floorPrice: state.config.floorPrice.toString(),
       gameStartTime: state.config.gameStartTime ? toLocalInput(state.config.gameStartTime) : "",
+      fastDropPrice: toFormNum(state.config.fastDropPrice),
+      fastDropAmount: toFormNum(state.config.fastDropAmount),
+      finalDropPrice: toFormNum(state.config.finalDropPrice),
+      finalDropAmount: toFormNum(state.config.finalDropAmount),
     });
   }, [state.config]);
 
   function set(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
     setSaved(false);
+    setZoneError(null);
+  }
+
+  // "" -> disabled (null); a bare "-" or partial input while typing -> NaN,
+  // treated as "not yet a valid number" rather than silently 0.
+  function toNum(s: string): number | null {
+    if (s.trim() === "") return null;
+    const n = parseInt(s, 10);
+    return Number.isNaN(n) ? null : n;
   }
 
   function handleSave() {
@@ -54,6 +76,15 @@ export default function AdminPage() {
     if (!strategyDuration || strategyDuration <= 0) return alert("전략 시간을 올바르게 입력해주세요");
     if (isNaN(floorPrice) || floorPrice < 0) return alert("목표 하한가를 올바르게 입력해주세요");
 
+    const fastDropPrice   = toNum(form.fastDropPrice);
+    const fastDropAmount  = toNum(form.fastDropAmount);
+    const finalDropPrice  = toNum(form.finalDropPrice);
+    const finalDropAmount = toNum(form.finalDropAmount);
+
+    const err = validateDropZones({ startPrice, floorPrice, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount });
+    if (err) { setZoneError(err); return; }
+    setZoneError(null);
+
     updateConfig({
       productName: form.productName.trim() || DEFAULT_CONFIG.productName,
       startPrice,
@@ -61,10 +92,14 @@ export default function AdminPage() {
       strategyDuration,
       floorPrice,
       gameStartTime: form.gameStartTime ? new Date(form.gameStartTime).toISOString() : null,
+      fastDropPrice,
+      fastDropAmount,
+      finalDropPrice,
+      finalDropAmount,
     }).then(() => {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    });
+    }).catch((e: Error) => setZoneError(e.message));
   }
 
   function handleReset() {
@@ -171,7 +206,7 @@ export default function AdminPage() {
           </Field>
 
           <Field
-            label="초당 하락 금액 (원/초)"
+            label="초당 하락 금액 — NORMAL (원/초)"
             hint={
               gameDuration != null
                 ? `약 ${Math.floor(gameDuration / 60)}분 ${gameDuration % 60}초 후 0원`
@@ -186,6 +221,65 @@ export default function AdminPage() {
               min={1}
             />
           </Field>
+
+          {/* Drop zones — optional. Leaving FAST blank keeps the legacy
+              single-rate NORMAL-only behavior; FINAL is only usable once
+              FAST is set (validateDropZones enforces this, matching the
+              DB CHECK constraints). */}
+          <div className="pt-2 pb-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-orange-500">Drop Zone 설정</p>
+            <p className="text-gray-400 text-xs mt-1">비워두면 NORMAL 속도로만 끝까지 진행돼요</p>
+          </div>
+
+          <Field label="FAST DROP ZONE 시작가 (원)">
+            <input
+              type="number"
+              value={form.fastDropPrice}
+              onChange={(e) => set("fastDropPrice", e.target.value)}
+              placeholder="예: 700000"
+              className={INPUT + " font-mono"}
+              min={0}
+            />
+          </Field>
+
+          <Field label="초당 하락 금액 — FAST DROP (원/초)">
+            <input
+              type="number"
+              value={form.fastDropAmount}
+              onChange={(e) => set("fastDropAmount", e.target.value)}
+              placeholder="예: 2000"
+              className={INPUT + " font-mono"}
+              min={0}
+            />
+          </Field>
+
+          <Field label="FINAL DROP ZONE 시작가 (원)">
+            <input
+              type="number"
+              value={form.finalDropPrice}
+              onChange={(e) => set("finalDropPrice", e.target.value)}
+              placeholder="예: 600000"
+              className={INPUT + " font-mono"}
+              min={0}
+            />
+          </Field>
+
+          <Field label="초당 하락 금액 — FINAL DROP (원/초)">
+            <input
+              type="number"
+              value={form.finalDropAmount}
+              onChange={(e) => set("finalDropAmount", e.target.value)}
+              placeholder="예: 3000"
+              className={INPUT + " font-mono"}
+              min={0}
+            />
+          </Field>
+
+          {zoneError && (
+            <p className="text-red-500 text-sm font-semibold bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              {zoneError}
+            </p>
+          )}
 
           <Field
             label="전략 회의 시간 (초)"
@@ -262,7 +356,17 @@ export default function AdminPage() {
               ["상품명", state.config.productName],
               ["시작가", formatKRW(state.config.startPrice)],
               ["목표 하한가", formatKRW(state.config.floorPrice)],
-              ["하락 금액", `${formatKRW(state.config.dropAmount)}/초`],
+              ["하락 금액 (NORMAL)", `${formatKRW(state.config.dropAmount)}/초`],
+              ...(state.config.fastDropPrice != null && state.config.fastDropAmount != null
+                ? [
+                    ["FAST DROP ZONE", `${formatKRW(state.config.fastDropPrice)} 이하 · ${formatKRW(state.config.fastDropAmount)}/초`],
+                  ]
+                : [["FAST DROP ZONE", "미설정 (NORMAL 속도만 사용)"]]),
+              ...(state.config.finalDropPrice != null && state.config.finalDropAmount != null
+                ? [
+                    ["FINAL DROP ZONE", `${formatKRW(state.config.finalDropPrice)} 이하 · ${formatKRW(state.config.finalDropAmount)}/초`],
+                  ]
+                : []),
               ["전략 시간", `${state.config.strategyDuration}초`],
               [
                 "경매 시작",

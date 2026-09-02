@@ -15,13 +15,21 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export type DropStage = "normal" | "fast" | "final";
+
 export interface GameConfig {
   productName: string;
   startPrice: number;
-  dropAmount: number;
-  floorPrice: number;       // maps to DB minimum_price
+  dropAmount: number;       // NORMAL zone, ₩/sec
+  floorPrice: number;       // maps to DB minimum_price — absolute floor for every zone
   strategyDuration: number;
   gameStartTime: string | null;
+  // Drop zones are optional: both fast fields null = legacy single-rate
+  // behavior. final fields are only meaningful once fast is set.
+  fastDropPrice: number | null;   // FAST DROP ZONE threshold — price at which FAST rate kicks in
+  fastDropAmount: number | null;  // FAST DROP ZONE, ₩/sec
+  finalDropPrice: number | null;  // FINAL DROP ZONE threshold — price at which FINAL rate kicks in
+  finalDropAmount: number | null; // FINAL DROP ZONE, ₩/sec
 }
 
 export interface CurrentUser {
@@ -35,6 +43,7 @@ export interface GameState {
   phase: Phase;
   currentUser: CurrentUser | null;
   currentPrice: number;
+  dropStage: DropStage;
   winner: { id: string; nickname: string; price: number } | null;
   chatMessages: ChatMessage[];
   strategyStartedAt: number | null;
@@ -51,7 +60,53 @@ export const DEFAULT_CONFIG: GameConfig = {
   floorPrice: 550_000,
   strategyDuration: 60,
   gameStartTime: null,
+  fastDropPrice: null,
+  fastDropAmount: null,
+  finalDropPrice: null,
+  finalDropAmount: null,
 };
+
+// FAST requires: a positive rate and a threshold below startPrice.
+// FINAL requires FAST to be set too, plus a positive rate and a threshold
+// below fastDropPrice. Mirrors the DB CHECK constraints in
+// supabase/migrations/20260902120000_drop_zones.sql — keep both in sync.
+// Returns an error message, or null if the config is valid (including the
+// "zones disabled" case where fastDropPrice/fastDropAmount are both null).
+export function validateDropZones(config: Pick<GameConfig,
+  "startPrice" | "floorPrice" | "fastDropPrice" | "fastDropAmount" | "finalDropPrice" | "finalDropAmount"
+>): string | null {
+  const { startPrice, floorPrice, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount } = config;
+
+  const fastSet = fastDropPrice != null || fastDropAmount != null;
+  const finalSet = finalDropPrice != null || finalDropAmount != null;
+
+  // Each zone's price/amount must both be set or both be blank — never one
+  // without the other. Mirrors the DB CHECK constraints in
+  // supabase/migrations/20260902120000_drop_zones.sql exactly; keep both in
+  // sync if either changes.
+  if (fastSet && (fastDropPrice == null || fastDropAmount == null)) {
+    return "FAST DROP ZONE은 시작가와 속도를 둘 다 입력하거나 둘 다 비워야 합니다";
+  }
+  if (finalSet && (finalDropPrice == null || finalDropAmount == null)) {
+    return "FINAL DROP ZONE은 시작가와 속도를 둘 다 입력하거나 둘 다 비워야 합니다";
+  }
+  if (finalSet && !fastSet) {
+    return "FINAL DROP ZONE을 쓰려면 FAST DROP ZONE도 설정해야 합니다";
+  }
+  if (!fastSet) return null; // zones disabled
+
+  if (fastDropAmount! <= 0) return "FAST DROP 속도는 0보다 커야 합니다";
+  if (fastDropPrice! <= floorPrice) return "FAST DROP ZONE 시작가는 목표 하한가보다 높아야 합니다";
+  if (fastDropPrice! >= startPrice) return "FAST DROP ZONE 시작가는 시작가보다 낮아야 합니다";
+
+  if (finalSet) {
+    if (finalDropAmount! <= 0) return "FINAL DROP 속도는 0보다 커야 합니다";
+    if (finalDropPrice! <= floorPrice) return "FINAL DROP ZONE 시작가는 목표 하한가보다 높아야 합니다";
+    if (finalDropPrice! >= fastDropPrice!) return "FINAL DROP ZONE 시작가는 FAST DROP ZONE 시작가보다 낮아야 합니다";
+  }
+
+  return null;
+}
 
 
 interface GameContextValue {
@@ -82,6 +137,10 @@ type DbRow = {
   winner_id: string | null;
   winner_nickname: string | null;
   winner_price: number | null;
+  fast_drop_price: number | null;
+  fast_drop_amount: number | null;
+  final_drop_price: number | null;
+  final_drop_amount: number | null;
 };
 
 function rowToConfig(row: DbRow): GameConfig {
@@ -92,12 +151,49 @@ function rowToConfig(row: DbRow): GameConfig {
     floorPrice:       row.minimum_price     ?? DEFAULT_CONFIG.floorPrice,
     strategyDuration: row.strategy_duration ?? DEFAULT_CONFIG.strategyDuration,
     gameStartTime: row.scheduled_start_at ?? null,
+    fastDropPrice:  row.fast_drop_price  ?? null,
+    fastDropAmount: row.fast_drop_amount ?? null,
+    finalDropPrice:  row.final_drop_price  ?? null,
+    finalDropAmount: row.final_drop_amount ?? null,
   };
 }
 
-function calcPrice(gameStartedAt: number, config: GameConfig): number {
-  const elapsed = Math.floor((Date.now() - gameStartedAt) / 1000);
-  return Math.max(config.floorPrice, config.startPrice - elapsed * config.dropAmount);
+// Server-authoritative price + stage for elapsed time into the game. Mirrors
+// calc_drop_price()/claim_winner() in
+// supabase/migrations/20260902120000_drop_zones.sql exactly — both compute
+// off game_started_at (a server timestamp), so a fresh page load or a
+// mid-game join lands on the same price/stage as everyone else already
+// watching, and the RPC never trusts what this returns. Keep the two in
+// sync if either changes.
+function calcPriceAndStage(gameStartedAt: number, config: GameConfig): { price: number; stage: DropStage } {
+  const elapsed = Math.max(0, (Date.now() - gameStartedAt) / 1000);
+  const { startPrice, floorPrice, dropAmount, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount } = config;
+
+  if (fastDropPrice == null || fastDropAmount == null) {
+    return { price: Math.max(floorPrice, Math.round(startPrice - elapsed * dropAmount)), stage: "normal" };
+  }
+
+  const tFast = (startPrice - fastDropPrice) / dropAmount;
+  if (elapsed <= tFast) {
+    return { price: Math.round(startPrice - elapsed * dropAmount), stage: "normal" };
+  }
+
+  if (finalDropPrice == null || finalDropAmount == null) {
+    return {
+      price: Math.max(floorPrice, Math.round(fastDropPrice - (elapsed - tFast) * fastDropAmount)),
+      stage: "fast",
+    };
+  }
+
+  const tFinal = (fastDropPrice - finalDropPrice) / fastDropAmount;
+  if (elapsed <= tFast + tFinal) {
+    return { price: Math.round(fastDropPrice - (elapsed - tFast) * fastDropAmount), stage: "fast" };
+  }
+
+  return {
+    price: Math.max(floorPrice, Math.round(finalDropPrice - (elapsed - tFast - tFinal) * finalDropAmount)),
+    stage: "final",
+  };
 }
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
@@ -105,6 +201,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig]             = useState<GameConfig>(DEFAULT_CONFIG);
   const [currentUser, setCurrentUser]   = useState<CurrentUser | null>(null);
   const [currentPrice, setCurrentPrice] = useState(DEFAULT_CONFIG.startPrice);
+  const [dropStage, setDropStage]       = useState<DropStage>("normal");
   const [winner, setWinner]             = useState<GameState["winner"]>(null);
   const [messages, setMessages]         = useState<ChatMessage[]>([]);
   const [strategyStartedAt, setStrategyStartedAt] = useState<number | null>(null);
@@ -135,8 +232,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setStrategyStartedAt(stratAt);
     setGameStartedAt(gameAt);
     setWinner(w);
-    if (gameAt) setCurrentPrice(calcPrice(gameAt, cfg));
-    else setCurrentPrice(cfg.startPrice);
+    if (gameAt) {
+      const { price, stage } = calcPriceAndStage(gameAt, cfg);
+      setCurrentPrice(price);
+      setDropStage(stage);
+    } else {
+      setCurrentPrice(cfg.startPrice);
+      setDropStage("normal");
+    }
   }, []);
 
   // Load current game guest from localStorage
@@ -234,7 +337,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
       return;
     }
-    const update = () => setCurrentPrice(calcPrice(gameAtRef.current!, configRef.current));
+    const update = () => {
+      const { price, stage } = calcPriceAndStage(gameAtRef.current!, configRef.current);
+      setCurrentPrice(price);
+      setDropStage(stage);
+    };
     update();
     tickRef.current = setInterval(update, 500);
     return () => { if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; } };
@@ -363,7 +470,26 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (newConfig.floorPrice       !== undefined) updates.minimum_price     = newConfig.floorPrice;
     if (newConfig.strategyDuration !== undefined) updates.strategy_duration = newConfig.strategyDuration;
     if (newConfig.gameStartTime    !== undefined) updates.scheduled_start_at = newConfig.gameStartTime || null;
-    await supabase.from("game_state").update(updates).eq("id", 1);
+    if (newConfig.fastDropPrice    !== undefined) updates.fast_drop_price    = newConfig.fastDropPrice;
+    if (newConfig.fastDropAmount   !== undefined) updates.fast_drop_amount   = newConfig.fastDropAmount;
+    if (newConfig.finalDropPrice   !== undefined) updates.final_drop_price   = newConfig.finalDropPrice;
+    if (newConfig.finalDropAmount  !== undefined) updates.final_drop_amount  = newConfig.finalDropAmount;
+
+    const zoneError = validateDropZones({
+      startPrice:      newConfig.startPrice      ?? configRef.current.startPrice,
+      floorPrice:      newConfig.floorPrice      ?? configRef.current.floorPrice,
+      fastDropPrice:   newConfig.fastDropPrice   !== undefined ? newConfig.fastDropPrice   : configRef.current.fastDropPrice,
+      fastDropAmount:  newConfig.fastDropAmount  !== undefined ? newConfig.fastDropAmount  : configRef.current.fastDropAmount,
+      finalDropPrice:  newConfig.finalDropPrice  !== undefined ? newConfig.finalDropPrice  : configRef.current.finalDropPrice,
+      finalDropAmount: newConfig.finalDropAmount !== undefined ? newConfig.finalDropAmount : configRef.current.finalDropAmount,
+    });
+    if (zoneError) throw new Error(zoneError);
+
+    // Surface write failures (e.g. a DB CHECK constraint rejecting an
+    // invalid drop-zone combination the client-side check missed) instead
+    // of letting the admin page report success on a no-op update.
+    const { error } = await supabase.from("game_state").update(updates).eq("id", 1);
+    if (error) throw new Error(error.message);
   }, []);
 
   const resetGame = useCallback(async () => {
@@ -387,6 +513,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     phase,
     currentUser,
     currentPrice,
+    dropStage,
     winner,
     chatMessages: messages,
     strategyStartedAt,

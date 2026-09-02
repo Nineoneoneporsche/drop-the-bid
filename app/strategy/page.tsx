@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import confetti from "canvas-confetti";
 import { Do_Hyeon } from "next/font/google";
 
 const doHyeon = Do_Hyeon({ weight: "400", subsets: ["latin"], preload: false });
@@ -175,6 +174,11 @@ export default function StrategyPage() {
 
   // Game phase
   const [raised, setRaised] = useState(false);
+  // True only while raiseHand()'s RPC round-trip is in flight. Guards the
+  // auction-failure effect below so a price tick landing on/under floor
+  // during that window can't show "경매 실패" to the very client who is
+  // about to be confirmed as the winner.
+  const [bidding, setBidding] = useState(false);
   const [forcedWatcher, setForcedWatcher] = useState(false);
   const [showWatchConfirm, setShowWatchConfirm] = useState(false);
   const [showAuctionFailed, setShowAuctionFailed] = useState(false);
@@ -185,9 +189,6 @@ export default function StrategyPage() {
   const djIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const firedChatRef = useRef(new Set<number>());
   const firedNarratorRef = useRef(new Set<number>());
-  const firedMilestonesRef = useRef(new Set<number>());
-  const [milestonePopup, setMilestonePopup] = useState<{ label: string; key: number } | null>(null);
-  const [showSparkle, setShowSparkle] = useState(false);
   const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rapidIdxRef = useRef(0);
 
@@ -211,39 +212,6 @@ export default function StrategyPage() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  // ── Milestone discount popups ────────────────────────────────────────────
-  useEffect(() => {
-    if (state.phase !== "game" || isSequenceActive) return;
-    const { startPrice } = state.config;
-    if (startPrice <= 0) return;
-
-    const dropPct = Math.floor((1 - state.currentPrice / startPrice) * 100);
-    const hit = Math.floor(dropPct / 10) * 10;
-
-    if (hit >= 10 && !firedMilestonesRef.current.has(hit)) {
-      firedMilestonesRef.current.add(hit);
-
-      // 중앙 폭발 버스트
-      confetti({
-        particleCount: 180,
-        spread: 360,
-        startVelocity: 42,
-        decay: 0.91,
-        gravity: 0.55,
-        scalar: 1.3,
-        shapes: ["circle"],
-        origin: { x: 0.5, y: 0.52 },
-        colors: ["#FFD700", "#fbbf24", "#f5f3ff", "#c084fc", "#a855f7"],
-      });
-      // 충격파 링
-      setShowSparkle(true);
-      setTimeout(() => setShowSparkle(false), 900);
-
-      setMilestonePopup({ label: `-${hit}%`, key: Date.now() });
-      setTimeout(() => setMilestonePopup(null), 4000);
-    }
-  }, [state.currentPrice, state.phase, state.config.startPrice, state.config, isSequenceActive]);
 
   // ── Background video + music ──────────────────────────────────────────────
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -424,13 +392,19 @@ export default function StrategyPage() {
   }, [state.currentPrice, state.config.startPrice, state.phase, addLocalMessage]);
 
   // ── Auction failure detection ────────────────────────────────────────────
+  // Skipped while `bidding` — a raiseHand() RPC is in flight, and the price
+  // tick that lands on/under floor during that round-trip doesn't yet know
+  // whether this client is about to become the winner. Once the RPC settles
+  // (bidding -> false), this effect re-runs on the next render regardless
+  // (state.currentPrice keeps ticking) and falls through to the normal
+  // check — so a genuine loss still shows "경매 실패" exactly as before.
   useEffect(() => {
-    if (state.phase !== "game" || raised || showAuctionFailed || isSequenceActive) return;
+    if (state.phase !== "game" || raised || showAuctionFailed || isSequenceActive || bidding) return;
     if (state.currentPrice <= state.config.floorPrice) {
       if (rapidChatRef.current) { clearInterval(rapidChatRef.current); rapidChatRef.current = null; }
       setShowAuctionFailed(true);
     }
-  }, [state.currentPrice, state.phase, raised, showAuctionFailed, state.config.floorPrice]);
+  }, [state.currentPrice, state.phase, raised, showAuctionFailed, state.config.floorPrice, bidding]);
 
   // ── Winner reveal sequence trigger ───────────────────────────────────────
   // Fires off the Realtime-synced state.winner (never the local raiseHand()
@@ -542,8 +516,13 @@ export default function StrategyPage() {
     if (state.phase !== "game" || isSequenceActive) return;
     if (!state.currentUser || state.currentUser.role !== "participant" || raised || forcedWatcher) return;
     const price = state.currentPrice;
-    const won = await raiseHand(state.currentUser.nickname, price);
-    if (won) setRaised(true);
+    setBidding(true);
+    try {
+      const won = await raiseHand(state.currentUser.nickname, price);
+      if (won) setRaised(true);
+    } finally {
+      setBidding(false);
+    }
   }, [state.phase, isSequenceActive, state.currentUser, state.currentPrice, raised, forcedWatcher, raiseHand]);
 
   function handleSendMessage() {
@@ -598,54 +577,6 @@ export default function StrategyPage() {
       {showDJ && (
         <div key={djKey} className="dj-pop absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
           <Image src="/gamedj.png" alt="DJ" width={320} height={320} style={{ objectFit: "contain" }} priority />
-        </div>
-      )}
-
-      {/* ── Sparkle overlay ── */}
-      {showSparkle && (
-        <div className="absolute inset-0 z-[64] pointer-events-none">
-          {[
-            { delay: "0s",    color: "#FFD700", size: 80 },
-            { delay: "0.12s", color: "#c084fc", size: 130 },
-            { delay: "0.26s", color: "#f5f3ff", size: 200 },
-          ].map((ring, i) => (
-            <div
-              key={i}
-              className="shockwave-ring absolute rounded-full"
-              style={{
-                width: ring.size,
-                height: ring.size,
-                left: "50%",
-                top: "52%",
-                borderColor: ring.color,
-                boxShadow: `0 0 12px 2px ${ring.color}66`,
-                animationDelay: ring.delay,
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* ── Milestone text ── */}
-      {milestonePopup && (
-        <div
-          key={milestonePopup.key}
-          className={`milestone-text absolute z-[65] pointer-events-none text-center ${doHyeon.className}`}
-          style={{ top: "50%", left: "50%", whiteSpace: "nowrap" }}
-        >
-          <span
-            style={{
-              fontSize: "3.6rem",
-              color: "#ffffff",
-              textShadow:
-                "0 0 18px rgba(168,85,247,1), 0 0 40px rgba(168,85,247,0.85), 0 0 80px rgba(168,85,247,0.5)",
-            }}
-          >
-            {milestonePopup.label}
-          </span>
-          <span style={{ fontSize: "3.6rem", color: "#ffffff" }}>
-            {" "}도달!
-          </span>
         </div>
       )}
 
