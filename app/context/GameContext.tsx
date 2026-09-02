@@ -328,7 +328,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addLocalMessage = useCallback((msg: ChatMessage) => {
-    setMessages((prev) => [...prev, msg]);
+    // Scripted lounge/chat/narrator ids (e.g. "lounge-0") are only unique per
+    // page mount — the firing refs that guard them live on the strategy page
+    // and reset on remount, while this messages array (and its ids) persist
+    // across navigation. Re-fired ids land here again on rejoin; drop them
+    // rather than let React see two children with the same key.
+    setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
   }, []);
 
   const raiseHand = useCallback(async (nickname: string, price: number): Promise<boolean> => {

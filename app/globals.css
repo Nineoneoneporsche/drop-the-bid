@@ -239,3 +239,60 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   background: linear-gradient(180deg, #f87171 0%, #ef4444 55%, #c41c1c 100%) !important;
   animation: bid-glow-red 1.4s ease-in-out infinite;
 }
+
+/* Winner reveal — blackout */
+/* Instantly, fully opaque — no fade-in. The video's opacity drops to 0 the
+   same frame this mounts, so any transition here would leave a brief gap
+   where the page's own background video shows through underneath. */
+.winner-blackout {
+  opacity: 1;
+}
+
+/* Winner reveal — LED scene. Deliberately restrained: a single shared
+   fade/rise-in for most elements, one clean (non-looping) settle-in for the
+   nickname. No confetti/flash/sweep. */
+@keyframes scene-fade-in {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.scene-fade-in {
+  opacity: 0;
+  animation: scene-fade-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes nickname-reveal {
+  0%   { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.nickname-reveal {
+  opacity: 0;
+  animation: nickname-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* One continuous LED-wall surface behind the whole reveal scene — a static
+   fine dot-grid standing in for individual LED pixels. Deliberately NOT a
+   bordered/boxed panel: no border, no border-radius, no box-shadow — this is
+   the texture of the whole screen, fading at its edges instead of framing a
+   card, so TODAY'S WINNER / nickname / price / product all read as one
+   graphic composition rather than stacked UI components. */
+.led-display-texture {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 6px 6px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 14%, black 78%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, black 14%, black 78%, transparent 100%);
+  pointer-events: none;
+}
+
+/* LED wall "powering on" as the reveal scene mounts */
+@keyframes led-stage-lightup {
+  0%   { filter: brightness(0.25); }
+  12%  { filter: brightness(1.3); }
+  22%  { filter: brightness(0.7); }
+  35%  { filter: brightness(1.05); }
+  100% { filter: brightness(1); }
+}
+.led-stage-lightup {
+  animation: led-stage-lightup 0.8s ease-out both;
+}

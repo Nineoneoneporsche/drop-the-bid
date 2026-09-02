@@ -55,6 +55,11 @@ export default function JoinPage() {
     const trimmed = nickname.trim();
     if (!trimmed) { setError("닉네임을 입력해주세요"); return; }
     if (trimmed.length < 2) { setError("닉네임은 2자 이상이어야 합니다"); return; }
+    // Close the mobile keyboard now, in parallel with the network calls below,
+    // instead of leaving it to close while /strategy is already navigating in —
+    // that race is what left the next (fixed-height) page's scroll offset stuck
+    // mid-keyboard-close, shifting its whole layout up.
+    (document.activeElement as HTMLElement | null)?.blur();
     setLoading(true);
     try {
       await joinGame(trimmed, role);

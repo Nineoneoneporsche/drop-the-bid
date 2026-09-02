@@ -30,6 +30,21 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+// Responsive nickname sizing so long nicknames never clip on the LED reveal.
+function nicknameFontSize(nickname: string): string {
+  const len = nickname.length;
+  if (len <= 6)  return "clamp(3.2rem, 22vw, 6.8rem)";
+  if (len <= 9)  return "clamp(2.5rem, 17vw, 5.2rem)";
+  if (len <= 13) return "clamp(2rem, 13vw, 3.8rem)";
+  return "clamp(1.5rem, 10vw, 2.8rem)";
+}
+
+// Winner LED-reveal timing (kept as named constants so the JS-driven price
+// countdown and the CSS animation-delays it's synced with never drift apart).
+const NICKNAME_REVEAL_DELAY_MS = 350;
+const PRICE_COUNTDOWN_START_MS = 500;
+const PRICE_COUNTDOWN_DURATION_MS = 850;
+
 // ── Pre-game lounge messages ─────────────────────────────────────────────────
 const LOUNGE_MESSAGES: { nickname: string; message: string }[] = [
   { nickname: "쇼핑고수",    message: "드디어 시작이네요 🎉" },
@@ -150,7 +165,7 @@ export default function StrategyPage() {
 
   // Shared
   const [message, setMessage] = useState("");
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Strategy phase
@@ -160,11 +175,9 @@ export default function StrategyPage() {
 
   // Game phase
   const [raised, setRaised] = useState(false);
-  const [bidPrice, setBidPrice] = useState(0);
   const [forcedWatcher, setForcedWatcher] = useState(false);
   const [showWatchConfirm, setShowWatchConfirm] = useState(false);
   const [showAuctionFailed, setShowAuctionFailed] = useState(false);
-  const [showOtherWon, setShowOtherWon] = useState(false);
   const [tickFlash, setTickFlash] = useState(false);
   const [djKey, setDjKey] = useState(0);
   const [showDJ, setShowDJ] = useState(false);
@@ -178,9 +191,30 @@ export default function StrategyPage() {
   const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rapidIdxRef = useRef(0);
 
+  // Winner reveal sequence (freeze → blackout → video → blackout → LED reveal)
+  type WinnerStage = "idle" | "blackout-in" | "video" | "blackout-out" | "reveal";
+  const [winnerStage, setWinnerStage] = useState<WinnerStage>("idle");
+  const winnerSequenceStartedRef = useRef(false);
+  const winnerVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [showSkipButton, setShowSkipButton] = useState(false);
+  const skipButtonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Derived synchronously from the Realtime-synced state.winner (not local
+  // raiseHand() state) so every effect/control freezes at the same instant
+  // for every participant, without waiting an extra render for winnerStage.
+  const isSequenceActive = !!state.winner;
+
+  // LED-reveal sub-sequence: price count-down + celebration, guarded so it
+  // only ever runs once (dev StrictMode double-effect, duplicate Realtime).
+  const [countdownPrice, setCountdownPrice] = useState<number | null>(null);
+  const revealSequenceFiredRef = useRef(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // ── Milestone discount popups ────────────────────────────────────────────
   useEffect(() => {
-    if (state.phase !== "game") return;
+    if (state.phase !== "game" || isSequenceActive) return;
     const { startPrice } = state.config;
     if (startPrice <= 0) return;
 
@@ -209,7 +243,7 @@ export default function StrategyPage() {
       setMilestonePopup({ label: `-${hit}%`, key: Date.now() });
       setTimeout(() => setMilestonePopup(null), 4000);
     }
-  }, [state.currentPrice, state.phase, state.config.startPrice, state.config]);
+  }, [state.currentPrice, state.phase, state.config.startPrice, state.config, isSequenceActive]);
 
   // ── Background video + music ──────────────────────────────────────────────
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -323,7 +357,7 @@ export default function StrategyPage() {
 
   // ── Game tick flash + DJ interval + rapid chat ───────────────────────────
   useEffect(() => {
-    if (state.phase !== "game") return;
+    if (state.phase !== "game" || isSequenceActive) return;
 
     const flashInterval = setInterval(() => {
       setTickFlash(true);
@@ -357,7 +391,7 @@ export default function StrategyPage() {
       if (djTimerRef.current) clearTimeout(djTimerRef.current);
       if (rapidChatRef.current) clearInterval(rapidChatRef.current);
     };
-  }, [state.phase, addLocalMessage]);
+  }, [state.phase, isSequenceActive, addLocalMessage]);
 
   // ── Game chat / narrator events ──────────────────────────────────────────
   useEffect(() => {
@@ -391,39 +425,126 @@ export default function StrategyPage() {
 
   // ── Auction failure detection ────────────────────────────────────────────
   useEffect(() => {
-    if (state.phase !== "game" || raised || showAuctionFailed) return;
+    if (state.phase !== "game" || raised || showAuctionFailed || isSequenceActive) return;
     if (state.currentPrice <= state.config.floorPrice) {
       if (rapidChatRef.current) { clearInterval(rapidChatRef.current); rapidChatRef.current = null; }
       setShowAuctionFailed(true);
     }
   }, [state.currentPrice, state.phase, raised, showAuctionFailed, state.config.floorPrice]);
 
-  // ── Other user won detection ─────────────────────────────────────────────
+  // ── Winner reveal sequence trigger ───────────────────────────────────────
+  // Fires off the Realtime-synced state.winner (never the local raiseHand()
+  // return value), so the bidder and every other participant run the exact
+  // same sequence. A start-once ref guards against StrictMode double-effects
+  // and duplicate Realtime delivery.
   useEffect(() => {
-    if (!state.winner) return;
-    if (state.winner.id !== state.currentUser?.guestId) {
-      setShowOtherWon(true);
+    if (!state.winner || winnerSequenceStartedRef.current) return;
+    winnerSequenceStartedRef.current = true;
+
+    // Fade out (or just stop) the game BGM immediately.
+    const bgm = audioRef.current;
+    if (bgm) {
+      if (bgm.paused) {
+        bgm.pause();
+      } else {
+        const startVol = bgm.volume;
+        const steps = 16;
+        let step = 0;
+        const fade = setInterval(() => {
+          step += 1;
+          bgm.volume = Math.max(0, startVol * (1 - step / steps));
+          if (step >= steps) {
+            clearInterval(fade);
+            bgm.pause();
+          }
+        }, 25);
+      }
     }
-  }, [state.winner, state.currentUser]);
+
+    setWinnerStage("blackout-in");
+    setTimeout(() => {
+      setWinnerStage("video");
+      const v = winnerVideoRef.current;
+      if (v) {
+        v.currentTime = 0;
+        v.muted = false;
+        v.play().catch(() => {
+          // Autoplay-with-sound was blocked — fall back to a silent play
+          // rather than stalling the sequence.
+          v.muted = true;
+          v.play().catch(() => {});
+        });
+      }
+      // Skip button appears 3s into the video, not before.
+      skipButtonTimerRef.current = setTimeout(() => setShowSkipButton(true), 3000);
+    }, 2000);
+  }, [state.winner]);
+
+  const handleWinnerVideoEnded = useCallback(() => {
+    if (skipButtonTimerRef.current) { clearTimeout(skipButtonTimerRef.current); skipButtonTimerRef.current = null; }
+    setShowSkipButton(false);
+    setWinnerStage("blackout-out");
+    setTimeout(() => setWinnerStage("reveal"), 300);
+  }, []);
+
+  // Skip straight to the Today's Winner LED screen — used by the skip button
+  // during video playback.
+  const handleSkipWinnerVideo = useCallback(() => {
+    if (skipButtonTimerRef.current) { clearTimeout(skipButtonTimerRef.current); skipButtonTimerRef.current = null; }
+    setShowSkipButton(false);
+    const v = winnerVideoRef.current;
+    if (v) v.pause();
+    setWinnerStage("reveal");
+  }, []);
+
+  // ── LED reveal sub-sequence: price count-down ────────────────────────────
+  // Timed off entering "reveal" (not off state.winner directly), never twice
+  // per game. Kept deliberately restrained — no confetti/flash here, just
+  // the price ticking down to the real winning number.
+  useEffect(() => {
+    if (winnerStage !== "reveal" || !state.winner || revealSequenceFiredRef.current) return;
+    revealSequenceFiredRef.current = true;
+
+    const startVal = state.config.startPrice;
+    const endVal = state.winner.price;
+
+    // Rapid count-down from the start price, landing exactly on the real winning price.
+    const countdownTimer = setTimeout(() => {
+      const t0 = performance.now();
+      const step = (now: number) => {
+        const t = Math.min(1, (now - t0) / PRICE_COUNTDOWN_DURATION_MS);
+        const eased = 1 - Math.pow(1 - t, 3);
+        setCountdownPrice(Math.round(startVal - (startVal - endVal) * eased));
+        if (t < 1) requestAnimationFrame(step);
+        else setCountdownPrice(endVal);
+      };
+      requestAnimationFrame(step);
+    }, PRICE_COUNTDOWN_START_MS);
+
+    return () => {
+      clearTimeout(countdownTimer);
+    };
+  }, [winnerStage, state.winner, state.config.startPrice]);
 
   // ── Auto-scroll chat ─────────────────────────────────────────────────────
+  // Scroll only the chat container's own scrollTop — scrollIntoView() walks
+  // up every scrollable ancestor, and on mobile (where 100vh can exceed the
+  // real visible viewport) that cascades into scrolling the whole page,
+  // cutting off the top bar/product info above the fold.
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = chatScrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }, [state.chatMessages]);
 
   // ── Actions ──────────────────────────────────────────────────────────────
   const handleRaiseHand = useCallback(async () => {
-    if (state.phase !== "game") return;
+    if (state.phase !== "game" || isSequenceActive) return;
     if (!state.currentUser || state.currentUser.role !== "participant" || raised || forcedWatcher) return;
     const price = state.currentPrice;
     const won = await raiseHand(state.currentUser.nickname, price);
-    if (won) {
-      setBidPrice(price);
-      setRaised(true);
-    } else {
-      setShowOtherWon(true);
-    }
-  }, [state.phase, state.currentUser, state.currentPrice, raised, forcedWatcher, raiseHand]);
+    if (won) setRaised(true);
+  }, [state.phase, isSequenceActive, state.currentUser, state.currentPrice, raised, forcedWatcher, raiseHand]);
 
   function handleSendMessage() {
     if (!message.trim() || !state.currentUser) return;
@@ -441,23 +562,24 @@ export default function StrategyPage() {
   const start = state.config.startPrice;
   const isUrgent = timeLeft <= 15;
 
+  // Once winner is confirmed, freeze the displayed price at the real winning
+  // price instead of the still-ticking state.currentPrice.
+  const displayPrice = state.winner ? state.winner.price : state.currentPrice;
+  const isMyWin = !!state.winner && state.winner.id === state.currentUser?.guestId;
+
   const barPct = start > floor
-    ? Math.min(100, Math.max(0, ((start - state.currentPrice) / (start - floor)) * 100))
+    ? Math.min(100, Math.max(0, ((start - displayPrice) / (start - floor)) * 100))
     : 0;
-  const pct = start > 0 ? Math.max(0, (state.currentPrice / start) * 100) : 0;
+  const pct = start > 0 ? Math.max(0, (displayPrice / start) * 100) : 0;
   const isLow      = pct < 50;
   const isCritical = pct < 30;
-  const currentSavings    = start - state.currentPrice;
+  const currentSavings    = start - displayPrice;
   const currentSavingsPct = start > 0 ? Math.round((currentSavings / start) * 100) : 0;
-
-  const bidSaved    = start - bidPrice;
-  const bidDiscount = start > 0 ? Math.round((bidSaved / start) * 100) : 0;
-  const winnerNick  = state.currentUser?.nickname ?? "";
 
   if (!state.currentUser) return null;
 
   return (
-    <main className="h-screen bg-[#0a0a0a] max-w-md mx-auto overflow-hidden relative flex flex-col">
+    <main className="h-dvh bg-[#0a0a0a] max-w-md mx-auto overflow-hidden relative flex flex-col">
 
       {/* ── Background video ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -547,37 +669,6 @@ export default function StrategyPage() {
         </div>
       )}
 
-      {/* ── Other user won popup ── */}
-      {showOtherWon && (
-        <div className="absolute inset-0 z-[60] flex items-center justify-center px-6" style={{ background: "rgba(10,10,10,0.85)" }}>
-          <div className="w-full max-w-xs bg-[#1a1a1a] border border-white/15 rounded-2xl p-6 text-center relative">
-            <button
-              onClick={() => setShowOtherWon(false)}
-              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-white/40 hover:text-white/80 transition-colors rounded-full hover:bg-white/10"
-              aria-label="닫기"
-            >
-              ✕
-            </button>
-            <div className="text-5xl mb-3">🏁</div>
-            <p className="text-white font-black text-lg mb-1.5">낙찰 완료</p>
-            {state.winner && (
-              <p className="text-white/70 text-sm mb-1">
-                <span className="font-black text-white">{state.winner.nickname}</span>님이{" "}
-                <span className="font-bold" style={{ color: "#c084fc" }}>{formatKRW(state.winner.price)}</span>에 낙찰받았습니다.
-              </p>
-            )}
-            <p className="text-white/45 text-xs mb-6">다음 경매를 기대해주세요!</p>
-            <button
-              onClick={handleGoHome}
-              className="w-full py-3.5 font-bold text-base text-white rounded-xl"
-              style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
-            >
-              홈으로
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── Watch confirm popup ── */}
       {showWatchConfirm && (
         <div className="absolute inset-0 z-[50] flex items-center justify-center px-6" style={{ background: "rgba(10,10,10,0.75)" }}>
@@ -603,33 +694,171 @@ export default function StrategyPage() {
         </div>
       )}
 
-      {/* ── Winner overlay ── */}
-      {raised && (
-        <div className="absolute inset-0 z-[45] flex items-center justify-center px-5" style={{ background: "rgba(10,10,10,0.82)" }}>
-          <div className="success-pop w-full text-center" style={{ border: "1px solid rgba(139,92,246,0.35)", background: "#111", padding: "2rem 1.5rem", boxShadow: "0 0 60px rgba(139,92,246,0.2)" }}>
-            <div className="mb-3"><span className="material-symbols-outlined" style={{fontSize:"3rem"}}>celebration</span></div>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-bold mb-1" style={{ color: "#c084fc" }}>낙찰 성공</p>
-            <p className="text-white/80 text-sm mb-4">
-              <span className="font-black text-white">{winnerNick}</span>님, 축하합니다!
-            </p>
-            <div className="font-black tabular-nums font-mono leading-none mb-1"
-              style={{ fontSize: "3.4rem", color: "#f5f3ff", textShadow: "0 0 6px rgba(255,255,255,0.9), 0 0 14px #c084fc, 0 0 28px #a855f7, 0 0 52px rgba(139,92,246,0.55)" }}>
-              {formatKRW(bidPrice)}
-            </div>
-            <p className="text-white/40 text-sm tabular-nums line-through mb-4">{formatKRW(start)}</p>
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div style={{ background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.2)", padding: "0.75rem" }}>
-                <p className="text-[10px] text-white/50 uppercase tracking-wider mb-1">절약 금액</p>
-                <p className="text-base font-black font-mono tabular-nums" style={{ color: "#c084fc" }}>{formatKRW(bidSaved)}</p>
+      {/* ── Winner reveal sequence: blackout → video → blackout → LED screen ── */}
+      {/* Mounted (not conditionally rendered) from the start of the game phase so the
+          browser has the whole bidding window to buffer it — no load stall once winner fires. */}
+      <video
+        ref={winnerVideoRef}
+        preload="auto"
+        playsInline
+        onEnded={handleWinnerVideoEnded}
+        className="absolute inset-0 w-full h-full object-cover z-[90] bg-black"
+        style={{
+          objectPosition: "center top",
+          // On real phone aspect ratios (taller than this 9:16 source) cover
+          // already matches container height exactly — no vertical slack to
+          // redistribute via object-position alone. Scaling up from a
+          // top-anchored origin keeps the top edge fixed and pushes the
+          // extra height past the bottom, where <main>'s overflow-hidden
+          // clips it. Verified against a real 390×844 render.
+          transform: "scale(1.15)",
+          transformOrigin: "center top",
+          opacity: winnerStage === "video" ? 1 : 0,
+          pointerEvents: winnerStage === "video" ? "auto" : "none",
+        }}
+      >
+        <source src="/winner-animation.mp4" type="video/mp4" />
+      </video>
+
+      {winnerStage === "video" && showSkipButton && (
+        <button
+          onClick={handleSkipWinnerVideo}
+          className="scene-fade-in absolute top-10 right-4 z-[91] flex items-center gap-1 pl-3 pr-2.5 py-1.5 text-white active:scale-95 transition-transform"
+          style={{ background: "rgba(10,10,10,0.55)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "999px" }}
+        >
+          <span className="text-[12px] font-bold tracking-wide">SKIP</span>
+          <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>skip_next</span>
+        </button>
+      )}
+
+      {(winnerStage === "blackout-in" || winnerStage === "blackout-out") && (
+        <div className="winner-blackout absolute inset-0 z-[92] bg-black" />
+      )}
+
+      {winnerStage === "reveal" && state.winner && (
+        <div className="led-stage-lightup absolute inset-0 z-[95] flex flex-col overflow-hidden" style={{ background: "#050208" }}>
+          {/* Static corner spotlight glow — no animation, just atmosphere */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 65% 38% at 18% -4%, rgba(168,85,247,0.30), transparent 62%), " +
+                "radial-gradient(ellipse 65% 38% at 82% -4%, rgba(168,85,247,0.30), transparent 62%)",
+            }}
+          />
+
+          {/* One continuous dot-matrix LED surface behind the whole scene — not a
+              card, just the texture of the wall itself, fading at top/bottom. */}
+          <div className="led-display-texture" />
+
+          {/* Stage band — the existing game background video, pulled up much higher
+              and fading gradually so it reads as the same room as the LED text
+              above it, not a photo stuck to the bottom edge. */}
+          <div
+            className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden"
+            style={{
+              height: "52%",
+              maskImage: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 26%, black 55%)",
+              WebkitMaskImage: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 26%, black 55%)",
+            }}
+          >
+            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "center bottom" }}>
+              <source src="/gamepagevideo.mp4" type="video/mp4" />
+            </video>
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(180deg, transparent 0%, rgba(20,6,40,0.3) 32%, rgba(5,2,8,0.55) 62%, rgba(5,2,8,0.88) 100%)" }}
+            />
+          </div>
+
+          {/* ── Scene content: one composition, no internal card boundaries ── */}
+          <div className="relative z-10 flex-1 min-h-0 flex flex-col items-center px-6 pt-9">
+            {/* Brand mark — reused DTB wordmark, tinted to sit on a dark stage */}
+            <img
+              src="/dtblogo.png"
+              alt="Drop The Bid"
+              className="scene-fade-in flex-shrink-0"
+              style={{
+                width: 52,
+                height: "auto",
+                filter: "brightness(0) invert(1) drop-shadow(0 0 6px rgba(168,85,247,0.85)) drop-shadow(0 0 16px rgba(139,92,246,0.45))",
+              }}
+            />
+
+            <div className="flex-1 min-h-0 w-full flex flex-col items-center justify-center">
+              <div className="scene-fade-in flex items-center gap-2.5 mb-2 flex-shrink-0" style={{ animationDelay: "80ms" }}>
+                <span className="h-px w-6" style={{ background: "rgba(196,132,252,0.65)" }} />
+                <span className="text-[11px] font-bold tracking-[0.32em]" style={{ color: "#c084fc" }}>
+                  오늘의 낙찰자
+                </span>
+                <span className="h-px w-6" style={{ background: "rgba(196,132,252,0.65)" }} />
               </div>
-              <div style={{ background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.2)", padding: "0.75rem" }}>
-                <p className="text-[10px] text-white/50 uppercase tracking-wider mb-1">낙찰 비율</p>
-                <p className="text-base font-black font-mono tabular-nums" style={{ color: "#c084fc" }}>정가의 {100 - bidDiscount}%</p>
+
+              {/* The dominant element: ~60–75% of screen width for short nicknames,
+                  auto-shrinking for longer ones. Glow kept subtle and tight so the
+                  letterforms stay crisp instead of bleeding into a blur. */}
+              <p
+                className={`nickname-reveal font-black leading-[0.92] text-center flex-shrink-0 ${doHyeon.className}`}
+                style={{
+                  fontSize: nicknameFontSize(state.winner.nickname),
+                  color: "#f6f1ff",
+                  wordBreak: "keep-all",
+                  overflowWrap: "break-word",
+                  maxWidth: "94%",
+                  textShadow: "0 0 3px rgba(255,255,255,0.85), 0 0 14px rgba(192,132,252,0.65), 0 0 34px rgba(139,92,246,0.4)",
+                  animationDelay: `${NICKNAME_REVEAL_DELAY_MS}ms`,
+                }}
+              >
+                {state.winner.nickname}
+              </p>
+
+              <div className="scene-fade-in flex items-center gap-2 mt-5 mb-1 flex-shrink-0" style={{ animationDelay: `${PRICE_COUNTDOWN_START_MS}ms` }}>
+                <span className="h-px w-5" style={{ background: "rgba(196,132,252,0.45)" }} />
+                <span className="text-[10px] font-bold tracking-[0.28em]" style={{ color: "rgba(196,132,252,0.85)" }}>
+                  낙찰가
+                </span>
+                <span className="h-px w-5" style={{ background: "rgba(196,132,252,0.45)" }} />
               </div>
+
+              {/* Clearly smaller than the nickname — a supporting readout, not a second headline. */}
+              <p
+                className="scene-fade-in font-black font-mono tabular-nums text-center flex-shrink-0"
+                style={{
+                  fontSize: "1.7rem",
+                  color: "#fff",
+                  textShadow: "0 0 3px rgba(255,255,255,0.85), 0 0 12px rgba(192,132,252,0.55)",
+                  animationDelay: `${PRICE_COUNTDOWN_START_MS}ms`,
+                }}
+              >
+                {formatKRW(countdownPrice ?? state.config.startPrice)}
+              </p>
             </div>
-            <Link href={"/payment"} className="block w-full py-3.5 font-black text-[18px] text-white text-center bid-btn-purple" style={{ letterSpacing: "0.04em" }}>
-              결제하기 →
-            </Link>
+          </div>
+
+          {/* ── Bottom action bar — deliberately separated from the celebration scene ── */}
+          <div
+            className="relative z-10 flex-shrink-0 px-6 pt-4 pb-6"
+            style={{
+              borderTop: "1px solid rgba(255,255,255,0.08)",
+              background: "linear-gradient(180deg, rgba(5,2,8,0.4) 0%, rgba(5,2,8,0.95) 45%, #050208 100%)",
+            }}
+          >
+            {isMyWin ? (
+              <Link
+                href={"/payment"}
+                className="block w-full max-w-xs mx-auto py-3.5 font-black text-[18px] text-white text-center bid-btn-purple rounded-xl"
+              >
+                결제하기 →
+              </Link>
+            ) : (
+              <button
+                onClick={handleGoHome}
+                className="block w-full max-w-xs mx-auto py-3.5 font-bold text-base text-white rounded-xl"
+                style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
+              >
+                홈으로
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -703,7 +932,7 @@ export default function StrategyPage() {
 
         {/* Live chat */}
         <div className="relative flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto no-scrollbar px-4 pt-2 pb-2 chat-fade-top">
+          <div ref={chatScrollRef} className="h-full overflow-y-auto no-scrollbar px-4 pt-2 pb-2 chat-fade-top">
             {state.chatMessages.map((msg) => {
               if (msg.kind === "system") return (
                 <div key={msg.id} className="py-1.5 text-center">
@@ -737,7 +966,6 @@ export default function StrategyPage() {
                 </div>
               );
             })}
-            <div ref={chatEndRef} />
           </div>
         </div>
 
@@ -789,70 +1017,68 @@ export default function StrategyPage() {
             {/* Watch button */}
             <button
               onClick={() => isParticipant ? setShowWatchConfirm(true) : undefined}
-              className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl h-[88px]"
+              disabled={isSequenceActive}
+              className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl h-[88px] disabled:opacity-40 disabled:pointer-events-none"
             >
               <span className="material-symbols-outlined text-white" style={{ fontSize: "22px", lineHeight: 1 }}>visibility</span>
               <span className="text-[11px] font-bold text-white/45 mt-0.5">{forcedWatcher ? "관전 중" : "관전"}</span>
             </button>
 
-            {/* Bid / Payment button */}
-            {raised ? (
-              <Link
-                href={"/payment"}
-                className="flex-[7] flex items-center justify-center h-[88px] font-black text-xl text-white bid-btn-purple rounded-xl"
-              >
-                결제하기 →
-              </Link>
-            ) : (
-              <button
-                onClick={handleRaiseHand}
-                disabled={isStrategy || !isParticipant || state.currentPrice <= 0}
-                className={`relative overflow-hidden flex-[7] flex flex-col items-center justify-center h-[88px] text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed rounded-xl ${
-                  isStrategy || !isParticipant || state.currentPrice <= 0
-                    ? ""
-                    : isCritical ? "bid-btn-critical critical-shake" : "bid-btn-purple"
-                }`}
-                style={{ background: isStrategy || !isParticipant ? "rgba(255,255,255,0.07)" : undefined }}
-              >
-                {isGame && isParticipant && (
-                  <div
-                    className="bid-shimmer absolute inset-y-0 w-[40%] pointer-events-none"
-                    style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.13), transparent)" }}
-                  />
-                )}
+            {/* Bid button. Never a direct Link to /payment — the only path there
+                is the winner-reveal LED screen's own button once state.winner
+                has synced via Realtime and winnerStage reaches "reveal". Right
+                after a winning raiseHand(), `raised` is true locally before
+                that sync lands; disabling (not replacing) this button closes
+                the gap where the bidder could otherwise skip straight to
+                checkout, bypassing the blackout/video/reveal sequence. */}
+            <button
+              onClick={handleRaiseHand}
+              disabled={isStrategy || !isParticipant || displayPrice <= 0 || isSequenceActive || raised}
+              className={`relative overflow-hidden flex-[7] flex flex-col items-center justify-center h-[88px] text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed rounded-xl ${
+                isStrategy || !isParticipant || displayPrice <= 0 || isSequenceActive || raised
+                  ? ""
+                  : isCritical ? "bid-btn-critical critical-shake" : "bid-btn-purple"
+              }`}
+              style={{ background: isStrategy || !isParticipant ? "rgba(255,255,255,0.07)" : undefined }}
+            >
+              {isGame && isParticipant && (
+                <div
+                  className="bid-shimmer absolute inset-y-0 w-[40%] pointer-events-none"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.13), transparent)" }}
+                />
+              )}
 
-                {isStrategy ? (
-                  <>
-                    <span
-                      className="font-black font-mono tabular-nums leading-none"
-                      style={{
-                        fontSize: "2.4rem", letterSpacing: "-0.02em",
-                        color: isUrgent ? "#fff1f2" : "#f5f3ff",
-                        textShadow: isUrgent
-                          ? "0 0 6px rgba(255,255,255,0.9), 0 0 14px #f87171, 0 0 28px #ef4444"
-                          : "0 0 6px rgba(255,255,255,0.9), 0 0 14px #c084fc, 0 0 28px #a855f7",
-                      }}
-                    >
-                      {pad(Math.floor(timeLeft / 60))}:{pad(timeLeft % 60)}
-                    </span>
-                    <span className="text-[11px] text-white/38 font-medium mt-2">⏳ 경기 준비 중</span>
-                  </>
-                ) : (
-                  <>
-                    <span
-                      className={`font-black font-mono tabular-nums leading-none ${tickFlash ? "price-tick" : ""}`}
-                      style={{ fontSize: "2.4rem", letterSpacing: "-0.02em" }}
-                    >
-                      {formatKRW(state.currentPrice)}
-                    </span>
-                    <div className={`flex items-center gap-2 mt-1 transition-opacity duration-300 ${currentSavings > 0 ? "opacity-100" : "opacity-0"}`}>
-                      <span className="text-[11px] font-bold text-white">-{currentSavingsPct}% · {formatKRW(currentSavings)} 절약</span>
-                      <span className="text-sm font-black text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>local_fire_department</span>낙찰받기</span>
-                    </div>
-                  </>
-                )}
-              </button>
-            )}
+              {isStrategy ? (
+                <>
+                  <span
+                    className="font-black font-mono tabular-nums leading-none"
+                    style={{
+                      fontSize: "2.4rem", letterSpacing: "-0.02em",
+                      color: isUrgent ? "#fff1f2" : "#f5f3ff",
+                      textShadow: isUrgent
+                        ? "0 0 6px rgba(255,255,255,0.9), 0 0 14px #f87171, 0 0 28px #ef4444"
+                        : "0 0 6px rgba(255,255,255,0.9), 0 0 14px #c084fc, 0 0 28px #a855f7",
+                    }}
+                  >
+                    {pad(Math.floor(timeLeft / 60))}:{pad(timeLeft % 60)}
+                  </span>
+                  <span className="text-[11px] text-white/38 font-medium mt-2">⏳ 경기 준비 중</span>
+                </>
+              ) : (
+                <>
+                  <span
+                    className={`font-black font-mono tabular-nums leading-none ${tickFlash ? "price-tick" : ""}`}
+                    style={{ fontSize: "2.4rem", letterSpacing: "-0.02em" }}
+                  >
+                    {formatKRW(displayPrice)}
+                  </span>
+                  <div className={`flex items-center gap-2 mt-1 transition-opacity duration-300 ${currentSavings > 0 ? "opacity-100" : "opacity-0"}`}>
+                    <span className="text-[11px] font-bold text-white">-{currentSavingsPct}% · {formatKRW(currentSavings)} 절약</span>
+                    <span className="text-sm font-black text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>local_fire_department</span>낙찰받기</span>
+                  </div>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
