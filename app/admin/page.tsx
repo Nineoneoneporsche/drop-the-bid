@@ -30,6 +30,9 @@ export default function AdminPage() {
     fastDropAmount: toFormNum(state.config.fastDropAmount),
     finalDropPrice: toFormNum(state.config.finalDropPrice),
     finalDropAmount: toFormNum(state.config.finalDropAmount),
+    dropIntervalSeconds: state.config.dropIntervalSeconds.toString(),
+    fastDropIntervalSeconds: state.config.fastDropIntervalSeconds.toString(),
+    finalDropIntervalSeconds: state.config.finalDropIntervalSeconds.toString(),
   });
   const [saved, setSaved] = useState(false);
   const [zoneError, setZoneError] = useState<string | null>(null);
@@ -48,6 +51,9 @@ export default function AdminPage() {
       fastDropAmount: toFormNum(state.config.fastDropAmount),
       finalDropPrice: toFormNum(state.config.finalDropPrice),
       finalDropAmount: toFormNum(state.config.finalDropAmount),
+      dropIntervalSeconds: state.config.dropIntervalSeconds.toString(),
+      fastDropIntervalSeconds: state.config.fastDropIntervalSeconds.toString(),
+      finalDropIntervalSeconds: state.config.finalDropIntervalSeconds.toString(),
     });
   }, [state.config]);
 
@@ -71,10 +77,17 @@ export default function AdminPage() {
     const strategyDuration = parseInt(form.strategyDuration, 10);
     const floorPrice = parseInt(form.floorPrice, 10);
 
+    const dropIntervalSeconds      = parseInt(form.dropIntervalSeconds, 10);
+    const fastDropIntervalSeconds  = parseInt(form.fastDropIntervalSeconds, 10);
+    const finalDropIntervalSeconds = parseInt(form.finalDropIntervalSeconds, 10);
+
     if (!startPrice || startPrice <= 0) return alert("시작가를 올바르게 입력해주세요");
     if (!dropAmount || dropAmount <= 0) return alert("하락 금액을 올바르게 입력해주세요");
     if (!strategyDuration || strategyDuration <= 0) return alert("전략 시간을 올바르게 입력해주세요");
     if (isNaN(floorPrice) || floorPrice < 0) return alert("목표 하한가를 올바르게 입력해주세요");
+    if (!dropIntervalSeconds || dropIntervalSeconds <= 0) return alert("NORMAL 하락 주기를 올바르게 입력해주세요");
+    if (!fastDropIntervalSeconds || fastDropIntervalSeconds <= 0) return alert("FAST DROP 하락 주기를 올바르게 입력해주세요");
+    if (!finalDropIntervalSeconds || finalDropIntervalSeconds <= 0) return alert("FINAL DROP 하락 주기를 올바르게 입력해주세요");
 
     const fastDropPrice   = toNum(form.fastDropPrice);
     const fastDropAmount  = toNum(form.fastDropAmount);
@@ -96,6 +109,9 @@ export default function AdminPage() {
       fastDropAmount,
       finalDropPrice,
       finalDropAmount,
+      dropIntervalSeconds,
+      fastDropIntervalSeconds,
+      finalDropIntervalSeconds,
     }).then(() => {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -222,6 +238,19 @@ export default function AdminPage() {
             />
           </Field>
 
+          <Field
+            label="하락 주기 — NORMAL (초)"
+            hint="몇 초에 한 번씩 계단식으로 떨어질지 — 1이면 매초 부드럽게, 크게 잡으면 그 초마다 한 번에 뚝뚝 떨어져요"
+          >
+            <input
+              type="number"
+              value={form.dropIntervalSeconds}
+              onChange={(e) => set("dropIntervalSeconds", e.target.value)}
+              className={INPUT + " font-mono"}
+              min={1}
+            />
+          </Field>
+
           {/* Drop zones — optional. Leaving FAST blank keeps the legacy
               single-rate NORMAL-only behavior; FINAL is only usable once
               FAST is set (validateDropZones enforces this, matching the
@@ -253,6 +282,16 @@ export default function AdminPage() {
             />
           </Field>
 
+          <Field label="하락 주기 — FAST DROP (초)">
+            <input
+              type="number"
+              value={form.fastDropIntervalSeconds}
+              onChange={(e) => set("fastDropIntervalSeconds", e.target.value)}
+              className={INPUT + " font-mono"}
+              min={1}
+            />
+          </Field>
+
           <Field label="FINAL DROP ZONE 시작가 (원)">
             <input
               type="number"
@@ -272,6 +311,16 @@ export default function AdminPage() {
               placeholder="예: 3000"
               className={INPUT + " font-mono"}
               min={0}
+            />
+          </Field>
+
+          <Field label="하락 주기 — FINAL DROP (초)">
+            <input
+              type="number"
+              value={form.finalDropIntervalSeconds}
+              onChange={(e) => set("finalDropIntervalSeconds", e.target.value)}
+              className={INPUT + " font-mono"}
+              min={1}
             />
           </Field>
 
@@ -356,15 +405,15 @@ export default function AdminPage() {
               ["상품명", state.config.productName],
               ["시작가", formatKRW(state.config.startPrice)],
               ["목표 하한가", formatKRW(state.config.floorPrice)],
-              ["하락 금액 (NORMAL)", `${formatKRW(state.config.dropAmount)}/초`],
+              ["하락 금액 (NORMAL)", `${formatKRW(state.config.dropAmount)}/초 · ${state.config.dropIntervalSeconds}초마다`],
               ...(state.config.fastDropPrice != null && state.config.fastDropAmount != null
                 ? [
-                    ["FAST DROP ZONE", `${formatKRW(state.config.fastDropPrice)} 이하 · ${formatKRW(state.config.fastDropAmount)}/초`],
+                    ["FAST DROP ZONE", `${formatKRW(state.config.fastDropPrice)} 이하 · ${formatKRW(state.config.fastDropAmount)}/초 · ${state.config.fastDropIntervalSeconds}초마다`],
                   ]
                 : [["FAST DROP ZONE", "미설정 (NORMAL 속도만 사용)"]]),
               ...(state.config.finalDropPrice != null && state.config.finalDropAmount != null
                 ? [
-                    ["FINAL DROP ZONE", `${formatKRW(state.config.finalDropPrice)} 이하 · ${formatKRW(state.config.finalDropAmount)}/초`],
+                    ["FINAL DROP ZONE", `${formatKRW(state.config.finalDropPrice)} 이하 · ${formatKRW(state.config.finalDropAmount)}/초 · ${state.config.finalDropIntervalSeconds}초마다`],
                   ]
                 : []),
               ["전략 시간", `${state.config.strategyDuration}초`],

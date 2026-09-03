@@ -30,6 +30,14 @@ export interface GameConfig {
   fastDropAmount: number | null;  // FAST DROP ZONE, ₩/sec
   finalDropPrice: number | null;  // FINAL DROP ZONE threshold — price at which FINAL rate kicks in
   finalDropAmount: number | null; // FINAL DROP ZONE, ₩/sec
+  // How many seconds between price steps, one per zone. The per-zone ₩/sec
+  // amounts above are unchanged by this — a larger interval just makes each
+  // step bigger and less frequent instead of the price sliding down
+  // continuously. 1 = today's behavior. Each zone steps from its own start,
+  // so changing one zone's interval never shifts another zone's boundary.
+  dropIntervalSeconds: number;      // NORMAL
+  fastDropIntervalSeconds: number;  // FAST DROP ZONE
+  finalDropIntervalSeconds: number; // FINAL DROP ZONE
 }
 
 export interface CurrentUser {
@@ -64,6 +72,9 @@ export const DEFAULT_CONFIG: GameConfig = {
   fastDropAmount: null,
   finalDropPrice: null,
   finalDropAmount: null,
+  dropIntervalSeconds: 1,
+  fastDropIntervalSeconds: 1,
+  finalDropIntervalSeconds: 1,
 };
 
 // FAST requires: a positive rate and a threshold below startPrice.
@@ -141,6 +152,9 @@ type DbRow = {
   fast_drop_amount: number | null;
   final_drop_price: number | null;
   final_drop_amount: number | null;
+  drop_interval_seconds: number;
+  fast_drop_interval_seconds: number;
+  final_drop_interval_seconds: number;
 };
 
 function rowToConfig(row: DbRow): GameConfig {
@@ -155,43 +169,67 @@ function rowToConfig(row: DbRow): GameConfig {
     fastDropAmount: row.fast_drop_amount ?? null,
     finalDropPrice:  row.final_drop_price  ?? null,
     finalDropAmount: row.final_drop_amount ?? null,
+    dropIntervalSeconds:      row.drop_interval_seconds       ?? DEFAULT_CONFIG.dropIntervalSeconds,
+    fastDropIntervalSeconds:  row.fast_drop_interval_seconds  ?? DEFAULT_CONFIG.fastDropIntervalSeconds,
+    finalDropIntervalSeconds: row.final_drop_interval_seconds ?? DEFAULT_CONFIG.finalDropIntervalSeconds,
   };
 }
 
 // Server-authoritative price + stage for elapsed time into the game. Mirrors
 // calc_drop_price()/claim_winner() in
-// supabase/migrations/20260902120000_drop_zones.sql exactly — both compute
-// off game_started_at (a server timestamp), so a fresh page load or a
-// mid-game join lands on the same price/stage as everyone else already
-// watching, and the RPC never trusts what this returns. Keep the two in
-// sync if either changes.
+// supabase/migrations/20260903100000_per_zone_drop_interval.sql exactly —
+// both compute off game_started_at (a server timestamp), so a fresh page
+// load or a mid-game join lands on the same price/stage as everyone else
+// already watching, and the RPC never trusts what this returns. Keep the
+// two in sync if either changes.
+//
+// Each zone steps against its OWN interval, measured from that zone's own
+// start (not from game start) — so changing one zone's interval never
+// shifts when the other zones' boundaries land. Zone thresholds (tFast,
+// tFinal) always come from the continuous, unstepped rate math; only the
+// price displayed within a zone steps.
 function calcPriceAndStage(gameStartedAt: number, config: GameConfig): { price: number; stage: DropStage } {
-  const elapsed = Math.max(0, (Date.now() - gameStartedAt) / 1000);
-  const { startPrice, floorPrice, dropAmount, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount } = config;
+  const rawElapsed = Math.max(0, (Date.now() - gameStartedAt) / 1000);
+  const {
+    startPrice, floorPrice, dropAmount, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount,
+    dropIntervalSeconds, fastDropIntervalSeconds, finalDropIntervalSeconds,
+  } = config;
+  const normalInterval = dropIntervalSeconds > 0 ? dropIntervalSeconds : 1;
+  const fastInterval    = fastDropIntervalSeconds > 0 ? fastDropIntervalSeconds : 1;
+  const finalInterval   = finalDropIntervalSeconds > 0 ? finalDropIntervalSeconds : 1;
+  const step = (t: number, interval: number) => Math.floor(t / interval) * interval;
 
   if (fastDropPrice == null || fastDropAmount == null) {
-    return { price: Math.max(floorPrice, Math.round(startPrice - elapsed * dropAmount)), stage: "normal" };
+    const stepped = step(rawElapsed, normalInterval);
+    return { price: Math.max(floorPrice, Math.round(startPrice - stepped * dropAmount)), stage: "normal" };
   }
 
   const tFast = (startPrice - fastDropPrice) / dropAmount;
-  if (elapsed <= tFast) {
-    return { price: Math.round(startPrice - elapsed * dropAmount), stage: "normal" };
+  if (rawElapsed <= tFast) {
+    const stepped = step(rawElapsed, normalInterval);
+    return { price: Math.round(startPrice - stepped * dropAmount), stage: "normal" };
   }
 
+  const fastElapsed = rawElapsed - tFast;
+
   if (finalDropPrice == null || finalDropAmount == null) {
+    const stepped = step(fastElapsed, fastInterval);
     return {
-      price: Math.max(floorPrice, Math.round(fastDropPrice - (elapsed - tFast) * fastDropAmount)),
+      price: Math.max(floorPrice, Math.round(fastDropPrice - stepped * fastDropAmount)),
       stage: "fast",
     };
   }
 
   const tFinal = (fastDropPrice - finalDropPrice) / fastDropAmount;
-  if (elapsed <= tFast + tFinal) {
-    return { price: Math.round(fastDropPrice - (elapsed - tFast) * fastDropAmount), stage: "fast" };
+  if (fastElapsed <= tFinal) {
+    const stepped = step(fastElapsed, fastInterval);
+    return { price: Math.round(fastDropPrice - stepped * fastDropAmount), stage: "fast" };
   }
 
+  const finalElapsed = fastElapsed - tFinal;
+  const stepped = step(finalElapsed, finalInterval);
   return {
-    price: Math.max(floorPrice, Math.round(finalDropPrice - (elapsed - tFast - tFinal) * finalDropAmount)),
+    price: Math.max(floorPrice, Math.round(finalDropPrice - stepped * finalDropAmount)),
     stage: "final",
   };
 }
@@ -474,6 +512,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (newConfig.fastDropAmount   !== undefined) updates.fast_drop_amount   = newConfig.fastDropAmount;
     if (newConfig.finalDropPrice   !== undefined) updates.final_drop_price   = newConfig.finalDropPrice;
     if (newConfig.finalDropAmount  !== undefined) updates.final_drop_amount  = newConfig.finalDropAmount;
+    if (newConfig.dropIntervalSeconds      !== undefined) updates.drop_interval_seconds       = newConfig.dropIntervalSeconds;
+    if (newConfig.fastDropIntervalSeconds  !== undefined) updates.fast_drop_interval_seconds  = newConfig.fastDropIntervalSeconds;
+    if (newConfig.finalDropIntervalSeconds !== undefined) updates.final_drop_interval_seconds = newConfig.finalDropIntervalSeconds;
+
+    for (const [label, value] of [
+      ["NORMAL", newConfig.dropIntervalSeconds],
+      ["FAST DROP", newConfig.fastDropIntervalSeconds],
+      ["FINAL DROP", newConfig.finalDropIntervalSeconds],
+    ] as const) {
+      if (value !== undefined && value <= 0) {
+        throw new Error(`${label} 하락 주기는 0보다 커야 합니다`);
+      }
+    }
 
     const zoneError = validateDropZones({
       startPrice:      newConfig.startPrice      ?? configRef.current.startPrice,
