@@ -71,8 +71,8 @@ function SuccessInner() {
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <p className="text-[10px] uppercase tracking-[0.18em] font-bold mb-1" style={{ color: "#c084fc" }}>결제 완료</p>
-        <h1 className="text-2xl font-black text-white mb-2">낙찰이 확정되었습니다!</h1>
+        <p className="text-xs uppercase tracking-[0.18em] font-bold mb-1" style={{ color: "#c084fc" }}>결제 완료</p>
+        <h1 className="text-lg font-black text-white mb-2">낙찰이 확정되었습니다!</h1>
         <p className="text-white/55 text-sm leading-relaxed">
           주문이 접수되었습니다.<br />배송 정보는 등록된 연락처로 안내드립니다.
         </p>
@@ -81,12 +81,12 @@ function SuccessInner() {
       {/* Order detail card */}
       <div className="bg-[#141414] border border-white/12 mb-4 overflow-hidden">
         <div className="px-4 py-3 border-b border-white/10">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-white/55 font-medium">주문 정보</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium">주문 정보</p>
         </div>
         <div className="px-4 py-4 flex gap-4 items-center border-b border-white/10">
           <ProductThumb alt={PRODUCT_NAME} size={64} rounded="rounded-sm" />
           <div>
-            <p className="text-white/80 text-sm font-semibold leading-snug">{PRODUCT_NAME}</p>
+            <p className="text-white/80 text-base font-semibold leading-snug">{PRODUCT_NAME}</p>
             <p className="text-[#c084fc] font-black text-xl font-mono tabular-nums mt-1">{fmt(amount)}</p>
             <p className="text-white/45 text-xs mt-0.5 line-through">정가 {fmt(RETAIL_PRICE)}</p>
           </div>
@@ -110,7 +110,7 @@ function SuccessInner() {
       {/* Savings highlight */}
       <div className="bg-[#a855f7]/8 border border-[#a855f7]/20 px-4 py-3.5 mb-6 flex items-center justify-between">
         <div>
-          <p className="text-[11px] text-[#c084fc] font-bold uppercase tracking-wider mb-0.5">절약 금액</p>
+          <p className="text-xs text-[#c084fc] font-bold uppercase tracking-wider mb-0.5">절약 금액</p>
           <p className="text-white/70 text-xs">정가 대비 아낀 금액</p>
         </div>
         <p className="text-[#c084fc] font-black text-xl font-mono tabular-nums">{fmt(RETAIL_PRICE - amount)}</p>
@@ -127,7 +127,7 @@ function SuccessInner() {
         </Link>
         <Link
           href="/"
-          className="block w-full py-3.5 text-center text-white/60 font-medium text-sm border border-white/15 transition-colors hover:border-white/30"
+          className="block w-full py-3.5 text-center text-white/60 font-medium text-base border border-white/15 transition-colors hover:border-white/30"
         >
           홈으로 돌아가기
         </Link>

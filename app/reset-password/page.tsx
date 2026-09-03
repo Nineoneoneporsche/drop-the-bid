@@ -73,30 +73,30 @@ function ResetPasswordInner() {
     <main className="min-h-screen bg-[#0f0f0f] flex flex-col max-w-md mx-auto px-4 pt-16 pb-12">
       <div className="mb-8">
         <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-        <h1 className="text-4xl font-black text-white leading-tight">새 비밀번호 설정</h1>
+        <h1 className="text-[22px] font-black text-white leading-tight">새 비밀번호 설정</h1>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-[11px] uppercase tracking-wider text-white/50 font-medium mb-1.5">새 비밀번호</label>
+          <label className="block text-xs uppercase tracking-wider text-white/50 font-medium mb-1.5">새 비밀번호</label>
           <input
             type="password"
             value={password}
             onChange={e => { setPassword(e.target.value); setError(""); }}
             placeholder="8자 이상"
-            className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+            className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors"
             autoComplete="new-password"
           />
         </div>
         <div>
-          <label className="block text-[11px] uppercase tracking-wider text-white/50 font-medium mb-1.5">비밀번호 확인</label>
+          <label className="block text-xs uppercase tracking-wider text-white/50 font-medium mb-1.5">비밀번호 확인</label>
           <input
             type="password"
             value={passwordConfirm}
             onChange={e => { setPasswordConfirm(e.target.value); setError(""); }}
             placeholder="비밀번호 재입력"
             onKeyDown={e => e.key === "Enter" && handleReset()}
-            className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+            className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors"
             autoComplete="new-password"
           />
         </div>

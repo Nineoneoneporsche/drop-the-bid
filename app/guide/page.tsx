@@ -115,7 +115,7 @@ export default function GuidePage() {
 
         <div ref={setRef(1)} className="card-rise mb-8" style={{ transitionDelay: "60ms" }}>
           <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-5xl font-black text-white leading-tight">게임방법</h1>
+          <h1 className="text-[22px] font-black text-white leading-tight">게임방법</h1>
           <p className="text-base text-white/65 mt-2">가격이 내려가는 순간, 먼저 누른 사람이 임자!</p>
         </div>
 
@@ -225,14 +225,14 @@ export default function GuidePage() {
           </div>
         </div>
 
-        <p className="text-white/35 text-[10px] text-center mb-8" style={{ transitionDelay: "140ms" }}>↺ 자동 반복</p>
+        <p className="text-white/35 text-xs text-center mb-8" style={{ transitionDelay: "140ms" }}>↺ 자동 반복</p>
 
         {/* Rules */}
         <div ref={setRef(3)} className="card-rise space-y-3 mb-8" style={{ transitionDelay: "180ms" }}>
           {RULES.map(({ n, title, desc }) => (
             <div key={n} className="bg-[#141414] border border-white/10 rounded-2xl px-5 py-4 flex items-start gap-4">
               <span
-                className="text-[11px] font-black font-mono flex-shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center"
+                className="text-xs font-black font-mono flex-shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center"
                 style={{ background: "rgba(168,85,247,0.15)", color: "#a855f7" }}
               >
                 {n}

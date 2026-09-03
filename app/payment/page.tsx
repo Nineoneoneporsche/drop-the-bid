@@ -146,7 +146,7 @@ export default function PaymentPage() {
         <div className="w-16 h-16 rounded-full bg-white/8 flex items-center justify-center mb-5">
           <span className="material-symbols-outlined text-white/40" style={{ fontSize: "32px" }}>block</span>
         </div>
-        <h1 className="text-xl font-black text-white mb-2">접근할 수 없습니다</h1>
+        <h1 className="text-lg font-black text-white mb-2">접근할 수 없습니다</h1>
         <p className="text-white/50 text-sm leading-relaxed mb-8">낙찰받은 경매의 결제 페이지에만<br/>접근할 수 있습니다.</p>
         <a href="/" className="text-[#a855f7] text-sm font-semibold">← 홈으로 돌아가기</a>
       </main>
@@ -160,12 +160,12 @@ export default function PaymentPage() {
         <div className="mb-3"><HomeButton /></div>
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.12em] text-white/55 font-medium mb-1">Drop The Bid</p>
-            <h1 className="text-xl font-black text-white">결제하기</h1>
+            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium mb-1">Drop The Bid</p>
+            <h1 className="text-lg font-black text-white">결제하기</h1>
             <p className="text-white/65 text-xs mt-0.5">낙찰 상품을 확인하고 결제를 완료하세요.</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wider text-white/60 mb-0.5">남은 시간</p>
+            <p className="text-xs uppercase tracking-wider text-white/60 mb-0.5">남은 시간</p>
             <p className={`font-black font-mono text-2xl tabular-nums leading-none ${
               expired ? "text-white/45" : timeLeft < 60 ? "text-red-500" : "text-[#a855f7]"
             }`}>
@@ -190,11 +190,11 @@ export default function PaymentPage() {
 
         {/* Product */}
         <div className="px-4 py-5 border-b border-white/15">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-white/60 font-medium mb-4">상품 정보</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-white/60 font-medium mb-4">상품 정보</p>
           <div className="flex gap-4">
             <ProductThumb alt={PRODUCT_NAME} size={80} rounded="rounded-sm" />
             <div className="flex-1 min-w-0">
-              <p className="text-white/70 text-sm font-semibold leading-snug">{PRODUCT_NAME}</p>
+              <p className="text-white/70 text-base font-semibold leading-snug">{PRODUCT_NAME}</p>
               <p className="text-white/55 text-xs mt-1">정가 ₩899,000</p>
               <p className="text-[#c084fc] font-black text-2xl font-mono tabular-nums mt-1 leading-none">{fmt(PRICE)}</p>
             </div>
@@ -215,7 +215,7 @@ export default function PaymentPage() {
 
         {/* Payment method */}
         <div className="px-4 py-5 border-b border-white/15">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-white/60 font-medium mb-4">결제 수단</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-white/60 font-medium mb-4">결제 수단</p>
           <div className="space-y-2">
             {METHODS.map((m) => {
               const sel = method === m.id;
@@ -236,30 +236,30 @@ export default function PaymentPage() {
                       <span className="text-xs font-black" style={{ color: m.dark ? "#000" : "#fff" }}>{m.letter}</span>
                     )}
                   </div>
-                  <span className={`flex-1 text-sm font-semibold ${sel ? "text-white" : "text-white/70"}`}>{m.label}</span>
+                  <span className={`flex-1 text-base font-semibold ${sel ? "text-white" : "text-white/70"}`}>{m.label}</span>
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${sel ? "border-[#a855f7]" : "border-white/35"}`}>
                     {sel && <div className="w-2 h-2 rounded-full bg-[#a855f7]" />}
                   </div>
                 </button>
               );
             })}
-            <p className="text-white/35 text-[11px] pt-1">결제 수단 선택 후 토스페이먼츠 창에서 최종 확인합니다.</p>
+            <p className="text-white/35 text-xs pt-1">결제 수단 선택 후 토스페이먼츠 창에서 최종 확인합니다.</p>
           </div>
         </div>
 
         {/* Delivery */}
         <div className="px-4 py-5 border-b border-white/15">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-white/60 font-medium">배송지</p>
-            <button disabled className="text-[11px] text-white/45 border border-white/20 px-2.5 py-1 cursor-not-allowed">배송지 변경</button>
+            <p className="text-xs uppercase tracking-[0.12em] text-white/60 font-medium">배송지</p>
+            <button disabled className="text-xs text-white/45 border border-white/20 px-2.5 py-1 cursor-not-allowed">배송지 변경</button>
           </div>
           {profile ? (
             <>
-              <p className="text-white/70 text-sm font-bold">{profile.name}{profile.phone ? ` · ${profile.phone}` : ""}</p>
+              <p className="text-white/70 text-base font-bold">{profile.name}{profile.phone ? ` · ${profile.phone}` : ""}</p>
               {profile.postcode && <p className="text-white/50 text-xs mt-0.5">({profile.postcode})</p>}
-              {profile.address && <p className="text-white/70 text-sm mt-1">{profile.address}</p>}
-              {profile.addressDetail && <p className="text-white/70 text-sm">{profile.addressDetail}</p>}
-              <span className="inline-block mt-2 bg-white/12 text-white/65 text-[11px] font-medium px-2 py-0.5">기본 배송지</span>
+              {profile.address && <p className="text-white/70 text-base mt-1">{profile.address}</p>}
+              {profile.addressDetail && <p className="text-white/70 text-base">{profile.addressDetail}</p>}
+              <span className="inline-block mt-2 bg-white/12 text-white/65 text-xs font-medium px-2 py-0.5">기본 배송지</span>
             </>
           ) : (
             <p className="text-white/40 text-sm">배송지 정보가 없습니다. 마이페이지에서 등록해주세요.</p>
@@ -276,7 +276,7 @@ export default function PaymentPage() {
                 </svg>
               )}
             </div>
-            <p className="text-white/70 text-sm leading-relaxed">
+            <p className="text-white/70 text-base leading-relaxed">
               결제 정보 및 개인정보 수집·이용에 동의합니다.{" "}
               <span className="text-[#a855f7] font-semibold">(필수)</span>
             </p>

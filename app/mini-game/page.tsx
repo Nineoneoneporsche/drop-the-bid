@@ -34,7 +34,7 @@ function Leaderboard({ userBest }: { userBest: number | null }) {
   return (
     <div className="bg-[#141414] border border-white/15">
       <div className="px-4 py-3 border-b border-white/15">
-        <p className="text-[10px] uppercase tracking-[0.12em] text-white/60 font-medium">오늘의 랭킹</p>
+        <p className="text-xs uppercase tracking-[0.12em] text-white/60 font-medium">오늘의 랭킹</p>
       </div>
       <div>
         {LEADERBOARD.map((entry, i) => (
@@ -47,7 +47,7 @@ function Leaderboard({ userBest }: { userBest: number | null }) {
       </div>
       {nearTop5 && (
         <div className="px-4 py-2.5 border-t border-[#4ade80]/20 bg-[#4ade80]/8">
-          <p className="text-[11px] font-semibold text-center" style={{ color: "#4ade80" }}>랭킹권에 근접했습니다! 🎯</p>
+          <p className="text-xs font-semibold text-center" style={{ color: "#4ade80" }}>랭킹권에 근접했습니다! 🎯</p>
         </div>
       )}
     </div>
@@ -67,7 +67,7 @@ function ResultScreen({
   return (
     <div className="space-y-3 success-pop">
       <div className="bg-[#141414] border border-white/15 px-5 py-6 text-center">
-        <p className="text-[10px] uppercase tracking-[0.12em] text-white/60 font-medium mb-3">반응속도 측정 결과</p>
+        <p className="text-xs uppercase tracking-[0.12em] text-white/60 font-medium mb-3">반응속도 측정 결과</p>
         <div
           className="font-black tabular-nums font-mono leading-none mb-1"
           style={{ fontSize: "3.5rem", color: "#c084fc" }}
@@ -83,7 +83,7 @@ function ResultScreen({
             ["시도 횟수", `${attempts}회`],
           ].map(([label, val]) => (
             <div key={label} className="bg-white/5 py-3 text-center">
-              <p className="text-white/60 text-[10px] mb-1">{label}</p>
+              <p className="text-white/60 text-xs mb-1">{label}</p>
               <p className="text-white/85 text-xs font-bold font-mono">{val}</p>
             </div>
           ))}
@@ -186,8 +186,8 @@ export default function MiniGamePage() {
         </div>
 
         <div className="mb-5">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-5xl font-black text-white leading-tight">낙찰 훈련소</h1>
+          <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium mb-1">Drop The Bid</p>
+          <h1 className="text-[22px] font-black text-white leading-tight">낙찰 훈련소</h1>
           <p className="text-base font-semibold mt-1.5" style={{ color: "#4ade80" }}>가장 빠른 손가락만 살아남습니다.</p>
         </div>
 
@@ -196,7 +196,7 @@ export default function MiniGamePage() {
           <div className="space-y-3">
             <div className="bg-[#141414] border border-white/15 px-5 py-6 text-center">
               <div className="mb-4"><span className="material-symbols-outlined" style={{fontSize:"3rem"}}>bolt</span></div>
-              <h2 className="text-xl font-black text-white mb-2">반응속도 테스트</h2>
+              <h2 className="text-lg font-black text-white mb-2">반응속도 테스트</h2>
               <p className="text-white/65 text-sm leading-relaxed mb-6">
                 버튼이 나타나면 최대한 빨리 누르세요.<br />
                 단, 너무 일찍 누르면 실패입니다.
@@ -281,7 +281,7 @@ export default function MiniGamePage() {
         {phase === "false_start" && (
           <div className="bg-[#141414] border border-red-500/30 px-6 py-8 text-center">
             <div className="mb-3"><span className="material-symbols-outlined" style={{fontSize:"3rem"}}>do_not_touch</span></div>
-            <h2 className="text-xl font-black text-white mb-1">성급했습니다!</h2>
+            <h2 className="text-lg font-black text-white mb-1">성급했습니다!</h2>
             <p className="text-white/70 text-sm mb-1">낙찰 버튼이 나오기 전에 누르면 실패입니다.</p>
             <p className="text-white/60 text-xs mb-6">버튼이 나타날 때까지 침착하게 기다리세요.</p>
             <button

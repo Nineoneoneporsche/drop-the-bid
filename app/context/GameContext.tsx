@@ -88,6 +88,8 @@ export function validateDropZones(config: Pick<GameConfig,
 >): string | null {
   const { startPrice, floorPrice, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount } = config;
 
+  if (floorPrice >= startPrice) return "목표 하한가는 시작가보다 낮아야 합니다";
+
   const fastSet = fastDropPrice != null || fastDropAmount != null;
   const finalSet = finalDropPrice != null || finalDropAmount != null;
 

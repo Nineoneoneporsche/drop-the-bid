@@ -26,10 +26,10 @@ function FailInner() {
           </svg>
         </div>
 
-        <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-red-400 mb-2">
+        <p className="text-xs uppercase tracking-[0.18em] font-bold text-red-400 mb-2">
           {isCancel ? "결제 취소" : "결제 실패"}
         </p>
-        <h1 className="text-2xl font-black text-white mb-3">
+        <h1 className="text-lg font-black text-white mb-3">
           {isCancel ? "결제가 취소되었습니다." : "결제에 실패했습니다."}
         </h1>
         <p className="text-white/55 text-sm leading-relaxed mb-2">{message}</p>
@@ -48,7 +48,7 @@ function FailInner() {
         </button>
         <Link
           href="/"
-          className="block w-full py-3.5 text-center text-white/60 font-medium text-sm border border-white/15"
+          className="block w-full py-3.5 text-center text-white/60 font-medium text-base border border-white/15"
         >
           홈으로 돌아가기
         </Link>

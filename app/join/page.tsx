@@ -76,7 +76,7 @@ export default function JoinPage() {
 
       <div className="mt-10 mb-12">
         <p className="text-xs uppercase tracking-[0.14em] text-white/60 font-medium mb-1">Drop The Bid</p>
-        <h1 className="text-5xl font-black text-white leading-tight">입장하기</h1>
+        <h1 className="text-[22px] font-black text-white leading-tight">입장하기</h1>
         <p className="text-white/70 text-base mt-2">
           {state.config.productName} ·{" "}
           <span className="font-semibold" style={{ color: "#a855f7" }}>{formatKRW(state.config.startPrice)}</span> 부터 시작
@@ -88,7 +88,7 @@ export default function JoinPage() {
         <div className="flex items-center gap-2 mb-4">
           <label className="block text-xs uppercase tracking-[0.14em] text-white/60 font-medium">닉네임</label>
           {memberNickname && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(168,85,247,0.2)", color: "#c084fc" }}>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(168,85,247,0.2)", color: "#c084fc" }}>
               회원
             </span>
           )}
@@ -156,7 +156,7 @@ export default function JoinPage() {
         <button
           onClick={handleJoin}
           disabled={loading}
-          className="w-full py-5 font-bold text-lg text-white transition-all active:scale-[0.98] active:opacity-90 disabled:opacity-50"
+          className="w-full py-5 font-bold text-base text-white transition-all active:scale-[0.98] active:opacity-90 disabled:opacity-50"
           style={{
             background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
             borderRadius: "10px",

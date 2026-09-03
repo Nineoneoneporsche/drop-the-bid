@@ -84,7 +84,7 @@ function LoggedOut() {
 
         <div className="mb-8">
           <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-5xl font-black text-white leading-tight">My Page</h1>
+          <h1 className="text-[22px] font-black text-white leading-tight">My Page</h1>
         </div>
 
         {/* Guest card */}
@@ -95,13 +95,13 @@ function LoggedOut() {
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
             </svg>
           </div>
-          <h2 className="text-xl font-black text-white mb-1.5">로그인이 필요해요</h2>
+          <h2 className="text-lg font-black text-white mb-1.5">로그인이 필요해요</h2>
           <p className="text-white/50 text-sm mb-6 leading-relaxed">낙찰 내역, 배지, 절약 금액을<br/>확인하려면 로그인하세요.</p>
 
           {/* 소셜 로그인 */}
           <button
             onClick={() => handleSocialLogin("kakao")}
-            className="w-full py-3.5 font-bold text-sm rounded-xl mb-2.5 flex items-center justify-center gap-2.5 active:opacity-80 transition-opacity"
+            className="w-full py-3.5 font-bold text-base rounded-xl mb-2.5 flex items-center justify-center gap-2.5 active:opacity-80 transition-opacity"
             style={{ background: "#FEE500", color: "#191919" }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#191919">
@@ -111,7 +111,7 @@ function LoggedOut() {
           </button>
           <button
             onClick={() => handleSocialLogin("google")}
-            className="w-full py-3.5 font-bold text-sm rounded-xl mb-3 flex items-center justify-center gap-2.5 border border-white/15 active:opacity-80 transition-opacity"
+            className="w-full py-3.5 font-bold text-base rounded-xl mb-3 flex items-center justify-center gap-2.5 border border-white/15 active:opacity-80 transition-opacity"
             style={{ background: "#fff", color: "#1f1f1f" }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -125,7 +125,7 @@ function LoggedOut() {
 
           <div className="flex items-center gap-3 mb-3">
             <div className="flex-1 h-px bg-white/10" />
-            <span className="text-[11px] text-white/30 font-medium">또는 이메일로</span>
+            <span className="text-xs text-white/30 font-medium">또는 이메일로</span>
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
@@ -136,7 +136,7 @@ function LoggedOut() {
           {!showLogin ? (
             <button
               onClick={() => setShowLogin(true)}
-              className="w-full py-3 text-white/50 text-sm border border-white/12 rounded-xl transition-colors hover:border-white/25"
+              className="w-full py-3 text-white/50 text-base border border-white/12 rounded-xl transition-colors hover:border-white/25"
             >
               이미 계정이 있나요? 로그인
             </button>
@@ -144,32 +144,32 @@ function LoggedOut() {
             <div className="step-enter text-left mt-1">
               <div className="border-t border-white/10 pt-4 space-y-3">
                 <div>
-                  <label className="block text-[11px] uppercase tracking-wider text-white/50 font-medium mb-1.5">이메일</label>
+                  <label className="block text-xs uppercase tracking-wider text-white/50 font-medium mb-1.5">이메일</label>
                   <input
                     type="email"
                     value={email}
                     onChange={e => { setEmail(e.target.value); setLoginErr(""); }}
                     placeholder="가입한 이메일"
-                    className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                    className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors"
                     autoComplete="email"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] uppercase tracking-wider text-white/50 font-medium mb-1.5">비밀번호</label>
+                  <label className="block text-xs uppercase tracking-wider text-white/50 font-medium mb-1.5">비밀번호</label>
                   <input
                     type="password"
                     value={pw}
                     onChange={e => { setPw(e.target.value); setLoginErr(""); }}
                     onKeyDown={e => e.key === "Enter" && handleLogin()}
                     placeholder="비밀번호"
-                    className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                    className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors"
                     autoComplete="current-password"
                   />
                 </div>
                 {loginErr && <p className="text-red-400 text-xs">{loginErr}</p>}
                 <button
                   onClick={handleLogin}
-                  className="w-full py-3 text-white font-bold text-sm rounded-xl transition-opacity active:opacity-80"
+                  className="w-full py-3 text-white font-bold text-base rounded-xl transition-opacity active:opacity-80"
                   style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
                 >
                   로그인
@@ -197,21 +197,21 @@ function LoggedOut() {
                 <div className="space-y-3">
                   <p className="text-white/60 text-sm font-medium">비밀번호 재설정</p>
                   <div>
-                    <label className="block text-[11px] uppercase tracking-wider text-white/50 font-medium mb-1.5">가입한 이메일</label>
+                    <label className="block text-xs uppercase tracking-wider text-white/50 font-medium mb-1.5">가입한 이메일</label>
                     <input
                       type="email"
                       value={resetEmail}
                       onChange={e => { setResetEmail(e.target.value); setResetErr(""); }}
                       onKeyDown={e => e.key === "Enter" && handleResetRequest()}
                       placeholder="이메일 주소"
-                      className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                      className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors"
                       autoComplete="email"
                     />
                   </div>
                   {resetErr && <p className="text-red-400 text-xs">{resetErr}</p>}
                   <button
                     onClick={handleResetRequest}
-                    className="w-full py-3 text-white font-bold text-sm rounded-xl transition-opacity active:opacity-80"
+                    className="w-full py-3 text-white font-bold text-base rounded-xl transition-opacity active:opacity-80"
                     style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
                   >
                     재설정 이메일 보내기
@@ -227,7 +227,7 @@ function LoggedOut() {
         <div className="mt-8 space-y-1.5">
           {[["버전", "0.4.0 (MVP Demo)"], ["제작", "Drop The Bid Team"], ["문의", "hello@dtb.kr"]].map(([k, v]) => (
             <div key={k} className="flex justify-between">
-              <span className="text-[10px] uppercase tracking-wider text-white/50 font-medium">{k}</span>
+              <span className="text-xs uppercase tracking-wider text-white/50 font-medium">{k}</span>
               <span className="text-xs text-white/65">{v}</span>
             </div>
           ))}
@@ -445,7 +445,7 @@ export default function MyPage() {
 
         <div ref={setRef(1)} className="card-rise mb-6" style={{ transitionDelay: "50ms" }}>
           <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-5xl font-black text-white leading-tight">My Page</h1>
+          <h1 className="text-[22px] font-black text-white leading-tight">My Page</h1>
         </div>
 
         {/* Profile */}
@@ -457,7 +457,7 @@ export default function MyPage() {
             {user.nickname[0]}
           </div>
           <div>
-            <p className="text-xl font-black text-white">{user.nickname}</p>
+            <p className="text-lg font-black text-white">{user.nickname}</p>
             <p className="text-sm text-white/55 mt-0.5">일반 참가자 · {user.since}부터</p>
             <p className="text-xs text-white/35 mt-0.5">{user.email}</p>
           </div>
@@ -481,7 +481,7 @@ export default function MyPage() {
         {/* History */}
         <div ref={setRef(4)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "200ms" }}>
           <div className="px-5 pt-4 pb-1">
-            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">낙찰 내역</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium">낙찰 내역</p>
           </div>
           {orders.length === 0 ? (
             <div className="px-5 py-4">
@@ -494,7 +494,7 @@ export default function MyPage() {
               <div key={i} className={`flex items-center gap-3 px-5 py-3.5 ${i < orders.length - 1 ? "border-b border-white/8" : ""}`}>
                 <span className="material-symbols-outlined flex-shrink-0" style={{fontSize:"20px"}}>emoji_events</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white/80 truncate">{order.product_name}</p>
+                  <p className="text-base font-semibold text-white/80 truncate">{order.product_name}</p>
                   <p className="text-xs text-white/50 mt-0.5">{dateStr}</p>
                 </div>
                 <p className="text-sm font-black font-mono flex-shrink-0" style={{ color: "#c084fc" }}>{fmt(order.amount)}</p>
@@ -506,9 +506,9 @@ export default function MyPage() {
         {/* Delivery address */}
         <div ref={setRef(5)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "225ms" }}>
           <div className="flex items-center justify-between px-5 pt-4 pb-3">
-            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">배송지</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium">배송지</p>
             {!editingAddr && (
-              <button onClick={openAddrEdit} className="text-[11px] text-[#a855f7] font-semibold">
+              <button onClick={openAddrEdit} className="text-xs text-[#a855f7] font-semibold">
                 {user.address ? "수정" : "등록"}
               </button>
             )}
@@ -518,10 +518,10 @@ export default function MyPage() {
             <div className="px-5 pb-4">
               {user.address ? (
                 <>
-                  <p className="text-white/75 text-sm font-semibold">{user.name || user.nickname}{user.phone ? ` · ${user.phone}` : ""}</p>
+                  <p className="text-white/75 text-base font-semibold">{user.name || user.nickname}{user.phone ? ` · ${user.phone}` : ""}</p>
                   {user.postcode && <p className="text-white/45 text-xs mt-0.5">({user.postcode})</p>}
-                  <p className="text-white/65 text-sm mt-1">{user.address}</p>
-                  {user.addressDetail && <p className="text-white/65 text-sm">{user.addressDetail}</p>}
+                  <p className="text-white/65 text-base mt-1">{user.address}</p>
+                  {user.addressDetail && <p className="text-white/65 text-base">{user.addressDetail}</p>}
                 </>
               ) : (
                 <p className="text-white/35 text-sm pb-1">등록된 배송지가 없습니다.</p>
@@ -530,62 +530,62 @@ export default function MyPage() {
           ) : (
             <div className="px-5 pb-5 space-y-3">
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">휴대폰 번호</label>
+                <label className="block text-xs uppercase tracking-wider text-white/45 font-medium mb-1.5">휴대폰 번호</label>
                 <input
                   type="tel"
                   value={addrForm.phone}
                   onChange={e => setAddrForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="010-0000-0000"
-                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">우편번호</label>
+                <label className="block text-xs uppercase tracking-wider text-white/45 font-medium mb-1.5">우편번호</label>
                 <div className="flex gap-2">
                   <input
                     readOnly
                     value={addrForm.postcode}
                     placeholder="우편번호"
-                    className="flex-1 bg-white/5 border border-white/12 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl"
+                    className="flex-1 bg-white/5 border border-white/12 px-3.5 py-2.5 text-white placeholder-white/20 text-base focus:outline-none rounded-xl"
                   />
                   <button
                     type="button"
                     onClick={searchPostcode}
-                    className="flex-shrink-0 px-4 py-2.5 text-sm font-bold text-white rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
+                    className="flex-shrink-0 px-4 py-2.5 text-base font-bold text-white rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
                   >
                     검색
                   </button>
                 </div>
               </div>
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">기본 주소</label>
+                <label className="block text-xs uppercase tracking-wider text-white/45 font-medium mb-1.5">기본 주소</label>
                 <input
                   readOnly
                   value={addrForm.address}
                   placeholder="주소 검색 후 자동 입력"
-                  className="w-full bg-white/5 border border-white/12 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl"
+                  className="w-full bg-white/5 border border-white/12 px-3.5 py-2.5 text-white placeholder-white/20 text-base focus:outline-none rounded-xl"
                 />
               </div>
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">상세 주소</label>
+                <label className="block text-xs uppercase tracking-wider text-white/45 font-medium mb-1.5">상세 주소</label>
                 <input
                   value={addrForm.addressDetail}
                   onChange={e => setAddrForm(f => ({ ...f, addressDetail: e.target.value }))}
                   placeholder="동·호수, 건물명 등"
-                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors"
                 />
               </div>
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={() => setEditingAddr(false)}
-                  className="flex-1 py-2.5 text-sm text-white/45 border border-white/12 rounded-xl"
+                  className="flex-1 py-2.5 text-base text-white/45 border border-white/12 rounded-xl"
                 >
                   취소
                 </button>
                 <button
                   onClick={saveAddr}
                   disabled={addrSaving || !addrForm.address}
-                  className="flex-[2] py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
+                  className="flex-[2] py-2.5 text-base font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
                   style={{ background: addrSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
                 >
                   {addrSaved ? "저장 완료!" : addrSaving ? "저장 중..." : "저장"}
@@ -598,10 +598,10 @@ export default function MyPage() {
         {/* Nickname */}
         <div ref={setRef(10)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "240ms" }}>
           <div className="flex items-center justify-between px-5 pt-4 pb-3">
-            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">게임 닉네임</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium">게임 닉네임</p>
             {!editingNick && (
               <button onClick={() => { setNickInput(user.nickname); setEditingNick(true); setNickStatus("idle"); }}
-                className="text-[11px] text-[#a855f7] font-semibold">
+                className="text-xs text-[#a855f7] font-semibold">
                 {user.nickname ? "변경" : "설정"}
               </button>
             )}
@@ -621,7 +621,7 @@ export default function MyPage() {
                     onChange={e => { setNickInput(e.target.value.replace(/\s/g, "")); setNickStatus("idle"); }}
                     placeholder="새 닉네임"
                     maxLength={12}
-                    className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors pr-24"
+                    className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors pr-24"
                   />
                   {nickStatus !== "idle" && (
                     <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
@@ -633,17 +633,17 @@ export default function MyPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-white/35 text-[11px] mt-1">한글·영문·숫자·밑줄(_) 2-12자</p>
+                <p className="text-white/35 text-xs mt-1">한글·영문·숫자·밑줄(_) 2-12자</p>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => setEditingNick(false)}
-                  className="flex-1 py-2.5 text-sm text-white/45 border border-white/12 rounded-xl">
+                  className="flex-1 py-2.5 text-base text-white/45 border border-white/12 rounded-xl">
                   취소
                 </button>
                 <button
                   onClick={saveNickname}
                   disabled={nickSaving || nickStatus !== "available"}
-                  className="flex-[2] py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
+                  className="flex-[2] py-2.5 text-base font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
                   style={{ background: nickSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
                 >
                   {nickSaved ? "저장 완료!" : nickSaving ? "저장 중..." : "저장"}
@@ -656,10 +656,10 @@ export default function MyPage() {
         {/* Password change */}
         <div ref={setRef(11)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "252ms" }}>
           <div className="flex items-center justify-between px-5 pt-4 pb-3">
-            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">비밀번호 변경</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium">비밀번호 변경</p>
             {!editingPw && (
               <button onClick={() => { setEditingPw(true); setPwErr(""); }}
-                className="text-[11px] text-[#a855f7] font-semibold">
+                className="text-xs text-[#a855f7] font-semibold">
                 변경
               </button>
             )}
@@ -672,25 +672,25 @@ export default function MyPage() {
           ) : (
             <div className="px-5 pb-5 space-y-3">
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">새 비밀번호</label>
+                <label className="block text-xs uppercase tracking-wider text-white/45 font-medium mb-1.5">새 비밀번호</label>
                 <input
                   type="password"
                   value={pwNew}
                   onChange={e => { setPwNew(e.target.value); setPwErr(""); }}
                   placeholder="8자 이상"
-                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors"
                   autoComplete="new-password"
                 />
               </div>
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-white/45 font-medium mb-1.5">비밀번호 확인</label>
+                <label className="block text-xs uppercase tracking-wider text-white/45 font-medium mb-1.5">비밀번호 확인</label>
                 <input
                   type="password"
                   value={pwConfirm}
                   onChange={e => { setPwConfirm(e.target.value); setPwErr(""); }}
                   onKeyDown={e => e.key === "Enter" && changePassword()}
                   placeholder="비밀번호 재입력"
-                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl transition-colors"
+                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors"
                   autoComplete="new-password"
                 />
               </div>
@@ -698,14 +698,14 @@ export default function MyPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => { setEditingPw(false); setPwNew(""); setPwConfirm(""); setPwErr(""); }}
-                  className="flex-1 py-2.5 text-sm text-white/45 border border-white/12 rounded-xl"
+                  className="flex-1 py-2.5 text-base text-white/45 border border-white/12 rounded-xl"
                 >
                   취소
                 </button>
                 <button
                   onClick={changePassword}
                   disabled={pwSaving || !pwNew || !pwConfirm}
-                  className="flex-[2] py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
+                  className="flex-[2] py-2.5 text-base font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
                   style={{ background: pwSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
                 >
                   {pwSaved ? "변경 완료!" : pwSaving ? "변경 중..." : "변경"}
@@ -729,7 +729,7 @@ export default function MyPage() {
           return (
             <div ref={setRef(6)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 px-5 py-4" style={{ transitionDelay: "260ms" }}>
               <div className="flex items-baseline justify-between mb-4">
-                <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">획득 배지</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium">획득 배지</p>
                 <span className="text-xs text-white/50">{unlockedCount}/{achievements.length}</span>
               </div>
               <div className="flex gap-5">
@@ -749,7 +749,7 @@ export default function MyPage() {
         {/* Quick links */}
         <div ref={setRef(7)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "300ms" }}>
           <div className="px-5 pt-4 pb-1">
-            <p className="text-sm uppercase tracking-[0.12em] text-white/55 font-medium">바로가기</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium">바로가기</p>
           </div>
           {MENU.map(({ label, href }, i) => (
             <Link
@@ -766,7 +766,7 @@ export default function MyPage() {
         <div ref={setRef(8)} className="card-rise mb-6 space-y-1.5" style={{ transitionDelay: "340ms" }}>
           {[["버전", "0.4.0 (MVP Demo)"], ["제작", "Drop The Bid Team"], ["문의", "hello@dtb.kr"]].map(([k, v]) => (
             <div key={k} className="flex justify-between">
-              <span className="text-[10px] uppercase tracking-wider text-white/45 font-medium">{k}</span>
+              <span className="text-xs uppercase tracking-wider text-white/45 font-medium">{k}</span>
               <span className="text-xs text-white/60">{v}</span>
             </div>
           ))}
@@ -778,7 +778,7 @@ export default function MyPage() {
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full py-3 text-white/40 text-sm rounded-xl border border-white/8 transition-colors hover:text-white/65 hover:border-white/20"
+            className="w-full py-3 text-white/40 text-base rounded-xl border border-white/8 transition-colors hover:text-white/65 hover:border-white/20"
           >
             로그아웃
           </button>
@@ -799,14 +799,14 @@ export default function MyPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setWithdrawConfirm(false)}
-                  className="flex-1 py-2.5 text-sm text-white/50 border border-white/12 rounded-xl"
+                  className="flex-1 py-2.5 text-base text-white/50 border border-white/12 rounded-xl"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleWithdraw}
                   disabled={withdrawing}
-                  className="flex-1 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50"
+                  className="flex-1 py-2.5 text-base font-bold text-white rounded-xl disabled:opacity-50"
                   style={{ background: "rgba(239,68,68,0.65)" }}
                 >
                   {withdrawing ? "처리 중..." : "탈퇴 확인"}

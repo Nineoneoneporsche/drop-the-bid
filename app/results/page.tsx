@@ -91,7 +91,7 @@ export default function ResultsPage() {
 
         <div className="mb-8">
           <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-5xl font-black text-white leading-tight">지난 결과</h1>
+          <h1 className="text-[22px] font-black text-white leading-tight">지난 결과</h1>
           <p className="text-white/65 text-base mt-2">끝까지 버텨낸 레전드 드랍.</p>
         </div>
 
@@ -110,7 +110,7 @@ export default function ResultsPage() {
                 {/* Top row: name + tag badge */}
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <p className="text-base font-bold text-white/85 leading-snug">{r.name}</p>
-                  <span className={`text-[11px] font-black uppercase tracking-wider flex-shrink-0 px-2 py-0.5 rounded-full border ${tag.text} ${tag.bg} ${tag.border}`}>
+                  <span className={`text-xs font-black uppercase tracking-wider flex-shrink-0 px-2 py-0.5 rounded-full border ${tag.text} ${tag.bg} ${tag.border}`}>
                     {r.tag}
                   </span>
                 </div>
@@ -158,7 +158,7 @@ export default function ResultsPage() {
           </p>
           <Link
             href="/"
-            className="flex-shrink-0 px-4 py-2.5 text-white text-sm font-bold rounded-xl transition-opacity active:opacity-80"
+            className="flex-shrink-0 px-4 py-2.5 text-white text-base font-bold rounded-xl transition-opacity active:opacity-80"
             style={{ background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)" }}
           >
             참여 →

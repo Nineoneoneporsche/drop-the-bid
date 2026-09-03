@@ -139,7 +139,7 @@ export default function PracticePage() {
 
         <div ref={setRef(1)} className="card-rise mb-5" style={{ transitionDelay: "60ms" }}>
           <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-5xl font-black text-white leading-tight">모의훈련</h1>
+          <h1 className="text-[22px] font-black text-white leading-tight">모의훈련</h1>
           <p className="text-base text-white/70 mt-2">실제 게임 전에 감각을 익혀보세요.</p>
         </div>
 
@@ -154,15 +154,15 @@ export default function PracticePage() {
               <Image src="/baemincoupon.jpg" alt="배민 상품권" width={900} height={600} style={{ width: "100%", height: "auto", display: "block", marginTop: "-6%", marginBottom: "-6%" }} />
             </div>
             <div className="px-5 pt-4 pb-5">
-              <p className="text-[10px] uppercase tracking-wider text-white/55 mb-1 font-medium">연습 상품</p>
-              <h2 className="text-white font-bold text-lg mb-4">배민 10,000원 상품권</h2>
+              <p className="text-xs uppercase tracking-wider text-white/55 mb-1 font-medium">연습 상품</p>
+              <h2 className="text-white font-bold text-base mb-4">배민 10,000원 상품권</h2>
               <div className="flex gap-6 mb-5">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-white/55 mb-1 font-medium">시작가</p>
+                  <p className="text-xs uppercase tracking-wider text-white/55 mb-1 font-medium">시작가</p>
                   <p className="text-2xl font-black text-white font-mono tabular-nums">{fmt(START)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-white/55 mb-1 font-medium">목표가</p>
+                  <p className="text-xs uppercase tracking-wider text-white/55 mb-1 font-medium">목표가</p>
                   <p className="text-2xl font-black font-mono tabular-nums" style={{ color: "#c084fc" }}>{fmt(FLOOR)}</p>
                 </div>
               </div>
@@ -269,7 +269,7 @@ export default function PracticePage() {
             className="card-rise bg-[#141414] border border-white/10 rounded-2xl px-6 py-8 text-center"
           >
             <div className="mb-4"><span className="material-symbols-outlined" style={{fontSize:"3rem"}}>celebration</span></div>
-            <p className="text-[10px] uppercase tracking-widest text-white/60 mb-2 font-medium">모의 낙찰 성공</p>
+            <p className="text-xs uppercase tracking-widest text-white/60 mb-2 font-medium">모의 낙찰 성공</p>
             <p
               className="font-black font-mono tabular-nums leading-none mb-1"
               style={{ fontSize: "3rem", color: "#f5f3ff", textShadow: NEON_PURPLE }}
@@ -306,8 +306,8 @@ export default function PracticePage() {
             className="card-rise bg-[#141414] border border-white/10 rounded-2xl px-6 py-8 text-center"
           >
             <div className="text-5xl mb-4">😔</div>
-            <p className="text-[10px] uppercase tracking-widest text-white/60 mb-2 font-medium">다른 참가자 낙찰</p>
-            <h2 className="text-2xl font-black text-white mb-2">실패!</h2>
+            <p className="text-xs uppercase tracking-widest text-white/60 mb-2 font-medium">다른 참가자 낙찰</p>
+            <h2 className="text-lg font-black text-white mb-2">실패!</h2>
             <p className="text-white/75 text-sm mb-1">다른 참가자가 먼저 낙찰받았습니다.</p>
             <p className="text-white/60 text-sm mb-6">조금만 더 빨리 눌렀어야 해요.</p>
             <div className="px-4 py-3 mb-6 rounded-xl" style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.2)" }}>

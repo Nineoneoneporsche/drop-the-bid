@@ -84,7 +84,7 @@ export default function BottomNav() {
                   }`}
                 >
                   {icon}
-                  <span className="text-[9px] font-semibold leading-none">
+                  <span className="text-xs font-semibold leading-none">
                     {label}
                   </span>
                 </Link>

@@ -80,7 +80,7 @@ export default function HomePage() {
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-10">
           <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-1.5 bg-red-600 text-white text-[9px] font-black px-2 py-1 uppercase tracking-[0.18em]">
+            <span className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-black px-2 py-1 uppercase tracking-[0.18em]">
               <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
               LIVE
             </span>
@@ -110,7 +110,7 @@ export default function HomePage() {
           </h1>
 
           <p
-            className="text-[15px] font-medium flex items-center gap-1.5"
+            className="text-sm font-medium flex items-center gap-1.5"
             style={{
               color: "rgba(255,255,255,0.70)",
               textShadow: "0 2px 8px rgba(0,0,0,1), 0 4px 24px rgba(0,0,0,1)",
@@ -143,7 +143,7 @@ export default function HomePage() {
 
             {/* 시작 가격 */}
             <div className="px-4 py-3.5">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
+              <p className="text-xs uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
                 시작 가격
               </p>
               <p
@@ -156,30 +156,30 @@ export default function HomePage() {
 
             {/* 하락 속도 */}
             <div className="px-4 py-3.5">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
+              <p className="text-xs uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
                 하락 속도
               </p>
               <p className="text-white font-bold tabular-nums font-mono text-[1.35rem] leading-none">
                 ₩{state.config.dropAmount.toLocaleString()}/초
               </p>
-              <p className="text-white/45 text-[10px] mt-1">실시간 자동 하락</p>
+              <p className="text-white/45 text-xs mt-1">실시간 자동 하락</p>
             </div>
 
             {/* 참가자 수 */}
             <div className="px-4 py-3.5">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
+              <p className="text-xs uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
                 참가자 수
               </p>
               <p className="text-white font-bold text-[1.35rem] leading-none">
                 <span className="tabular-nums">{participantCount}</span>
                 <span className="text-sm ml-0.5">명</span>
               </p>
-              <p className="text-white/45 text-[10px] mt-1">현재 경쟁 중</p>
+              <p className="text-white/45 text-xs mt-1">현재 경쟁 중</p>
             </div>
 
             {/* DTB까지 남은시간 */}
             <div className="px-4 py-3.5">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
+              <p className="text-xs uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
                 경매 상태
               </p>
               <p
@@ -202,7 +202,7 @@ export default function HomePage() {
                   ? "참여 마감"
                   : fmtCountdown(countdown)}
               </p>
-              <p className="text-[10px] mt-1" style={{ color: auctionLive ? "#ff2d2d" : strategizing ? "#e8ff00" : "#a855f7" }}>
+              <p className="text-xs mt-1" style={{ color: auctionLive ? "#ff2d2d" : strategizing ? "#e8ff00" : "#a855f7" }}>
                 {auctionLive
                   ? "관전만 가능합니다"
                   : strategizing
@@ -229,13 +229,13 @@ export default function HomePage() {
         >
           <ProductThumb alt={state.config.productName} size={64} rounded="rounded-sm" />
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-orange-400 font-bold mb-1">
+            <p className="text-xs uppercase tracking-[0.22em] text-orange-400 font-bold mb-1">
               오늘의 경매
             </p>
-            <p className="text-white font-bold text-[15px] leading-snug">
+            <p className="text-white font-bold text-base leading-snug">
               {state.config.productName}
             </p>
-            <p className="text-white text-[12px] tabular-nums font-mono mt-1">
+            <p className="text-white text-sm tabular-nums font-mono mt-1">
               정가 {formatKRW(start)}
             </p>
           </div>
@@ -246,7 +246,7 @@ export default function HomePage() {
           {auctionLive ? (
             <button
               onClick={() => router.push("/join")}
-              className="w-full font-black text-lg text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1"
+              className="w-full font-black text-base text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1"
               style={{
                 background: "linear-gradient(135deg, #374151 0%, #1f2937 100%)",
                 borderRadius: "10px",
@@ -255,18 +255,18 @@ export default function HomePage() {
               }}
             >
               <span className="flex items-center gap-2"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>visibility</span>관전하기</span>
-              <span className="text-[11px] font-medium text-white/50 tracking-normal">
+              <span className="text-xs font-medium text-white/50 tracking-normal">
                 경매가 진행 중입니다 · 관전만 가능합니다
               </span>
             </button>
           ) : (
             <button
               onClick={() => router.push("/join")}
-              className="w-full font-black text-lg text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1 bid-btn-purple-plain rounded-[10px] relative overflow-hidden"
+              className="w-full font-black text-base text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1 bid-btn-purple-plain rounded-[10px] relative overflow-hidden"
             >
               <div className="bid-shimmer absolute inset-y-0 w-[40%]" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)" }} />
               <span className="flex items-center gap-2"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>local_fire_department</span>경매 참여하기</span>
-              <span className="text-[11px] font-medium text-white/60 tracking-normal">
+              <span className="text-xs font-medium text-white/60 tracking-normal">
                 경매에 참여하고 낙찰 기회를 잡으세요!
               </span>
             </button>

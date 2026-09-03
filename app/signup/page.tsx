@@ -183,7 +183,7 @@ function TermsModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0">
-          <h2 className="text-base font-bold text-white">{title}</h2>
+          <h2 className="text-lg font-bold text-white">{title}</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors"
@@ -204,7 +204,7 @@ function TermsModal({
           {onAgree && (
             <button
               onClick={() => { onAgree(); onClose(); }}
-              className="w-full py-3.5 text-white font-bold text-sm rounded-xl transition-opacity active:opacity-80"
+              className="w-full py-3.5 text-white font-bold text-base rounded-xl transition-opacity active:opacity-80"
               style={{ background: agreed ? "rgba(168,85,247,0.3)" : "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
             >
               {agreed ? "동의 완료" : "동의하고 닫기"}
@@ -212,7 +212,7 @@ function TermsModal({
           )}
           <button
             onClick={onClose}
-            className="w-full py-3 text-white/50 text-sm font-medium"
+            className="w-full py-3 text-white/50 text-base font-medium"
           >
             닫기
           </button>
@@ -228,17 +228,17 @@ function Field({
 }: { label: string; required?: boolean; error?: string; hint?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="mb-4">
-      <label className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-white/55 font-medium mb-1.5">
+      <label className="flex items-center gap-1 text-xs uppercase tracking-wider text-white/55 font-medium mb-1.5">
         {label}
         {required && <span className="text-[#a855f7] normal-case tracking-normal text-xs">*</span>}
       </label>
       <input
-        className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none transition-colors rounded-xl ${
+        className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none transition-colors rounded-xl ${
           error ? "border-red-500/60 focus:border-red-500/80" : "border-white/12 focus:border-[#a855f7]/60"
         }`}
         {...props}
       />
-      {hint && !error && <p className="text-white/40 text-[11px] mt-1">{hint}</p>}
+      {hint && !error && <p className="text-white/40 text-xs mt-1">{hint}</p>}
       {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
     </div>
   );
@@ -258,13 +258,13 @@ function CheckRow({
               </svg>
             )}
           </div>
-          <span className="text-sm text-white/65 leading-relaxed">{children}</span>
+          <span className="text-base text-white/65 leading-relaxed">{children}</span>
         </button>
         {onView && (
           <button
             type="button"
             onClick={onView}
-            className="flex-shrink-0 text-[11px] text-white/40 hover:text-white/70 transition-colors underline underline-offset-2 ml-2 mt-1"
+            className="flex-shrink-0 text-xs text-white/40 hover:text-white/70 transition-colors underline underline-offset-2 ml-2 mt-1"
           >
             내용 보기
           </button>
@@ -282,7 +282,7 @@ function Progress({ step }: { step: number }) {
       <div className="flex items-center justify-between mb-2">
         {STEPS.map((label, i) => (
           <div key={label} className="flex flex-col items-center gap-1" style={{ flex: 1 }}>
-            <div className={`w-6 h-6 rounded-full text-[11px] font-black flex items-center justify-center transition-colors ${
+            <div className={`w-6 h-6 rounded-full text-xs font-black flex items-center justify-center transition-colors ${
               i + 1 < step ? "bg-[#a855f7] text-white" :
               i + 1 === step ? "bg-[#a855f7] text-white" : "bg-white/10 text-white/40"
             }`}>
@@ -292,7 +292,7 @@ function Progress({ step }: { step: number }) {
                 </svg>
               ) : i + 1}
             </div>
-            <span className={`text-[10px] font-medium text-center leading-tight ${i + 1 <= step ? "text-white/65" : "text-white/30"}`}>
+            <span className={`text-xs font-medium text-center leading-tight ${i + 1 <= step ? "text-white/65" : "text-white/30"}`}>
               {label}
             </span>
           </div>
@@ -506,7 +506,7 @@ export default function SignupPage() {
 
         <div className="mb-6">
           <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-5xl font-black text-white leading-tight">회원가입</h1>
+          <h1 className="text-[22px] font-black text-white leading-tight">회원가입</h1>
         </div>
 
         <Progress step={step} />
@@ -518,7 +518,7 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => supabase.auth.signInWithOAuth({ provider: "kakao", options: { redirectTo: `${window.location.origin}/auth/callback` } })}
-              className="w-full py-3.5 font-bold text-sm rounded-xl mb-2.5 flex items-center justify-center gap-2.5 active:opacity-80 transition-opacity"
+              className="w-full py-3.5 font-bold text-base rounded-xl mb-2.5 flex items-center justify-center gap-2.5 active:opacity-80 transition-opacity"
               style={{ background: "#FEE500", color: "#191919" }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#191919">
@@ -529,7 +529,7 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback` } })}
-              className="w-full py-3.5 font-bold text-sm rounded-xl mb-5 flex items-center justify-center gap-2.5 border border-white/15 active:opacity-80 transition-opacity"
+              className="w-full py-3.5 font-bold text-base rounded-xl mb-5 flex items-center justify-center gap-2.5 border border-white/15 active:opacity-80 transition-opacity"
               style={{ background: "#fff", color: "#1f1f1f" }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
@@ -543,11 +543,11 @@ export default function SignupPage() {
 
             <div className="flex items-center gap-3 mb-5">
               <div className="flex-1 h-px bg-white/10" />
-              <span className="text-[11px] text-white/30 font-medium">또는 이메일로 가입</span>
+              <span className="text-xs text-white/30 font-medium">또는 이메일로 가입</span>
               <div className="flex-1 h-px bg-white/10" />
             </div>
             <div className="mb-4">
-              <label className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-white/55 font-medium mb-1.5">
+              <label className="flex items-center gap-1 text-xs uppercase tracking-wider text-white/55 font-medium mb-1.5">
                 이메일 <span className="text-[#a855f7] normal-case tracking-normal text-xs">*</span>
               </label>
               <div className="relative">
@@ -557,7 +557,7 @@ export default function SignupPage() {
                   value={form.email}
                   onChange={e => { set("email", e.target.value.trim()); setEmailStatus("idle"); }}
                   autoComplete="email"
-                  className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none transition-colors rounded-xl pr-28 ${
+                  className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none transition-colors rounded-xl pr-28 ${
                     errors.email ? "border-red-500/60 focus:border-red-500/80" : "border-white/12 focus:border-[#a855f7]/60"
                   }`}
                 />
@@ -618,12 +618,12 @@ export default function SignupPage() {
             <Field label="이름" required placeholder="실명을 입력하세요"
               value={form.name} onChange={e => set("name", e.target.value)} error={errors.name} autoComplete="name" />
             <div className="mb-4">
-              <label className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-white/55 font-medium mb-1.5">
+              <label className="flex items-center gap-1 text-xs uppercase tracking-wider text-white/55 font-medium mb-1.5">
                 닉네임 <span className="text-[#a855f7] normal-case tracking-normal text-xs">*</span>
               </label>
               <div className="relative">
                 <input
-                  className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none transition-colors rounded-xl pr-24 ${
+                  className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none transition-colors rounded-xl pr-24 ${
                     errors.nickname ? "border-red-500/60 focus:border-red-500/80" : "border-white/12 focus:border-[#a855f7]/60"
                   }`}
                   placeholder="게임에서 사용할 닉네임"
@@ -641,7 +641,7 @@ export default function SignupPage() {
                   </span>
                 )}
               </div>
-              <p className="text-white/40 text-[11px] mt-1">한글·영문·숫자·밑줄(_) 2-12자</p>
+              <p className="text-white/40 text-xs mt-1">한글·영문·숫자·밑줄(_) 2-12자</p>
               {errors.nickname && <p className="text-red-400 text-xs mt-1">{errors.nickname}</p>}
             </div>
             <Field label="휴대폰 번호" required type="tel" placeholder="010-0000-0000"
@@ -659,7 +659,7 @@ export default function SignupPage() {
         {step === 3 && (
           <div key="step3" className="step-enter">
             <div className="mb-4">
-              <label className="block text-[11px] uppercase tracking-wider text-white/55 font-medium mb-1.5">
+              <label className="block text-xs uppercase tracking-wider text-white/55 font-medium mb-1.5">
                 우편번호 <span className="text-[#a855f7] normal-case tracking-normal text-xs">*</span>
               </label>
               <div className="flex gap-2">
@@ -667,12 +667,12 @@ export default function SignupPage() {
                   readOnly
                   placeholder="우편번호"
                   value={form.postcode}
-                  className={`flex-1 bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-sm focus:outline-none rounded-xl ${errors.postcode ? "border-red-500/60" : "border-white/12"}`}
+                  className={`flex-1 bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none rounded-xl ${errors.postcode ? "border-red-500/60" : "border-white/12"}`}
                 />
                 <button
                   type="button"
                   onClick={handlePostcodeSearch}
-                  className="flex-shrink-0 px-4 py-3 text-sm font-bold text-white rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
+                  className="flex-shrink-0 px-4 py-3 text-base font-bold text-white rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
                 >
                   주소 검색
                 </button>
@@ -727,13 +727,13 @@ export default function SignupPage() {
           </button>
 
           {step === 4 && (
-            <button onClick={handleSkipCard} disabled={submitting} className="w-full py-3 text-white/50 text-sm border border-white/12 rounded-xl transition-colors hover:border-white/25 disabled:opacity-40">
+            <button onClick={handleSkipCard} disabled={submitting} className="w-full py-3 text-white/50 text-base border border-white/12 rounded-xl transition-colors hover:border-white/25 disabled:opacity-40">
               나중에 등록할게요
             </button>
           )}
 
           {step > 1 && (
-            <button onClick={() => setStep(s => s - 1)} className="w-full py-3 text-white/40 text-sm transition-colors hover:text-white/65">
+            <button onClick={() => setStep(s => s - 1)} className="w-full py-3 text-white/40 text-base transition-colors hover:text-white/65">
               ← 이전 단계
             </button>
           )}

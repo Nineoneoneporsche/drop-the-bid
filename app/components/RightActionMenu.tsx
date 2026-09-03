@@ -151,7 +151,7 @@ function ActionBtn({
       <div className="w-11 h-11 rounded-full text-white border border-white/30 shadow-xl flex items-center justify-center backdrop-blur-sm">
         {icon}
       </div>
-      <span className="text-white/50 text-[9px] mt-1 text-center leading-tight">
+      <span className="text-white/50 text-xs mt-1 text-center leading-tight">
         {label}
       </span>
     </button>

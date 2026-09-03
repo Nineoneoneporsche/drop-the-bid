@@ -115,7 +115,7 @@ export default function DemoPage() {
             >
               <div className="mb-1"><span className="material-symbols-outlined text-gray-400" style={{fontSize:"22px"}}>{icon}</span></div>
               <p className="text-gray-900 font-bold text-sm leading-tight">{value}</p>
-              <p className="text-gray-400 text-[10px] mt-0.5">{label}</p>
+              <p className="text-gray-400 text-xs mt-0.5">{label}</p>
             </div>
           ))}
         </div>
@@ -128,11 +128,11 @@ export default function DemoPage() {
           <div className="space-y-4">
             {FLOW_STEPS.map(({ icon, title, desc }, i) => (
               <div key={title} className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-sm flex-shrink-0 font-bold text-orange-500">
+                <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-xs flex-shrink-0 font-bold text-orange-500">
                   {i + 1}
                 </div>
                 <div>
-                  <p className="text-gray-800 text-sm font-semibold flex items-center gap-1"><span className="material-symbols-outlined text-gray-400" style={{fontSize:"15px"}}>{icon}</span>{title}</p>
+                  <p className="text-gray-800 text-base font-semibold flex items-center gap-1"><span className="material-symbols-outlined text-gray-400" style={{fontSize:"15px"}}>{icon}</span>{title}</p>
                   <p className="text-gray-400 text-xs mt-0.5">{desc}</p>
                 </div>
               </div>

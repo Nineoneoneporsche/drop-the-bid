@@ -604,18 +604,18 @@ export default function StrategyPage() {
       {showWatchConfirm && (
         <div className="absolute inset-0 z-[50] flex items-center justify-center px-6" style={{ background: "rgba(10,10,10,0.75)" }}>
           <div className="w-full max-w-xs bg-[#1a1a1a] border border-white/15 rounded-2xl p-6 text-center">
-            <p className="text-white font-bold text-base mb-1.5">경매를 포기하고 관전하시겠어요?</p>
-            <p className="text-white/45 text-xs mb-6 leading-relaxed">관전으로 전환하면 낙찰받기 버튼이 비활성화되고 채팅에 참여할 수 있어요. 다시 경매에 참여할 수 없어요.</p>
+            <p className="text-white font-bold text-lg mb-1.5">경매를 포기하고 관전하시겠어요?</p>
+            <p className="text-white/45 text-sm mb-6 leading-relaxed">관전으로 전환하면 낙찰받기 버튼이 비활성화되고 채팅에 참여할 수 있어요. 다시 경매에 참여할 수 없어요.</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowWatchConfirm(false)}
-                className="flex-1 py-3 text-sm font-bold text-white/55 border border-white/15 rounded-xl transition-colors hover:border-white/30"
+                className="flex-1 py-3 text-base font-bold text-white/55 border border-white/15 rounded-xl transition-colors hover:border-white/30"
               >
                 취소
               </button>
               <button
                 onClick={() => { setForcedWatcher(true); setShowWatchConfirm(false); }}
-                className="flex-1 py-3 text-sm font-bold text-white rounded-xl"
+                className="flex-1 py-3 text-base font-bold text-white rounded-xl"
                 style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
               >
                 확인
@@ -626,6 +626,15 @@ export default function StrategyPage() {
       )}
 
       {/* ── Winner reveal sequence: blackout → video → blackout → LED screen ── */}
+      {/* Opaque backdrop sitting behind the video for the whole blackout-in/video/
+          blackout-out span. The video's opacity fades in over ~500ms (see below) —
+          without this, the moment "blackout-in" hands off to "video" the blackout
+          div (which only covers those two stages) unmounts instantly while the
+          video is still translucent, letting the page's own content (chat, top
+          bar) show through underneath for that fraction of a second. */}
+      {(winnerStage === "blackout-in" || winnerStage === "video" || winnerStage === "blackout-out") && (
+        <div className="absolute inset-0 z-[89] bg-black" />
+      )}
       {/* Mounted (not conditionally rendered) from the start of the game phase so the
           browser has the whole bidding window to buffer it — no load stall once winner fires. */}
       <video
@@ -645,6 +654,7 @@ export default function StrategyPage() {
           transform: "scale(1.15)",
           transformOrigin: "center top",
           opacity: winnerStage === "video" ? 1 : 0,
+          transition: "opacity 500ms ease-out",
           pointerEvents: winnerStage === "video" ? "auto" : "none",
         }}
       >
@@ -704,15 +714,15 @@ export default function StrategyPage() {
 
           {/* ── Scene content: one composition, no internal card boundaries ── */}
           <div className="relative z-10 flex-1 min-h-0 flex flex-col items-center px-6 pt-9">
-            {/* Brand mark — reused DTB wordmark, tinted to sit on a dark stage */}
+            {/* Brand mark — DTB wordmark, glowing to sit on a dark stage */}
             <img
-              src="/dtblogo.png"
+              src="/dtblogowhite.PNG"
               alt="Drop The Bid"
               className="scene-fade-in flex-shrink-0"
               style={{
-                width: 52,
+                width: 160,
                 height: "auto",
-                filter: "brightness(0) invert(1) drop-shadow(0 0 6px rgba(168,85,247,0.85)) drop-shadow(0 0 16px rgba(139,92,246,0.45))",
+                filter: "drop-shadow(0 0 6px rgba(168,85,247,0.85)) drop-shadow(0 0 16px rgba(139,92,246,0.45))",
               }}
             />
 
@@ -817,7 +827,7 @@ export default function StrategyPage() {
             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
             LIVE
           </span>
-          <div className="ml-auto flex items-center gap-2 text-[11px] text-white/40 tabular-nums">
+          <div className="ml-auto flex items-center gap-2 text-xs text-white/40 tabular-nums">
             {isStrategy ? null : (
               <>
                 <span><span className="material-symbols-outlined" style={{fontSize:"13px",verticalAlign:"-1px"}}>back_hand</span>{state.participantCount}</span>
@@ -840,7 +850,7 @@ export default function StrategyPage() {
           {isStrategy && (
             <button
               onClick={() => startGame()}
-              className="text-[11px] font-bold text-white/50 border border-white/15 px-2.5 py-1 rounded-lg transition-colors hover:text-white/80 hover:border-white/30 active:scale-95"
+              className="text-xs font-bold text-white/50 border border-white/15 px-2.5 py-1 rounded-lg transition-colors hover:text-white/80 hover:border-white/30 active:scale-95"
             >
               바로시작 →
             </button>
@@ -853,7 +863,7 @@ export default function StrategyPage() {
           <div className="flex items-center gap-3">
             <ProductThumb alt={state.config.productName} size={44} rounded="rounded-sm" />
             <div className="flex-1 min-w-0">
-              <p className="text-white/90 text-sm font-semibold leading-snug line-clamp-1">
+              <p className="text-white/90 text-base font-semibold leading-snug line-clamp-1">
                 {state.config.productName}
               </p>
               <p className="text-xs font-bold font-mono tabular-nums mt-1" style={{ color: "#c084fc" }}>정가 {formatKRW(start)}</p>
@@ -888,10 +898,10 @@ export default function StrategyPage() {
                     {initial}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-[12px] font-bold mr-1.5" style={{ color: isMe ? "#a855f7" : "rgba(255,255,255,0.85)" }}>
+                    <span className="text-xs font-bold mr-1.5" style={{ color: isMe ? "#a855f7" : "rgba(255,255,255,0.85)" }}>
                       {displayName}
                     </span>
-                    {!isGame && <span className="text-[10px] text-white/45">{formatTime(msg.timestamp)}</span>}
+                    {!isGame && <span className="text-xs text-white/45">{formatTime(msg.timestamp)}</span>}
                     <p className="text-sm text-white/90 leading-snug mt-0.5">{msg.message}</p>
                   </div>
                 </div>
@@ -904,7 +914,7 @@ export default function StrategyPage() {
         <div className="flex-shrink-0 px-4 pt-2 pb-1.5 border-t border-white/8">
           {chatBlocked ? (
             <div className="flex items-center justify-center py-2.5 bg-white/4 rounded-xl border border-white/8">
-              <span className="text-white/35 text-[11px] flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"13px"}}>volume_off</span>경매 중 채팅에 참여할 수 없어요</span>
+              <span className="text-white/35 text-xs flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"13px"}}>volume_off</span>경매 중 채팅에 참여할 수 없어요</span>
             </div>
           ) : (
             <div className="flex">
@@ -915,7 +925,7 @@ export default function StrategyPage() {
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                 placeholder={isStrategy ? "경기 전에 한 마디..." : "메시지..."}
-                className="flex-1 bg-white/5 border border-white/10 border-r-0 px-3 py-2 text-white placeholder-white/18 text-[12px] focus:outline-none focus:border-purple-500/40 transition-colors min-w-0 rounded-l-xl"
+                className="flex-1 bg-white/5 border border-white/10 border-r-0 px-3 py-2 text-white placeholder-white/18 text-xs focus:outline-none focus:border-purple-500/40 transition-colors min-w-0 rounded-l-xl"
               />
               <button
                 onClick={handleSendMessage}
@@ -952,7 +962,7 @@ export default function StrategyPage() {
               className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl h-[88px] disabled:opacity-40 disabled:pointer-events-none"
             >
               <span className="material-symbols-outlined text-white" style={{ fontSize: "22px", lineHeight: 1 }}>visibility</span>
-              <span className="text-[11px] font-bold text-white/45 mt-0.5">{forcedWatcher ? "관전 중" : "관전"}</span>
+              <span className="text-xs font-bold text-white/45 mt-0.5">{forcedWatcher ? "관전 중" : "관전"}</span>
             </button>
 
             {/* Bid button. Never a direct Link to /payment — the only path there
@@ -964,9 +974,9 @@ export default function StrategyPage() {
                 checkout, bypassing the blackout/video/reveal sequence. */}
             <button
               onClick={handleRaiseHand}
-              disabled={isStrategy || !isParticipant || displayPrice <= 0 || isSequenceActive || raised}
+              disabled={isStrategy || !isParticipant || displayPrice <= 0 || isSequenceActive || raised || bidding}
               className={`relative overflow-hidden flex-[7] flex flex-col items-center justify-center h-[88px] text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed rounded-xl ${
-                isStrategy || !isParticipant || displayPrice <= 0 || isSequenceActive || raised
+                isStrategy || !isParticipant || displayPrice <= 0 || isSequenceActive || raised || bidding
                   ? ""
                   : isCritical ? "bid-btn-critical critical-shake" : "bid-btn-purple"
               }`}
