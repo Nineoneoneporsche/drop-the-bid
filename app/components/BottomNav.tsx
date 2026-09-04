@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const NAV_ITEMS = [
   {
@@ -63,16 +64,31 @@ const NAV_ITEMS = [
   },
 ];
 
+// Safari parses `backdrop-filter: url(#x)` as syntactically valid but then
+// fails to render it at all — silently dropping blur along with it, not
+// just the SVG part. CSS `@supports` can't tell the difference (it only
+// checks parse validity), so this has to be a real engine check: WebKit
+// browsers (Safari on any Apple device, including Chrome-for-iOS — every
+// iOS browser is WebKit under the hood) never get the distortion class.
+function supportsSvgBackdropFilter() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  const isWebkit = /AppleWebKit/.test(ua) && !/Chrome|Chromium|CriOS|Edg/.test(ua);
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  return !isWebkit && !isIOS;
+}
+
 export default function BottomNav() {
   const pathname = usePathname();
+  const [distort, setDistort] = useState(false);
+  useEffect(() => setDistort(supportsSvgBackdropFilter()), []);
 
   return (
     <div className="fixed bottom-4 inset-x-0 z-40 flex justify-center pointer-events-none px-4">
       {/* Hidden SVG filter — feTurbulence + feDisplacementMap bends whatever
           sits behind the nav through the frosted glass, like the reference.
-          Referenced by the liquid-glass-nav class's backdrop-filter below;
-          browsers that don't support url() filters in backdrop-filter
-          (Safari) just fall back to the plain blur in globals.css. */}
+          Only referenced (via the liquid-glass-nav--distort class above)
+          on engines that actually render it; see supportsSvgBackdropFilter. */}
       <svg aria-hidden style={{ position: "absolute", width: 0, height: 0 }}>
         <filter id="glass-distortion" x="-20%" y="-20%" width="140%" height="140%">
           <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="8" result="noise" />
@@ -82,7 +98,7 @@ export default function BottomNav() {
       </svg>
 
       <nav
-        className="liquid-glass-nav w-full max-w-md pointer-events-auto rounded-full overflow-hidden"
+        className={`liquid-glass-nav w-full max-w-md pointer-events-auto rounded-full overflow-hidden ${distort ? "liquid-glass-nav--distort" : ""}`}
         style={{ height: 60 }}
       >
         <ul className="flex h-full">
