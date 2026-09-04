@@ -67,10 +67,23 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-40 flex justify-center pointer-events-none">
+    <div className="fixed bottom-4 inset-x-0 z-40 flex justify-center pointer-events-none px-4">
+      {/* Hidden SVG filter — feTurbulence + feDisplacementMap bends whatever
+          sits behind the nav through the frosted glass, like the reference.
+          Referenced by the liquid-glass-nav class's backdrop-filter below;
+          browsers that don't support url() filters in backdrop-filter
+          (Safari) just fall back to the plain blur in globals.css. */}
+      <svg aria-hidden style={{ position: "absolute", width: 0, height: 0 }}>
+        <filter id="glass-distortion" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="8" result="noise" />
+          <feGaussianBlur in="noise" stdDeviation="3" result="blurredNoise" />
+          <feDisplacementMap in="SourceGraphic" in2="blurredNoise" scale="45" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </svg>
+
       <nav
-        className="w-full max-w-md pointer-events-auto"
-        style={{ background: "#0f0f0f", height: 56, borderTop: "1px solid rgba(255,255,255,0.08)" }}
+        className="liquid-glass-nav w-full max-w-md pointer-events-auto rounded-full overflow-hidden"
+        style={{ height: 60 }}
       >
         <ul className="flex h-full">
           {NAV_ITEMS.map(({ href, label, icon }) => {

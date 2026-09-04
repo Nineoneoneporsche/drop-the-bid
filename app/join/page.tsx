@@ -10,7 +10,7 @@ const ROLES: { value: Role; label: string; desc: string }[] = [
   {
     value: "participant",
     label: "참여자",
-    desc: "가격이 원하는 수준에 도달하면 손을 들어 낙찰받을 수 있어요. 게임이 시작되면 채팅을 할 수 없어요",
+    desc: "가격이 원하는 수준에 도달하면 손을 들어 낙찰받을 수 있어요. (회원가입 및 로그인 필요)",
   },
   {
     value: "spectator",

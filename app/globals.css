@@ -274,3 +274,23 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .led-stage-lightup {
   animation: led-stage-lightup 0.8s ease-out both;
 }
+
+/* Liquid-glass bottom nav. Baseline is a plain frosted-glass blur, which
+   works everywhere (including Safari, which doesn't support SVG filter
+   references inside backdrop-filter). The @supports block layers the
+   feDisplacementMap warp (defined inline in BottomNav.tsx) on top for
+   browsers that do support it — progressive enhancement, not a fallback
+   that needs JS feature detection. */
+.liquid-glass-nav {
+  background: rgba(15, 15, 15, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+@supports (backdrop-filter: url(#glass-distortion)) {
+  .liquid-glass-nav {
+    -webkit-backdrop-filter: url(#glass-distortion) blur(6px) saturate(180%);
+    backdrop-filter: url(#glass-distortion) blur(6px) saturate(180%);
+  }
+}
