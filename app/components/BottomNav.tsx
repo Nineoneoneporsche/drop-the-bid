@@ -91,9 +91,9 @@ export default function BottomNav() {
           on engines that actually render it; see supportsSvgBackdropFilter. */}
       <svg aria-hidden style={{ position: "absolute", width: 0, height: 0 }}>
         <filter id="glass-distortion" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="8" result="noise" />
-          <feGaussianBlur in="noise" stdDeviation="3" result="blurredNoise" />
-          <feDisplacementMap in="SourceGraphic" in2="blurredNoise" scale="45" xChannelSelector="R" yChannelSelector="G" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.008 0.01" numOctaves="1" seed="8" result="noise" />
+          <feGaussianBlur in="noise" stdDeviation="4" result="blurredNoise" />
+          <feDisplacementMap in="SourceGraphic" in2="blurredNoise" scale="14" xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </svg>
 
