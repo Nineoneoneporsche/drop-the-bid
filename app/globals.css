@@ -284,16 +284,16 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
    drops the WHOLE backdrop-filter value, blur included, not just the SVG
    part. BottomNav.tsx feature-detects with a UA check instead. */
 .liquid-glass-nav {
-  background: rgba(20, 20, 20, 0.25);
+  background: rgba(20, 20, 20, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.22);
-  -webkit-backdrop-filter: blur(12px) saturate(200%) contrast(115%) brightness(1.08);
-  backdrop-filter: blur(12px) saturate(200%) contrast(115%) brightness(1.08);
+  -webkit-backdrop-filter: blur(7px) saturate(220%) contrast(115%) brightness(1.08);
+  backdrop-filter: blur(7px) saturate(220%) contrast(115%) brightness(1.08);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 8px 32px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 .liquid-glass-nav--distort {
-  -webkit-backdrop-filter: url(#glass-distortion) blur(4px) saturate(200%) contrast(115%) brightness(1.08);
-  backdrop-filter: url(#glass-distortion) blur(4px) saturate(200%) contrast(115%) brightness(1.08);
+  -webkit-backdrop-filter: url(#glass-distortion) blur(2.5px) saturate(220%) contrast(115%) brightness(1.08);
+  backdrop-filter: url(#glass-distortion) blur(2.5px) saturate(220%) contrast(115%) brightness(1.08);
 }
