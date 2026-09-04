@@ -77,9 +77,10 @@ export default function AdminPage() {
     const strategyDuration = parseInt(form.strategyDuration, 10);
     const floorPrice = parseInt(form.floorPrice, 10);
 
-    const dropIntervalSeconds      = parseInt(form.dropIntervalSeconds, 10);
-    const fastDropIntervalSeconds  = parseInt(form.fastDropIntervalSeconds, 10);
-    const finalDropIntervalSeconds = parseInt(form.finalDropIntervalSeconds, 10);
+    // parseFloat, not parseInt — these allow sub-second values like 0.5.
+    const dropIntervalSeconds      = parseFloat(form.dropIntervalSeconds);
+    const fastDropIntervalSeconds  = parseFloat(form.fastDropIntervalSeconds);
+    const finalDropIntervalSeconds = parseFloat(form.finalDropIntervalSeconds);
 
     if (!startPrice || startPrice <= 0) return alert("시작가를 올바르게 입력해주세요");
     if (!dropAmount || dropAmount <= 0) return alert("하락 금액을 올바르게 입력해주세요");
@@ -240,14 +241,15 @@ export default function AdminPage() {
 
           <Field
             label="하락 주기 — NORMAL (초)"
-            hint="몇 초에 한 번씩 계단식으로 떨어질지 — 1이면 매초 부드럽게, 크게 잡으면 그 초마다 한 번에 뚝뚝 떨어져요"
+            hint="몇 초에 한 번씩 계단식으로 떨어질지 — 1이면 매초 부드럽게, 0.5처럼 1보다 작게 잡으면 더 자주, 크게 잡으면 그 초마다 한 번에 뚝뚝 떨어져요"
           >
             <input
               type="number"
               value={form.dropIntervalSeconds}
               onChange={(e) => set("dropIntervalSeconds", e.target.value)}
               className={INPUT + " font-mono"}
-              min={1}
+              min={0.1}
+              step={0.1}
             />
           </Field>
 
@@ -288,7 +290,8 @@ export default function AdminPage() {
               value={form.fastDropIntervalSeconds}
               onChange={(e) => set("fastDropIntervalSeconds", e.target.value)}
               className={INPUT + " font-mono"}
-              min={1}
+              min={0.1}
+              step={0.1}
             />
           </Field>
 
@@ -320,7 +323,8 @@ export default function AdminPage() {
               value={form.finalDropIntervalSeconds}
               onChange={(e) => set("finalDropIntervalSeconds", e.target.value)}
               className={INPUT + " font-mono"}
-              min={1}
+              min={0.1}
+              step={0.1}
             />
           </Field>
 
