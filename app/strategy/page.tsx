@@ -15,6 +15,7 @@ import {
 import { ProductThumb } from "../components/ProductImage";
 import RightActionMenu from "../components/RightActionMenu";
 import HomeButton from "../components/HomeButton";
+import { getServerNow } from "../lib/serverClock";
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
@@ -302,10 +303,12 @@ export default function StrategyPage() {
   }, []);
 
   // ── Strategy countdown ───────────────────────────────────────────────────
+  // Uses the same server-adjusted clock as the live price (app/lib/serverClock.ts)
+  // so the two never drift apart from each other, or from what other clients see.
   useEffect(() => {
     if (state.phase !== "strategy" || !state.strategyStartedAt) return;
     const update = () => {
-      const elapsed = Math.floor((Date.now() - state.strategyStartedAt!) / 1000);
+      const elapsed = Math.floor((getServerNow() - state.strategyStartedAt!) / 1000);
       const remaining = Math.max(0, state.config.strategyDuration - elapsed);
       setTimeLeft(remaining);
       scheduleRef.current.forEach((item, idx) => {

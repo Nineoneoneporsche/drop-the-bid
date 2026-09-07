@@ -160,7 +160,6 @@ export default function PaymentPage() {
         <div className="mb-3"><HomeButton /></div>
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium mb-1">Drop The Bid</p>
             <h1 className="text-lg font-extrabold text-white">결제하기</h1>
             <p className="text-white/65 text-xs mt-0.5">낙찰 상품을 확인하고 결제를 완료하세요.</p>
           </div>

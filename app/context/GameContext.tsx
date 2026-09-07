@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { getServerNow, startClockSync } from "../lib/serverClock";
 
 export type Role = "participant" | "spectator";
 export type Phase = "home" | "strategy" | "game" | "ended";
@@ -185,13 +186,19 @@ function rowToConfig(row: DbRow): GameConfig {
 // already watching, and the RPC never trusts what this returns. Keep the
 // two in sync if either changes.
 //
+// Elapsed time is measured against getServerNow() (app/lib/serverClock.ts),
+// not raw Date.now() — this device's own clock can be off by seconds from
+// everyone else's, and since game_started_at is a shared server timestamp,
+// using an uncorrected local clock to measure "how long ago was that" is
+// exactly what used to make the displayed price disagree across devices.
+//
 // Each zone steps against its OWN interval, measured from that zone's own
 // start (not from game start) — so changing one zone's interval never
 // shifts when the other zones' boundaries land. Zone thresholds (tFast,
 // tFinal) always come from the continuous, unstepped rate math; only the
 // price displayed within a zone steps.
 function calcPriceAndStage(gameStartedAt: number, config: GameConfig): { price: number; stage: DropStage } {
-  const rawElapsed = Math.max(0, (Date.now() - gameStartedAt) / 1000);
+  const rawElapsed = Math.max(0, (getServerNow() - gameStartedAt) / 1000);
   const {
     startPrice, floorPrice, dropAmount, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount,
     dropIntervalSeconds, fastDropIntervalSeconds, finalDropIntervalSeconds,
@@ -290,6 +297,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
+  // Client/server clock offset — initial sync, periodic resync, and an
+  // immediate resync on returning from background. See
+  // app/lib/serverClock.ts; calcPriceAndStage above and the strategy
+  // countdown both read getServerNow() from that same module.
+  useEffect(() => startClockSync(), []);
+
   const refreshCounts = useCallback(async () => {
     // Remove stale participants (no heartbeat in 90s)
     await supabase
@@ -387,18 +400,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => { if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; } };
   }, [phase, gameStartedAt]);
 
-  // Auto-transition: strategy → game when countdown ends
+  // Auto-transition: strategy → game when countdown ends. Every connected
+  // client runs this same check independently, so more than one can hit the
+  // "time's up" condition around the same moment — start_game() (see
+  // supabase/migrations/20260910090000_server_clock_sync.sql) is a single
+  // atomic `update ... where phase = 'strategy'`, the same race guard the
+  // old client-side `.eq("phase","strategy")` had, just now inside the RPC
+  // and stamping game_started_at with the server's own now() instead of
+  // whichever caller's clock happened to win.
   useEffect(() => {
     if (phase !== "strategy" || !strategyStartedAt) return;
     const check = () => {
-      const elapsed = Math.floor((Date.now() - strategyStartedAt) / 1000);
+      const elapsed = Math.floor((getServerNow() - strategyStartedAt) / 1000);
       if (elapsed >= configRef.current.strategyDuration) {
-        supabase
-          .from("game_state")
-          .update({ phase: "game", game_started_at: new Date().toISOString() })
-          .eq("id", 1)
-          .eq("phase", "strategy")
-          .then(() => {});
+        supabase.rpc("start_game").then(() => {});
       }
     };
     check();
@@ -495,11 +510,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const startGame = useCallback(async () => {
-    await supabase
-      .from("game_state")
-      .update({ phase: "game", game_started_at: new Date().toISOString() })
-      .eq("id", 1)
-      .eq("phase", "strategy");
+    await supabase.rpc("start_game");
   }, []);
 
   const updateConfig = useCallback(async (newConfig: Partial<GameConfig>) => {
