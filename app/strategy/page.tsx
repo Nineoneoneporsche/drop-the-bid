@@ -961,15 +961,18 @@ export default function StrategyPage() {
           </div>
 
           <div className="flex gap-2">
-            {/* Watch button */}
-            <button
-              onClick={() => isParticipant ? setShowWatchConfirm(true) : undefined}
-              disabled={isSequenceActive}
-              className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl h-[88px] disabled:opacity-40 disabled:pointer-events-none"
-            >
-              <span className="material-symbols-outlined text-white" style={{ fontSize: "22px", lineHeight: 1 }}>visibility</span>
-              <span className="text-xs font-semibold text-white/45 mt-0.5">{forcedWatcher ? "관전 중" : "관전"}</span>
-            </button>
+            {/* Watch button — strategy (pre-game) only. Once the live drop
+                starts (isGame), the bid button fills the whole row instead. */}
+            {isStrategy && (
+              <button
+                onClick={() => isParticipant ? setShowWatchConfirm(true) : undefined}
+                disabled={isSequenceActive}
+                className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl h-[88px] disabled:opacity-40 disabled:pointer-events-none"
+              >
+                <span className="material-symbols-outlined text-white" style={{ fontSize: "22px", lineHeight: 1 }}>visibility</span>
+                <span className="text-xs font-semibold text-white/45 mt-0.5">{forcedWatcher ? "관전 중" : "관전"}</span>
+              </button>
+            )}
 
             {/* Bid button. Never a direct Link to /payment — the only path there
                 is the winner-reveal LED screen's own button once state.winner
