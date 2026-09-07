@@ -51,7 +51,7 @@ function ResetPasswordInner() {
       <div className="w-14 h-14 rounded-full bg-white/8 flex items-center justify-center mb-5">
         <span className="material-symbols-outlined text-white/40" style={{ fontSize: "28px" }}>link_off</span>
       </div>
-      <p className="text-white font-bold text-lg mb-2">링크가 만료되었습니다</p>
+      <p className="text-white font-semibold text-lg mb-2">링크가 만료되었습니다</p>
       <p className="text-white/45 text-sm mb-8 leading-relaxed">비밀번호 재설정을 다시 요청해주세요.</p>
       <a href="/mypage" className="text-[#a855f7] text-sm font-semibold">← 로그인 화면으로</a>
     </main>
@@ -64,7 +64,7 @@ function ResetPasswordInner() {
           <polyline points="20 6 9 17 4 12" />
         </svg>
       </div>
-      <p className="text-white font-bold text-lg mb-2">비밀번호가 변경되었습니다</p>
+      <p className="text-white font-semibold text-lg mb-2">비밀번호가 변경되었습니다</p>
       <p className="text-white/45 text-sm">잠시 후 로그인 화면으로 이동합니다...</p>
     </main>
   );
@@ -73,7 +73,7 @@ function ResetPasswordInner() {
     <main className="min-h-screen bg-[#0f0f0f] flex flex-col max-w-md mx-auto px-4 pt-16 pb-12">
       <div className="mb-8">
         <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-        <h1 className="text-[22px] font-black text-white leading-tight">새 비밀번호 설정</h1>
+        <h1 className="text-[22px] font-extrabold text-white leading-tight">새 비밀번호 설정</h1>
       </div>
 
       <div className="space-y-4">
@@ -104,7 +104,7 @@ function ResetPasswordInner() {
         <button
           onClick={handleReset}
           disabled={saving}
-          className="w-full py-4 text-white font-bold text-base rounded-xl disabled:opacity-50 transition-opacity active:opacity-80"
+          className="w-full py-4 text-white font-semibold text-base rounded-xl disabled:opacity-50 transition-opacity active:opacity-80"
           style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
         >
           {saving ? "변경 중..." : "비밀번호 변경"}

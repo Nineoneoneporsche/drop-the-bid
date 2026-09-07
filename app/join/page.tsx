@@ -76,7 +76,7 @@ export default function JoinPage() {
 
       <div className="mt-10 mb-12">
         <p className="text-xs uppercase tracking-[0.14em] text-white/60 font-medium mb-1">Drop The Bid</p>
-        <h1 className="text-[22px] font-black text-white leading-tight">입장하기</h1>
+        <h1 className="text-[22px] font-extrabold text-white leading-tight">입장하기</h1>
         <p className="text-white/70 text-base mt-2">
           {state.config.productName} ·{" "}
           <span className="font-semibold" style={{ color: "#a855f7" }}>{formatKRW(state.config.startPrice)}</span> 부터 시작
@@ -88,14 +88,14 @@ export default function JoinPage() {
         <div className="flex items-center gap-2 mb-4">
           <label className="block text-xs uppercase tracking-[0.14em] text-white/60 font-medium">닉네임</label>
           {memberNickname && (
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(168,85,247,0.2)", color: "#c084fc" }}>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(168,85,247,0.2)", color: "#c084fc" }}>
               회원
             </span>
           )}
         </div>
         {memberNickname ? (
           <>
-            <p className="text-3xl font-bold text-white py-3 border-b-2" style={{ borderBottomColor: "#a855f7" }}>
+            <p className="text-3xl font-semibold text-white py-3 border-b-2" style={{ borderBottomColor: "#a855f7" }}>
               {memberNickname}
             </p>
             <p className="text-xs text-white/40 mt-2">회원 닉네임으로 자동 설정됩니다</p>
@@ -110,7 +110,7 @@ export default function JoinPage() {
               placeholder="닉네임을 입력하세요"
               maxLength={20}
               autoFocus
-              className="w-full bg-transparent border-b-2 border-white/25 px-0 py-3 text-white text-3xl font-bold placeholder-white/25 focus:outline-none transition-colors"
+              className="w-full bg-transparent border-b-2 border-white/25 px-0 py-3 text-white text-3xl font-semibold placeholder-white/25 focus:outline-none transition-colors"
               onFocus={e => (e.target.style.borderBottomColor = "#a855f7")}
               onBlur={e => (e.target.style.borderBottomColor = "")}
             />
@@ -142,7 +142,7 @@ export default function JoinPage() {
                 {sel && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#a855f7" }} />}
               </div>
               <div>
-                <p className={`font-bold text-lg ${sel ? "text-white" : "text-white/60"}`}>{label}</p>
+                <p className={`font-semibold text-lg ${sel ? "text-white" : "text-white/60"}`}>{label}</p>
                 <p className="text-white/55 text-sm mt-1 leading-snug">
                   {disabled ? (auctionLive ? "경매가 진행 중입니다. 관전으로만 입장 가능합니다." : "경매가 시작되어 참여자로 입장할 수 없습니다.") : desc}
                 </p>
@@ -156,7 +156,7 @@ export default function JoinPage() {
         <button
           onClick={handleJoin}
           disabled={loading}
-          className="w-full py-5 font-bold text-base text-white transition-all active:scale-[0.98] active:opacity-90 disabled:opacity-50"
+          className="w-full py-5 font-semibold text-base text-white transition-all active:scale-[0.98] active:opacity-90 disabled:opacity-50"
           style={{
             background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
             borderRadius: "10px",

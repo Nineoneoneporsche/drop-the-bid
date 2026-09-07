@@ -146,7 +146,7 @@ export default function PaymentPage() {
         <div className="w-16 h-16 rounded-full bg-white/8 flex items-center justify-center mb-5">
           <span className="material-symbols-outlined text-white/40" style={{ fontSize: "32px" }}>block</span>
         </div>
-        <h1 className="text-lg font-black text-white mb-2">접근할 수 없습니다</h1>
+        <h1 className="text-lg font-extrabold text-white mb-2">접근할 수 없습니다</h1>
         <p className="text-white/50 text-sm leading-relaxed mb-8">낙찰받은 경매의 결제 페이지에만<br/>접근할 수 있습니다.</p>
         <a href="/" className="text-[#a855f7] text-sm font-semibold">← 홈으로 돌아가기</a>
       </main>
@@ -161,12 +161,12 @@ export default function PaymentPage() {
         <div className="flex items-end justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium mb-1">Drop The Bid</p>
-            <h1 className="text-lg font-black text-white">결제하기</h1>
+            <h1 className="text-lg font-extrabold text-white">결제하기</h1>
             <p className="text-white/65 text-xs mt-0.5">낙찰 상품을 확인하고 결제를 완료하세요.</p>
           </div>
           <div className="text-right">
             <p className="text-xs uppercase tracking-wider text-white/60 mb-0.5">남은 시간</p>
-            <p className={`font-black font-mono text-2xl tabular-nums leading-none ${
+            <p className={`font-extrabold text-2xl tabular-nums leading-none ${
               expired ? "text-white/45" : timeLeft < 60 ? "text-red-500" : "text-[#a855f7]"
             }`}>
               {fmtTime(timeLeft)}
@@ -179,7 +179,7 @@ export default function PaymentPage() {
       <div className="flex-1 overflow-y-auto">
         {expired && (
           <div className="px-4 py-3 bg-red-500/10 border-b border-red-500/20">
-            <p className="text-red-400 text-sm font-bold text-center">결제 시간이 만료되었습니다.</p>
+            <p className="text-red-400 text-sm font-semibold text-center">결제 시간이 만료되었습니다.</p>
           </div>
         )}
         {error && (
@@ -196,7 +196,7 @@ export default function PaymentPage() {
             <div className="flex-1 min-w-0">
               <p className="text-white/70 text-base font-semibold leading-snug">{PRODUCT_NAME}</p>
               <p className="text-white/55 text-xs mt-1">정가 ₩899,000</p>
-              <p className="text-[#c084fc] font-black text-2xl font-mono tabular-nums mt-1 leading-none">{fmt(PRICE)}</p>
+              <p className="text-[#c084fc] font-extrabold text-2xl tabular-nums mt-1 leading-none">{fmt(PRICE)}</p>
             </div>
           </div>
           <div className="border-t border-white/15 mt-4 pt-4 space-y-2">
@@ -207,8 +207,8 @@ export default function PaymentPage() {
               </div>
             ))}
             <div className="border-t border-white/15 pt-2 flex justify-between">
-              <span className="text-white text-sm font-bold">합계</span>
-              <span className="text-[#c084fc] font-black text-sm font-mono tabular-nums">{fmt(PRICE)}</span>
+              <span className="text-white text-sm font-semibold">합계</span>
+              <span className="text-[#c084fc] font-extrabold text-sm tabular-nums">{fmt(PRICE)}</span>
             </div>
           </div>
         </div>
@@ -233,7 +233,7 @@ export default function PaymentPage() {
                         <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
                       </svg>
                     ) : (
-                      <span className="text-xs font-black" style={{ color: m.dark ? "#000" : "#fff" }}>{m.letter}</span>
+                      <span className="text-xs font-extrabold" style={{ color: m.dark ? "#000" : "#fff" }}>{m.letter}</span>
                     )}
                   </div>
                   <span className={`flex-1 text-base font-semibold ${sel ? "text-white" : "text-white/70"}`}>{m.label}</span>
@@ -255,7 +255,7 @@ export default function PaymentPage() {
           </div>
           {profile ? (
             <>
-              <p className="text-white/70 text-base font-bold">{profile.name}{profile.phone ? ` · ${profile.phone}` : ""}</p>
+              <p className="text-white/70 text-base font-semibold">{profile.name}{profile.phone ? ` · ${profile.phone}` : ""}</p>
               {profile.postcode && <p className="text-white/50 text-xs mt-0.5">({profile.postcode})</p>}
               {profile.address && <p className="text-white/70 text-base mt-1">{profile.address}</p>}
               {profile.addressDetail && <p className="text-white/70 text-base">{profile.addressDetail}</p>}
@@ -289,7 +289,7 @@ export default function PaymentPage() {
         <button
           onClick={handlePay}
           disabled={!canPay}
-          className="w-full py-4 text-base font-bold transition-all active:opacity-80 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-4 text-base font-semibold transition-all active:opacity-80 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           style={canPay ? { background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)", color: "#fff" } : { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.2)" }}
         >
           {paying ? (

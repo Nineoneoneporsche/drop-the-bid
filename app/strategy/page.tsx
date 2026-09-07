@@ -31,11 +31,14 @@ function shuffle<T>(arr: T[]): T[] {
 
 // Responsive nickname sizing so long nicknames never clip on the LED reveal.
 function nicknameFontSize(nickname: string): string {
+  // Scaled to 60% of the original clamp() values (40% smaller) at the
+  // same breakpoints, so long/short nicknames keep the same relative
+  // sizing behavior, just proportionally smaller overall.
   const len = nickname.length;
-  if (len <= 6)  return "clamp(3.2rem, 22vw, 6.8rem)";
-  if (len <= 9)  return "clamp(2.5rem, 17vw, 5.2rem)";
-  if (len <= 13) return "clamp(2rem, 13vw, 3.8rem)";
-  return "clamp(1.5rem, 10vw, 2.8rem)";
+  if (len <= 6)  return "clamp(1.92rem, 13.2vw, 4.08rem)";
+  if (len <= 9)  return "clamp(1.5rem, 10.2vw, 3.12rem)";
+  if (len <= 13) return "clamp(1.2rem, 7.8vw, 2.28rem)";
+  return "clamp(0.9rem, 6vw, 1.68rem)";
 }
 
 // Winner LED-reveal timing (kept as named constants so the JS-driven price
@@ -585,13 +588,13 @@ export default function StrategyPage() {
         <div className="absolute inset-0 z-[60] flex items-center justify-center px-6" style={{ background: "rgba(10,10,10,0.85)" }}>
           <div className="w-full max-w-xs bg-[#1a1a1a] border border-white/15 rounded-2xl p-6 text-center">
             <div className="text-5xl mb-3">😔</div>
-            <p className="text-white font-black text-lg mb-1.5">경매 실패</p>
+            <p className="text-white font-extrabold text-lg mb-1.5">경매 실패</p>
             <p className="text-white/50 text-sm leading-relaxed mb-6">
               아무도 낙찰받지 않아 경매가 종료됐어요.
             </p>
             <button
               onClick={async () => { await resetGame(); await leaveGame(); router.replace("/"); }}
-              className="w-full py-3.5 font-bold text-base text-white rounded-xl"
+              className="w-full py-3.5 font-semibold text-base text-white rounded-xl"
               style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
             >
               확인
@@ -604,18 +607,18 @@ export default function StrategyPage() {
       {showWatchConfirm && (
         <div className="absolute inset-0 z-[50] flex items-center justify-center px-6" style={{ background: "rgba(10,10,10,0.75)" }}>
           <div className="w-full max-w-xs bg-[#1a1a1a] border border-white/15 rounded-2xl p-6 text-center">
-            <p className="text-white font-bold text-lg mb-1.5">경매를 포기하고 관전하시겠어요?</p>
+            <p className="text-white font-semibold text-lg mb-1.5">경매를 포기하고 관전하시겠어요?</p>
             <p className="text-white/45 text-sm mb-6 leading-relaxed">관전으로 전환하면 낙찰받기 버튼이 비활성화되고 채팅에 참여할 수 있어요. 다시 경매에 참여할 수 없어요.</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowWatchConfirm(false)}
-                className="flex-1 py-3 text-base font-bold text-white/55 border border-white/15 rounded-xl transition-colors hover:border-white/30"
+                className="flex-1 py-3 text-base font-semibold text-white/55 border border-white/15 rounded-xl transition-colors hover:border-white/30"
               >
                 취소
               </button>
               <button
                 onClick={() => { setForcedWatcher(true); setShowWatchConfirm(false); }}
-                className="flex-1 py-3 text-base font-bold text-white rounded-xl"
+                className="flex-1 py-3 text-base font-semibold text-white rounded-xl"
                 style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
               >
                 확인
@@ -667,7 +670,7 @@ export default function StrategyPage() {
           className="scene-fade-in absolute top-10 right-4 z-[91] flex items-center gap-1 pl-3 pr-2.5 py-1.5 text-white active:scale-95 transition-transform"
           style={{ background: "rgba(10,10,10,0.55)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "999px" }}
         >
-          <span className="text-[12px] font-bold tracking-wide">SKIP</span>
+          <span className="text-[12px] font-semibold tracking-wide">SKIP</span>
           <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>skip_next</span>
         </button>
       )}
@@ -729,7 +732,7 @@ export default function StrategyPage() {
             <div className="flex-1 min-h-0 w-full flex flex-col items-center justify-center">
               <div className="scene-fade-in flex items-center gap-2.5 mb-2 flex-shrink-0" style={{ animationDelay: "80ms" }}>
                 <span className="h-px w-6" style={{ background: "rgba(196,132,252,0.65)" }} />
-                <span className="text-[11px] font-bold tracking-[0.32em]" style={{ color: "#c084fc" }}>
+                <span className="text-[11px] font-semibold tracking-[0.32em]" style={{ color: "#c084fc" }}>
                   오늘의 낙찰자
                 </span>
                 <span className="h-px w-6" style={{ background: "rgba(196,132,252,0.65)" }} />
@@ -739,7 +742,7 @@ export default function StrategyPage() {
                   auto-shrinking for longer ones. Glow kept subtle and tight so the
                   letterforms stay crisp instead of bleeding into a blur. */}
               <p
-                className={`nickname-reveal font-black leading-[0.92] text-center flex-shrink-0 ${doHyeon.className}`}
+                className={`nickname-reveal font-extrabold leading-[0.92] text-center flex-shrink-0 ${doHyeon.className}`}
                 style={{
                   fontSize: nicknameFontSize(state.winner.nickname),
                   color: "#f6f1ff",
@@ -755,7 +758,7 @@ export default function StrategyPage() {
 
               <div className="scene-fade-in flex items-center gap-2 mt-5 mb-1 flex-shrink-0" style={{ animationDelay: `${PRICE_COUNTDOWN_START_MS}ms` }}>
                 <span className="h-px w-5" style={{ background: "rgba(196,132,252,0.45)" }} />
-                <span className="text-[10px] font-bold tracking-[0.28em]" style={{ color: "rgba(196,132,252,0.85)" }}>
+                <span className="text-[10px] font-semibold tracking-[0.28em]" style={{ color: "rgba(196,132,252,0.85)" }}>
                   낙찰가
                 </span>
                 <span className="h-px w-5" style={{ background: "rgba(196,132,252,0.45)" }} />
@@ -763,7 +766,7 @@ export default function StrategyPage() {
 
               {/* Clearly smaller than the nickname — a supporting readout, not a second headline. */}
               <p
-                className="scene-fade-in font-black font-mono tabular-nums text-center flex-shrink-0"
+                className="scene-fade-in font-extrabold tabular-nums text-center flex-shrink-0"
                 style={{
                   fontSize: "1.7rem",
                   color: "#fff",
@@ -787,14 +790,14 @@ export default function StrategyPage() {
             {isMyWin ? (
               <Link
                 href={"/payment"}
-                className="block w-full max-w-xs mx-auto py-3.5 font-black text-[18px] text-white text-center bid-btn-purple rounded-xl"
+                className="block w-full max-w-xs mx-auto py-3.5 font-extrabold text-[18px] text-white text-center bid-btn-purple rounded-xl"
               >
                 결제하기 →
               </Link>
             ) : (
               <button
                 onClick={handleGoHome}
-                className="block w-full max-w-xs mx-auto py-3.5 font-bold text-base text-white rounded-xl"
+                className="block w-full max-w-xs mx-auto py-3.5 font-semibold text-base text-white rounded-xl"
                 style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
               >
                 홈으로
@@ -823,7 +826,7 @@ export default function StrategyPage() {
             </svg>
           </button>
           <div className="w-px h-3.5 bg-white/15 flex-shrink-0" />
-          <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-red-500">
+          <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-red-500">
             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
             LIVE
           </span>
@@ -850,7 +853,7 @@ export default function StrategyPage() {
           {isStrategy && (
             <button
               onClick={() => startGame()}
-              className="text-xs font-bold text-white/50 border border-white/15 px-2.5 py-1 rounded-lg transition-colors hover:text-white/80 hover:border-white/30 active:scale-95"
+              className="text-xs font-semibold text-white/50 border border-white/15 px-2.5 py-1 rounded-lg transition-colors hover:text-white/80 hover:border-white/30 active:scale-95"
             >
               바로시작 →
             </button>
@@ -866,7 +869,7 @@ export default function StrategyPage() {
               <p className="text-white/90 text-base font-semibold leading-snug line-clamp-1">
                 {state.config.productName}
               </p>
-              <p className="text-xs font-bold font-mono tabular-nums mt-1" style={{ color: "#c084fc" }}>정가 {formatKRW(start)}</p>
+              <p className="text-xs font-semibold tabular-nums mt-1" style={{ color: "#c084fc" }}>정가 {formatKRW(start)}</p>
             </div>
           </div>
         </div>
@@ -893,12 +896,12 @@ export default function StrategyPage() {
                 : `hsl(${(msg.nickname.charCodeAt(0) * 37) % 360}, 55%, 52%)`;
               return (
                 <div key={msg.id} className="flex items-start gap-2 py-0.5 chat-in">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-black text-white mt-0.5"
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-extrabold text-white mt-0.5"
                     style={{ background: avatarColor }}>
                     {initial}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs font-bold mr-1.5" style={{ color: isMe ? "#a855f7" : "rgba(255,255,255,0.85)" }}>
+                    <span className="text-xs font-semibold mr-1.5" style={{ color: isMe ? "#a855f7" : "rgba(255,255,255,0.85)" }}>
                       {displayName}
                     </span>
                     {!isGame && <span className="text-xs text-white/45">{formatTime(msg.timestamp)}</span>}
@@ -930,7 +933,7 @@ export default function StrategyPage() {
               <button
                 onClick={handleSendMessage}
                 disabled={!message.trim()}
-                className="bg-white/5 disabled:bg-white/3 disabled:text-white/10 text-white/40 w-10 font-bold text-sm flex items-center justify-center flex-shrink-0 transition-colors rounded-r-xl"
+                className="bg-white/5 disabled:bg-white/3 disabled:text-white/10 text-white/40 w-10 font-semibold text-sm flex items-center justify-center flex-shrink-0 transition-colors rounded-r-xl"
               >
                 ↑
               </button>
@@ -962,7 +965,7 @@ export default function StrategyPage() {
               className="flex flex-col items-center justify-center border border-white/12 gap-1 transition-colors active:bg-white/5 flex-[3] rounded-xl h-[88px] disabled:opacity-40 disabled:pointer-events-none"
             >
               <span className="material-symbols-outlined text-white" style={{ fontSize: "22px", lineHeight: 1 }}>visibility</span>
-              <span className="text-xs font-bold text-white/45 mt-0.5">{forcedWatcher ? "관전 중" : "관전"}</span>
+              <span className="text-xs font-semibold text-white/45 mt-0.5">{forcedWatcher ? "관전 중" : "관전"}</span>
             </button>
 
             {/* Bid button. Never a direct Link to /payment — the only path there
@@ -992,7 +995,7 @@ export default function StrategyPage() {
               {isStrategy ? (
                 <>
                   <span
-                    className="font-black font-mono tabular-nums leading-none"
+                    className="font-extrabold tabular-nums leading-none"
                     style={{
                       fontSize: "2.4rem", letterSpacing: "-0.02em",
                       color: isUrgent ? "#fff1f2" : "#f5f3ff",
@@ -1008,14 +1011,14 @@ export default function StrategyPage() {
               ) : (
                 <>
                   <span
-                    className={`font-black font-mono tabular-nums leading-none ${tickFlash ? "price-tick" : ""}`}
+                    className={`font-extrabold tabular-nums leading-none ${tickFlash ? "price-tick" : ""}`}
                     style={{ fontSize: "2.4rem", letterSpacing: "-0.02em" }}
                   >
                     {formatKRW(displayPrice)}
                   </span>
                   <div className={`flex items-center gap-2 mt-1 transition-opacity duration-300 ${currentSavings > 0 ? "opacity-100" : "opacity-0"}`}>
-                    <span className="text-[11px] font-bold text-white">-{currentSavingsPct}% · {formatKRW(currentSavings)} 절약</span>
-                    <span className="text-sm font-black text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>local_fire_department</span>낙찰받기</span>
+                    <span className="text-[11px] font-semibold text-white">-{currentSavingsPct}% · {formatKRW(currentSavings)} 절약</span>
+                    <span className="text-sm font-extrabold text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>local_fire_department</span>낙찰받기</span>
                   </div>
                 </>
               )}

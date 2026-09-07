@@ -26,22 +26,22 @@ function FailInner() {
           </svg>
         </div>
 
-        <p className="text-xs uppercase tracking-[0.18em] font-bold text-red-400 mb-2">
+        <p className="text-xs uppercase tracking-[0.18em] font-semibold text-red-400 mb-2">
           {isCancel ? "결제 취소" : "결제 실패"}
         </p>
-        <h1 className="text-lg font-black text-white mb-3">
+        <h1 className="text-lg font-extrabold text-white mb-3">
           {isCancel ? "결제가 취소되었습니다." : "결제에 실패했습니다."}
         </h1>
         <p className="text-white/55 text-sm leading-relaxed mb-2">{message}</p>
         {code && !isCancel && (
-          <p className="text-white/30 text-xs font-mono">오류 코드: {code}</p>
+          <p className="text-white/30 text-xs">오류 코드: {code}</p>
         )}
       </div>
 
       <div className="space-y-3 mt-10">
         <button
           onClick={() => window.history.back()}
-          className="w-full py-4 text-white font-bold text-base transition-opacity active:opacity-80"
+          className="w-full py-4 text-white font-semibold text-base transition-opacity active:opacity-80"
           style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
         >
           다시 시도하기

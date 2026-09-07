@@ -90,8 +90,7 @@ export default function ResultsPage() {
         </div>
 
         <div className="mb-8">
-          <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-[22px] font-black text-white leading-tight">지난 결과</h1>
+          <h1 className="text-[22px] font-extrabold text-white leading-tight">지난 결과</h1>
           <p className="text-white/65 text-base mt-2">끝까지 버텨낸 레전드 드랍.</p>
         </div>
 
@@ -109,8 +108,8 @@ export default function ResultsPage() {
               >
                 {/* Top row: name + tag badge */}
                 <div className="flex items-start justify-between gap-3 mb-3">
-                  <p className="text-base font-bold text-white/85 leading-snug">{r.name}</p>
-                  <span className={`text-xs font-black uppercase tracking-wider flex-shrink-0 px-2 py-0.5 rounded-full border ${tag.text} ${tag.bg} ${tag.border}`}>
+                  <p className="text-base font-semibold text-white/85 leading-snug">{r.name}</p>
+                  <span className={`text-xs font-extrabold uppercase tracking-wider flex-shrink-0 px-2 py-0.5 rounded-full border ${tag.text} ${tag.bg} ${tag.border}`}>
                     {r.tag}
                   </span>
                 </div>
@@ -121,12 +120,12 @@ export default function ResultsPage() {
                 {/* Price row */}
                 <div className="flex items-end gap-3 mb-3">
                   <span
-                    className="font-black font-mono tabular-nums leading-none"
+                    className="font-extrabold tabular-nums leading-none"
                     style={{ fontSize: isFirst ? "3rem" : "2.4rem", color: "#c084fc" }}
                   >
                     {fmt(r.winning)}
                   </span>
-                  <span className="mb-1 text-white/90 text-base font-black">-{r.discount}%</span>
+                  <span className="mb-1 text-white/90 text-base font-extrabold">-{r.discount}%</span>
                 </div>
 
                 {/* Divider */}
@@ -154,11 +153,11 @@ export default function ResultsPage() {
         >
           <p className="text-base text-white/65">
             오늘의 레전드는{" "}
-            <span className="font-black" style={{ color: "#c084fc" }}>당신이 만들 수 있어요.</span>
+            <span className="font-extrabold" style={{ color: "#c084fc" }}>당신이 만들 수 있어요.</span>
           </p>
           <Link
             href="/"
-            className="flex-shrink-0 px-4 py-2.5 text-white text-base font-bold rounded-xl transition-opacity active:opacity-80"
+            className="flex-shrink-0 px-4 py-2.5 text-white text-base font-semibold rounded-xl transition-opacity active:opacity-80"
             style={{ background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)" }}
           >
             참여 →

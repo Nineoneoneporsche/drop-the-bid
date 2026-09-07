@@ -1,9 +1,13 @@
 import type { Config } from "tailwindcss";
+import defaultTheme from "tailwindcss/defaultTheme";
 
 const config: Config = {
   content: ["./app/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-wanted-sans)", ...defaultTheme.fontFamily.sans],
+      },
       animation: {
         "pulse-slow": "pulse-slow 2s ease-in-out infinite",
         "slide-up": "slide-up 0.3s ease-out",

@@ -36,7 +36,7 @@ export default function DemoPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h1 className="text-lg font-black text-gray-900 tracking-tight">Demo</h1>
+            <h1 className="text-lg font-extrabold text-gray-900 tracking-tight">Demo</h1>
             <p className="text-gray-400 text-xs mt-0.5">Rabbit — 투자자 데모</p>
           </div>
           <a
@@ -49,7 +49,7 @@ export default function DemoPage() {
 
         {/* LIVE badge */}
         <div className="flex items-center gap-2 mb-4">
-          <span className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+          <span className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             LIVE
           </span>
@@ -66,26 +66,26 @@ export default function DemoPage() {
           <div className="relative w-full" style={{ height: 280 }}>
             <ProductImageFill alt={PRODUCT_NAME} priority />
             <div className="absolute bottom-3 left-3">
-              <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg float-badge">
+              <span className="bg-orange-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg float-badge">
                 <span className="material-symbols-outlined" style={{fontSize:"13px",verticalAlign:"-2px"}}>back_hand</span> 0명 대기 중
               </span>
             </div>
             <div className="absolute top-3 right-3">
-              <span className="bg-white/90 backdrop-blur-sm text-orange-500 text-sm font-black px-3 py-1.5 rounded-full shadow-md border border-orange-100">
+              <span className="bg-white/90 backdrop-blur-sm text-orange-500 text-sm font-extrabold px-3 py-1.5 rounded-full shadow-md border border-orange-100">
                 {formatKRW(START_PRICE)}
               </span>
             </div>
           </div>
 
           <div className="px-5 pt-4 pb-5">
-            <h2 className="text-gray-900 font-bold text-base leading-snug mb-1">
+            <h2 className="text-gray-900 font-semibold text-base leading-snug mb-1">
               {PRODUCT_NAME}
             </h2>
             <p className="text-gray-400 text-sm mb-4">{PRODUCT_DESC}</p>
 
             <div className="flex items-baseline gap-2 mb-1">
               <span className="text-gray-400 text-xs">시작가</span>
-              <span className="text-3xl font-black text-orange-500 font-mono tabular-nums">
+              <span className="text-3xl font-extrabold text-orange-500 tabular-nums">
                 {formatKRW(START_PRICE)}
               </span>
             </div>
@@ -95,7 +95,7 @@ export default function DemoPage() {
 
             <button
               onClick={() => router.push("/join")}
-              className="w-full font-bold py-4 rounded-2xl text-base text-white transition-all active:scale-[0.98] shadow-md"
+              className="w-full font-semibold py-4 rounded-2xl text-base text-white transition-all active:scale-[0.98] shadow-md"
               style={{
                 background: "linear-gradient(135deg, #fb923c 0%, #f97316 100%)",
                 boxShadow: "0 4px 20px rgba(249,115,22,0.35)",
@@ -114,7 +114,7 @@ export default function DemoPage() {
               className="bg-white rounded-2xl p-3 text-center border border-gray-100 shadow-sm"
             >
               <div className="mb-1"><span className="material-symbols-outlined text-gray-400" style={{fontSize:"22px"}}>{icon}</span></div>
-              <p className="text-gray-900 font-bold text-sm leading-tight">{value}</p>
+              <p className="text-gray-900 font-semibold text-sm leading-tight">{value}</p>
               <p className="text-gray-400 text-xs mt-0.5">{label}</p>
             </div>
           ))}
@@ -128,7 +128,7 @@ export default function DemoPage() {
           <div className="space-y-4">
             {FLOW_STEPS.map(({ icon, title, desc }, i) => (
               <div key={title} className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-xs flex-shrink-0 font-bold text-orange-500">
+                <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-xs flex-shrink-0 font-semibold text-orange-500">
                   {i + 1}
                 </div>
                 <div>
@@ -178,7 +178,7 @@ export default function DemoPage() {
               { nick: "smart_buyer", msg: "타이밍 싸움이라 긴장감이 엄청나요 ㅎㅎ" },
             ].map(({ nick, msg }) => (
               <div key={nick} className="flex items-start gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center text-xs font-black text-white flex-shrink-0">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center text-xs font-extrabold text-white flex-shrink-0">
                   {nick[0].toUpperCase()}
                 </div>
                 <div className="flex-1 bg-gray-50 rounded-2xl rounded-tl-sm px-3 py-2 text-xs border border-gray-100">
@@ -193,7 +193,7 @@ export default function DemoPage() {
         {/* Final CTA */}
         <button
           onClick={() => router.push("/join")}
-          className="w-full font-bold py-4 rounded-2xl text-base text-white transition-all active:scale-[0.98] shadow-md"
+          className="w-full font-semibold py-4 rounded-2xl text-base text-white transition-all active:scale-[0.98] shadow-md"
           style={{
             background: "linear-gradient(135deg, #fb923c 0%, #f97316 100%)",
             boxShadow: "0 4px 20px rgba(249,115,22,0.35)",

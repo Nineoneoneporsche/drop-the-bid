@@ -1,6 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import "./globals.css";
 import { GameProvider } from "./context/GameContext";
+
+// Same self-hosted variable-font file already used on /font-compare — one
+// woff2 covering the whole 400–1000 weight range, so no per-weight files.
+const wantedSans = localFont({
+  src: "../public/fonts/WantedSansVariable.woff2",
+  display: "swap",
+  weight: "400 1000",
+  variable: "--font-wanted-sans",
+});
 
 export const metadata: Metadata = {
   title: "Rabbit",
@@ -15,7 +25,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={wantedSans.variable}>
 <body className="antialiased bg-gray-950 text-white min-h-screen">
         <GameProvider>{children}</GameProvider>
       </body>

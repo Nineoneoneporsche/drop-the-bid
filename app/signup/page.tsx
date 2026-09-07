@@ -183,7 +183,7 @@ function TermsModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0">
-          <h2 className="text-lg font-bold text-white">{title}</h2>
+          <h2 className="text-lg font-semibold text-white">{title}</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors"
@@ -204,7 +204,7 @@ function TermsModal({
           {onAgree && (
             <button
               onClick={() => { onAgree(); onClose(); }}
-              className="w-full py-3.5 text-white font-bold text-base rounded-xl transition-opacity active:opacity-80"
+              className="w-full py-3.5 text-white font-semibold text-base rounded-xl transition-opacity active:opacity-80"
               style={{ background: agreed ? "rgba(168,85,247,0.3)" : "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
             >
               {agreed ? "동의 완료" : "동의하고 닫기"}
@@ -282,7 +282,7 @@ function Progress({ step }: { step: number }) {
       <div className="flex items-center justify-between mb-2">
         {STEPS.map((label, i) => (
           <div key={label} className="flex flex-col items-center gap-1" style={{ flex: 1 }}>
-            <div className={`w-6 h-6 rounded-full text-xs font-black flex items-center justify-center transition-colors ${
+            <div className={`w-6 h-6 rounded-full text-xs font-extrabold flex items-center justify-center transition-colors ${
               i + 1 < step ? "bg-[#a855f7] text-white" :
               i + 1 === step ? "bg-[#a855f7] text-white" : "bg-white/10 text-white/40"
             }`}>
@@ -506,7 +506,7 @@ export default function SignupPage() {
 
         <div className="mb-6">
           <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-[22px] font-black text-white leading-tight">회원가입</h1>
+          <h1 className="text-[22px] font-extrabold text-white leading-tight">회원가입</h1>
         </div>
 
         <Progress step={step} />
@@ -518,7 +518,7 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => supabase.auth.signInWithOAuth({ provider: "kakao", options: { redirectTo: `${window.location.origin}/auth/callback` } })}
-              className="w-full py-3.5 font-bold text-base rounded-xl mb-2.5 flex items-center justify-center gap-2.5 active:opacity-80 transition-opacity"
+              className="w-full py-3.5 font-semibold text-base rounded-xl mb-2.5 flex items-center justify-center gap-2.5 active:opacity-80 transition-opacity"
               style={{ background: "#FEE500", color: "#191919" }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#191919">
@@ -529,7 +529,7 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback` } })}
-              className="w-full py-3.5 font-bold text-base rounded-xl mb-5 flex items-center justify-center gap-2.5 border border-white/15 active:opacity-80 transition-opacity"
+              className="w-full py-3.5 font-semibold text-base rounded-xl mb-5 flex items-center justify-center gap-2.5 border border-white/15 active:opacity-80 transition-opacity"
               style={{ background: "#fff", color: "#1f1f1f" }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
@@ -581,7 +581,7 @@ export default function SignupPage() {
 
             <div className="mt-6 mb-5 bg-[#141414] border border-white/10 rounded-2xl p-4">
               <CheckRow checked={agreeAll} onChange={toggleAgreeAll}>
-                <span className="font-bold text-white/85">전체 동의</span>
+                <span className="font-semibold text-white/85">전체 동의</span>
               </CheckRow>
               <div className="border-t border-white/10 mt-3 pt-3 space-y-1">
                 <CheckRow
@@ -672,7 +672,7 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={handlePostcodeSearch}
-                  className="flex-shrink-0 px-4 py-3 text-base font-bold text-white rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
+                  className="flex-shrink-0 px-4 py-3 text-base font-semibold text-white rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
                 >
                   주소 검색
                 </button>
@@ -695,7 +695,7 @@ export default function SignupPage() {
         {step === 4 && (
           <div key="step4" className="step-enter">
             <div className="bg-[#141414] border border-white/10 rounded-2xl px-5 pt-5 pb-2 mb-4">
-              <p className="text-white/85 text-sm font-bold mb-1">결제 카드 등록 <span className="text-white/40 font-normal text-xs ml-1">선택</span></p>
+              <p className="text-white/85 text-sm font-semibold mb-1">결제 카드 등록 <span className="text-white/40 font-normal text-xs ml-1">선택</span></p>
               <p className="text-white/45 text-xs mb-5 leading-relaxed">등록하면 낙찰 시 바로 결제할 수 있어요. 나중에 마이페이지에서도 등록 가능해요.</p>
 
               <Field label="카드 번호" placeholder="0000-0000-0000-0000"
@@ -722,7 +722,7 @@ export default function SignupPage() {
         {/* ── Buttons ── */}
         <div className="mt-6 space-y-2">
           {submitErr && <p className="text-red-400 text-sm text-center">{submitErr}</p>}
-          <button onClick={handleNext} disabled={submitting} className="w-full py-4 text-white font-bold text-base bid-btn-purple rounded-xl disabled:opacity-50">
+          <button onClick={handleNext} disabled={submitting} className="w-full py-4 text-white font-semibold text-base bid-btn-purple rounded-xl disabled:opacity-50">
             {submitting ? "처리 중..." : step < 4 ? "다음" : "가입 완료"}
           </button>
 

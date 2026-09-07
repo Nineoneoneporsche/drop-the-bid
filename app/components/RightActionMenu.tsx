@@ -53,21 +53,21 @@ function CardIcon() {
 function KakaoIcon() {
   return (
     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#FEE500" }}>
-      <span className="text-sm font-black" style={{ color: "#3A1D1D" }}>K</span>
+      <span className="text-sm font-extrabold" style={{ color: "#3A1D1D" }}>K</span>
     </div>
   );
 }
 function NaverIcon() {
   return (
     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#03C75A" }}>
-      <span className="text-sm font-black text-white">N</span>
+      <span className="text-sm font-extrabold text-white">N</span>
     </div>
   );
 }
 function TossIcon() {
   return (
     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#0064FF" }}>
-      <span className="text-sm font-black text-white">T</span>
+      <span className="text-sm font-extrabold text-white">T</span>
     </div>
   );
 }
@@ -97,7 +97,7 @@ function WalletModal({ onClose, showToast }: { onClose: () => void; showToast: (
 
         {/* Header */}
         <div className="px-6 mb-6 flex-shrink-0 text-center">
-          <h2 className="text-white text-lg font-bold mb-1">결제수단 추가</h2>
+          <h2 className="text-white text-lg font-semibold mb-1">결제수단 추가</h2>
           <p className="text-neutral-400 text-sm">상품을 낙찰받기 전까지는 결제되지 않습니다.</p>
         </div>
 

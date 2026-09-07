@@ -114,8 +114,7 @@ export default function GuidePage() {
         </div>
 
         <div ref={setRef(1)} className="card-rise mb-8" style={{ transitionDelay: "60ms" }}>
-          <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-[22px] font-black text-white leading-tight">게임방법</h1>
+          <h1 className="text-[22px] font-extrabold text-white leading-tight">게임방법</h1>
           <p className="text-base text-white/65 mt-2">가격이 내려가는 순간, 먼저 누른 사람이 임자!</p>
         </div>
 
@@ -126,7 +125,7 @@ export default function GuidePage() {
             {/* Header */}
             <div className="px-4 pt-4 pb-3 border-b border-white/10">
               <div className="flex items-center gap-2 mb-2.5">
-                <span className="flex items-center gap-1 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 bg-red-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
                   <span className="w-1 h-1 bg-white rounded-full animate-pulse inline-block" />
                   LIVE
                 </span>
@@ -142,7 +141,7 @@ export default function GuidePage() {
               </div>
 
               <div
-                className="font-black tabular-nums font-mono leading-none transition-all duration-700 price-tick"
+                className="font-extrabold tabular-nums leading-none transition-all duration-700 price-tick"
                 style={{
                   fontSize: "2.4rem",
                   color: isTense ? "#fff1f2" : "#f5f3ff",
@@ -173,7 +172,7 @@ export default function GuidePage() {
             <div className="px-4 py-2 h-[60px] flex flex-col justify-end gap-1 overflow-hidden">
               {visibleChats.map((c) => (
                 <div key={c.id} className="chat-in leading-relaxed">
-                  <span className="text-[10px] font-bold text-white/60 mr-1.5">{c.nick}</span>
+                  <span className="text-[10px] font-semibold text-white/60 mr-1.5">{c.nick}</span>
                   <span className="text-[11px] text-white/75">{c.msg}</span>
                 </div>
               ))}
@@ -182,7 +181,7 @@ export default function GuidePage() {
             {/* Bid button (demo) */}
             <div className="px-4 pb-4">
               <div
-                className="w-full py-3.5 font-bold text-base text-white text-center rounded-xl select-none transition-all duration-300"
+                className="w-full py-3.5 font-semibold text-base text-white text-center rounded-xl select-none transition-all duration-300"
                 style={{
                   background: buttonPressed
                     ? "linear-gradient(180deg, #4ade80 0%, #22c55e 100%)"
@@ -207,13 +206,13 @@ export default function GuidePage() {
                 <div className="mb-3"><span className="material-symbols-outlined" style={{fontSize:"2.5rem"}}>celebration</span></div>
                 <p className="text-[10px] uppercase tracking-widest text-white/55 mb-1 font-medium">낙찰 성공</p>
                 <p
-                  className="font-black font-mono tabular-nums leading-none mb-2"
+                  className="font-extrabold tabular-nums leading-none mb-2"
                   style={{ fontSize: "2.4rem", color: "#f5f3ff", textShadow: NEON_PURPLE }}
                 >
                   {fmt(FLOOR_PRICE)}
                 </p>
                 <p className="text-white/70 text-sm text-center">
-                  <span className="font-bold text-white">샘플유저</span>님이 낙찰받았습니다!
+                  <span className="font-semibold text-white">샘플유저</span>님이 낙찰받았습니다!
                 </p>
                 {showHint && (
                   <p className="text-white/45 text-xs text-center leading-relaxed mt-3">
@@ -232,13 +231,13 @@ export default function GuidePage() {
           {RULES.map(({ n, title, desc }) => (
             <div key={n} className="bg-[#141414] border border-white/10 rounded-2xl px-5 py-4 flex items-start gap-4">
               <span
-                className="text-xs font-black font-mono flex-shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center"
+                className="text-xs font-extrabold flex-shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center"
                 style={{ background: "rgba(168,85,247,0.15)", color: "#a855f7" }}
               >
                 {n}
               </span>
               <div>
-                <p className="text-base font-bold text-white/90 mb-0.5">{title}</p>
+                <p className="text-base font-semibold text-white/90 mb-0.5">{title}</p>
                 <p className="text-sm text-white/55 leading-relaxed">{desc}</p>
               </div>
             </div>
@@ -247,10 +246,10 @@ export default function GuidePage() {
 
         {/* CTAs */}
         <div ref={setRef(4)} className="card-rise flex flex-col gap-2" style={{ transitionDelay: "240ms" }}>
-          <Link href="/practice" className="w-full py-4 text-white font-bold text-base text-center bid-btn-purple rounded-xl">
+          <Link href="/practice" className="w-full py-4 text-white font-semibold text-base text-center bid-btn-purple rounded-xl">
             모의훈련 해보기
           </Link>
-          <Link href="/" className="w-full py-4 font-bold text-base text-center border border-white/12 text-white/55 rounded-xl transition-colors hover:border-white/25 hover:text-white/80">
+          <Link href="/" className="w-full py-4 font-semibold text-base text-center border border-white/12 text-white/55 rounded-xl transition-colors hover:border-white/25 hover:text-white/80">
             오늘의 DTB 보기 →
           </Link>
         </div>

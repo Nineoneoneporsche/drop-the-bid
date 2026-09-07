@@ -80,7 +80,7 @@ export default function HomePage() {
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-10">
           <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-black px-2 py-1 uppercase tracking-[0.18em]">
+            <span className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-extrabold px-2 py-1 uppercase tracking-[0.18em]">
               <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
               LIVE
             </span>
@@ -96,7 +96,7 @@ export default function HomePage() {
         {/* Headline */}
         <div className="absolute left-0 right-0 pl-10 pr-5" style={{ top: "42%" }}>
           <h1
-            className="font-black leading-[1.08] mb-3"
+            className="font-extrabold leading-[1.08] mb-3"
             style={{
               fontSize: "2.1rem",
               letterSpacing: "-0.025em",
@@ -117,7 +117,7 @@ export default function HomePage() {
             }}
           >
             <span className="material-symbols-outlined" style={{fontSize:"15px",verticalAlign:"-3px"}}>group</span>{" "}
-            <span className="text-orange-400 font-bold tabular-nums">
+            <span className="text-orange-400 font-semibold tabular-nums">
               {participantCount}명
             </span>
             이 기다리고 있습니다.
@@ -147,7 +147,7 @@ export default function HomePage() {
                 시작 가격
               </p>
               <p
-                className="text-white font-black tabular-nums font-mono leading-none"
+                className="text-white font-extrabold tabular-nums leading-none"
                 style={{ fontSize: "1.65rem" }}
               >
                 {formatKRW(start)}
@@ -159,7 +159,7 @@ export default function HomePage() {
               <p className="text-xs uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
                 하락 속도
               </p>
-              <p className="text-white font-bold tabular-nums font-mono text-[1.35rem] leading-none">
+              <p className="text-white font-semibold tabular-nums text-[1.35rem] leading-none">
                 ₩{state.config.dropAmount.toLocaleString()}/초
               </p>
               <p className="text-white/45 text-xs mt-1">실시간 자동 하락</p>
@@ -170,7 +170,7 @@ export default function HomePage() {
               <p className="text-xs uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
                 참가자 수
               </p>
-              <p className="text-white font-bold text-[1.35rem] leading-none">
+              <p className="text-white font-semibold text-[1.35rem] leading-none">
                 <span className="tabular-nums">{participantCount}</span>
                 <span className="text-sm ml-0.5">명</span>
               </p>
@@ -183,7 +183,7 @@ export default function HomePage() {
                 경매 상태
               </p>
               <p
-                className="font-black tabular-nums font-mono leading-none"
+                className="font-extrabold tabular-nums leading-none"
                 style={{
                   fontSize: auctionLive || strategizing ? "1.1rem" : countdown === null ? "1.1rem" : "1.65rem",
                   color: auctionLive ? "#ff2d2d" : strategizing ? "#e8ff00" : "#f5f3ff",
@@ -229,13 +229,13 @@ export default function HomePage() {
         >
           <ProductThumb alt={state.config.productName} size={64} rounded="rounded-sm" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs uppercase tracking-[0.22em] text-orange-400 font-bold mb-1">
+            <p className="text-xs uppercase tracking-[0.22em] text-orange-400 font-semibold mb-1">
               오늘의 경매
             </p>
-            <p className="text-white font-bold text-base leading-snug">
+            <p className="text-white font-semibold text-base leading-snug">
               {state.config.productName}
             </p>
-            <p className="text-white text-sm tabular-nums font-mono mt-1">
+            <p className="text-white text-sm tabular-nums mt-1">
               정가 {formatKRW(start)}
             </p>
           </div>
@@ -246,7 +246,7 @@ export default function HomePage() {
           {auctionLive ? (
             <button
               onClick={() => router.push("/join")}
-              className="w-full font-black text-base text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1"
+              className="w-full font-extrabold text-base text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1"
               style={{
                 background: "linear-gradient(135deg, #374151 0%, #1f2937 100%)",
                 borderRadius: "10px",
@@ -262,7 +262,7 @@ export default function HomePage() {
           ) : (
             <button
               onClick={() => router.push("/join")}
-              className="w-full font-black text-base text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1 bid-btn-purple-plain rounded-[10px] relative overflow-hidden"
+              className="w-full font-extrabold text-base text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1 bid-btn-purple-plain rounded-[10px] relative overflow-hidden"
             >
               <div className="bid-shimmer absolute inset-y-0 w-[40%]" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)" }} />
               <span className="flex items-center gap-2"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>local_fire_department</span>경매 참여하기</span>

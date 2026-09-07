@@ -76,32 +76,46 @@ function LoggedOut() {
     });
   }
 
+  const cardRefs = useRef<(HTMLElement | null)[]>([]);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) { e.target.classList.add("card-visible"); observer.unobserve(e.target); }
+        });
+      },
+      { threshold: 0.06, rootMargin: "0px 0px -32px 0px" }
+    );
+    cardRefs.current.forEach(el => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, []);
+  const setRef = (i: number) => (el: HTMLElement | null) => { cardRefs.current[i] = el; };
+
   return (
     <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center pb-28">
       <div className="w-full max-w-md px-4 pt-10">
 
-        <div className="mb-5"><HomeButton /></div>
+        <div ref={setRef(0)} className="card-rise mb-5"><HomeButton /></div>
 
-        <div className="mb-8">
-          <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-[22px] font-black text-white leading-tight">My Page</h1>
+        <div ref={setRef(1)} className="card-rise mb-8" style={{ transitionDelay: "60ms" }}>
+          <h1 className="text-[22px] font-extrabold text-white leading-tight">My Page</h1>
         </div>
 
         {/* Guest card */}
-        <div className="bg-[#141414] border border-white/10 rounded-2xl p-6 text-center mb-4">
+        <div ref={setRef(2)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl p-6 text-center mb-4" style={{ transitionDelay: "120ms" }}>
           <div className="w-16 h-16 rounded-full bg-white/8 flex items-center justify-center mx-auto mb-4">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="8" r="4"/>
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
             </svg>
           </div>
-          <h2 className="text-lg font-black text-white mb-1.5">로그인이 필요해요</h2>
+          <h2 className="text-lg font-extrabold text-white mb-1.5">로그인이 필요해요</h2>
           <p className="text-white/50 text-sm mb-6 leading-relaxed">낙찰 내역, 배지, 절약 금액을<br/>확인하려면 로그인하세요.</p>
 
           {/* 소셜 로그인 */}
           <button
             onClick={() => handleSocialLogin("kakao")}
-            className="w-full py-3.5 font-bold text-base rounded-xl mb-2.5 flex items-center justify-center gap-2.5 active:opacity-80 transition-opacity"
+            className="w-full py-3.5 font-semibold text-base rounded-xl mb-2.5 flex items-center justify-center gap-2.5 active:opacity-80 transition-opacity"
             style={{ background: "#FEE500", color: "#191919" }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#191919">
@@ -111,7 +125,7 @@ function LoggedOut() {
           </button>
           <button
             onClick={() => handleSocialLogin("google")}
-            className="w-full py-3.5 font-bold text-base rounded-xl mb-3 flex items-center justify-center gap-2.5 border border-white/15 active:opacity-80 transition-opacity"
+            className="w-full py-3.5 font-semibold text-base rounded-xl mb-3 flex items-center justify-center gap-2.5 border border-white/15 active:opacity-80 transition-opacity"
             style={{ background: "#fff", color: "#1f1f1f" }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -129,7 +143,7 @@ function LoggedOut() {
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
-          <Link href="/signup" className="block w-full py-4 text-white font-bold text-base text-center bid-btn-purple rounded-xl mb-3">
+          <Link href="/signup" className="block w-full py-4 text-white font-semibold text-base text-center bid-btn-purple rounded-xl mb-3">
             회원가입
           </Link>
 
@@ -169,7 +183,7 @@ function LoggedOut() {
                 {loginErr && <p className="text-red-400 text-xs">{loginErr}</p>}
                 <button
                   onClick={handleLogin}
-                  className="w-full py-3 text-white font-bold text-base rounded-xl transition-opacity active:opacity-80"
+                  className="w-full py-3 text-white font-semibold text-base rounded-xl transition-opacity active:opacity-80"
                   style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
                 >
                   로그인
@@ -189,7 +203,7 @@ function LoggedOut() {
             <div className="step-enter text-left mt-1 border-t border-white/10 pt-4">
               {resetSent ? (
                 <div className="text-center py-2">
-                  <p className="text-green-400 text-sm font-bold mb-1">이메일을 확인해주세요</p>
+                  <p className="text-green-400 text-sm font-semibold mb-1">이메일을 확인해주세요</p>
                   <p className="text-white/45 text-xs leading-relaxed">재설정 링크를 보내드렸습니다.<br/>스팸함도 확인해보세요.</p>
                   <button onClick={() => { setForgotPw(false); setResetSent(false); }} className="text-white/35 text-xs mt-4">← 로그인으로 돌아가기</button>
                 </div>
@@ -211,7 +225,7 @@ function LoggedOut() {
                   {resetErr && <p className="text-red-400 text-xs">{resetErr}</p>}
                   <button
                     onClick={handleResetRequest}
-                    className="w-full py-3 text-white font-bold text-base rounded-xl transition-opacity active:opacity-80"
+                    className="w-full py-3 text-white font-semibold text-base rounded-xl transition-opacity active:opacity-80"
                     style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
                   >
                     재설정 이메일 보내기
@@ -444,20 +458,19 @@ export default function MyPage() {
         </div>
 
         <div ref={setRef(1)} className="card-rise mb-6" style={{ transitionDelay: "50ms" }}>
-          <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-[22px] font-black text-white leading-tight">My Page</h1>
+          <h1 className="text-[22px] font-extrabold text-white leading-tight">My Page</h1>
         </div>
 
         {/* Profile */}
         <div ref={setRef(2)} className="card-rise flex items-center gap-4 mb-6" style={{ transitionDelay: "100ms" }}>
           <div
-            className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center text-2xl font-black text-white"
+            className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center text-2xl font-extrabold text-white"
             style={{ background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)" }}
           >
             {user.nickname[0]}
           </div>
           <div>
-            <p className="text-lg font-black text-white">{user.nickname}</p>
+            <p className="text-lg font-extrabold text-white">{user.nickname}</p>
             <p className="text-sm text-white/55 mt-0.5">일반 참가자 · {user.since}부터</p>
             <p className="text-xs text-white/35 mt-0.5">{user.email}</p>
           </div>
@@ -473,7 +486,7 @@ export default function MyPage() {
           ].map(({ label, value }, i) => (
             <div key={label} className={`text-center py-4 ${i > 0 ? "border-l border-white/10" : ""}`}>
               <p className="text-xs uppercase tracking-wider text-white/50 font-medium mb-0.5">{label}</p>
-              <p className="font-black text-base font-mono tabular-nums" style={{ color: "#c084fc" }}>{value}</p>
+              <p className="font-extrabold text-base tabular-nums" style={{ color: "#c084fc" }}>{value}</p>
             </div>
           ))}
         </div>
@@ -497,7 +510,7 @@ export default function MyPage() {
                   <p className="text-base font-semibold text-white/80 truncate">{order.product_name}</p>
                   <p className="text-xs text-white/50 mt-0.5">{dateStr}</p>
                 </div>
-                <p className="text-sm font-black font-mono flex-shrink-0" style={{ color: "#c084fc" }}>{fmt(order.amount)}</p>
+                <p className="text-sm font-extrabold flex-shrink-0" style={{ color: "#c084fc" }}>{fmt(order.amount)}</p>
               </div>
             );
           })}
@@ -551,7 +564,7 @@ export default function MyPage() {
                   <button
                     type="button"
                     onClick={searchPostcode}
-                    className="flex-shrink-0 px-4 py-2.5 text-base font-bold text-white rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
+                    className="flex-shrink-0 px-4 py-2.5 text-base font-semibold text-white rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 transition-colors"
                   >
                     검색
                   </button>
@@ -585,7 +598,7 @@ export default function MyPage() {
                 <button
                   onClick={saveAddr}
                   disabled={addrSaving || !addrForm.address}
-                  className="flex-[2] py-2.5 text-base font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
+                  className="flex-[2] py-2.5 text-base font-semibold text-white rounded-xl disabled:opacity-40 transition-colors"
                   style={{ background: addrSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
                 >
                   {addrSaved ? "저장 완료!" : addrSaving ? "저장 중..." : "저장"}
@@ -609,7 +622,7 @@ export default function MyPage() {
 
           {!editingNick ? (
             <div className="px-5 pb-4">
-              <p className="text-white/80 text-base font-bold">{user.nickname}</p>
+              <p className="text-white/80 text-base font-semibold">{user.nickname}</p>
               <p className="text-white/35 text-xs mt-1">게임 입장 시 이 닉네임이 자동으로 사용됩니다</p>
             </div>
           ) : (
@@ -643,7 +656,7 @@ export default function MyPage() {
                 <button
                   onClick={saveNickname}
                   disabled={nickSaving || nickStatus !== "available"}
-                  className="flex-[2] py-2.5 text-base font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
+                  className="flex-[2] py-2.5 text-base font-semibold text-white rounded-xl disabled:opacity-40 transition-colors"
                   style={{ background: nickSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
                 >
                   {nickSaved ? "저장 완료!" : nickSaving ? "저장 중..." : "저장"}
@@ -705,7 +718,7 @@ export default function MyPage() {
                 <button
                   onClick={changePassword}
                   disabled={pwSaving || !pwNew || !pwConfirm}
-                  className="flex-[2] py-2.5 text-base font-bold text-white rounded-xl disabled:opacity-40 transition-colors"
+                  className="flex-[2] py-2.5 text-base font-semibold text-white rounded-xl disabled:opacity-40 transition-colors"
                   style={{ background: pwSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
                 >
                   {pwSaved ? "변경 완료!" : pwSaving ? "변경 중..." : "변경"}
@@ -773,7 +786,7 @@ export default function MyPage() {
         </div>
 
         <div ref={setRef(9)} className="card-rise space-y-2" style={{ transitionDelay: "380ms" }}>
-          <Link href="/" className="block w-full py-4 text-white font-bold text-base text-center bid-btn-purple rounded-xl">
+          <Link href="/" className="block w-full py-4 text-white font-semibold text-base text-center bid-btn-purple rounded-xl">
             오늘의 DTB 참여하기 →
           </Link>
           <button
@@ -792,7 +805,7 @@ export default function MyPage() {
             </button>
           ) : (
             <div className="bg-red-500/8 border border-red-500/20 rounded-xl p-4 space-y-3">
-              <p className="text-red-400 text-sm font-bold text-center">정말 탈퇴하시겠어요?</p>
+              <p className="text-red-400 text-sm font-semibold text-center">정말 탈퇴하시겠어요?</p>
               <p className="text-white/40 text-xs text-center leading-relaxed">
                 낙찰 내역, 프로필 등 모든 데이터가 삭제되며<br/>복구할 수 없습니다.
               </p>
@@ -806,7 +819,7 @@ export default function MyPage() {
                 <button
                   onClick={handleWithdraw}
                   disabled={withdrawing}
-                  className="flex-1 py-2.5 text-base font-bold text-white rounded-xl disabled:opacity-50"
+                  className="flex-1 py-2.5 text-base font-semibold text-white rounded-xl disabled:opacity-50"
                   style={{ background: "rgba(239,68,68,0.65)" }}
                 >
                   {withdrawing ? "처리 중..." : "탈퇴 확인"}

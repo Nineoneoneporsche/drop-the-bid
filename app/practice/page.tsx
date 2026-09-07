@@ -138,8 +138,7 @@ export default function PracticePage() {
         </div>
 
         <div ref={setRef(1)} className="card-rise mb-5" style={{ transitionDelay: "60ms" }}>
-          <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium mb-1">Drop The Bid</p>
-          <h1 className="text-[22px] font-black text-white leading-tight">모의훈련</h1>
+          <h1 className="text-[22px] font-extrabold text-white leading-tight">모의훈련</h1>
           <p className="text-base text-white/70 mt-2">실제 게임 전에 감각을 익혀보세요.</p>
         </div>
 
@@ -155,15 +154,15 @@ export default function PracticePage() {
             </div>
             <div className="px-5 pt-4 pb-5">
               <p className="text-xs uppercase tracking-wider text-white/55 mb-1 font-medium">연습 상품</p>
-              <h2 className="text-white font-bold text-base mb-4">배민 10,000원 상품권</h2>
+              <h2 className="text-white font-semibold text-base mb-4">배민 10,000원 상품권</h2>
               <div className="flex gap-6 mb-5">
                 <div>
                   <p className="text-xs uppercase tracking-wider text-white/55 mb-1 font-medium">시작가</p>
-                  <p className="text-2xl font-black text-white font-mono tabular-nums">{fmt(START)}</p>
+                  <p className="text-2xl font-extrabold text-white tabular-nums">{fmt(START)}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wider text-white/55 mb-1 font-medium">목표가</p>
-                  <p className="text-2xl font-black font-mono tabular-nums" style={{ color: "#c084fc" }}>{fmt(FLOOR)}</p>
+                  <p className="text-2xl font-extrabold tabular-nums" style={{ color: "#c084fc" }}>{fmt(FLOOR)}</p>
                 </div>
               </div>
               <div className="px-4 py-3 mb-5 rounded-xl" style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.2)" }}>
@@ -173,7 +172,7 @@ export default function PracticePage() {
               </div>
               <button
                 onClick={startGame}
-                className="w-full py-4 text-white font-bold text-base transition-opacity active:opacity-80 bid-btn-purple rounded-xl"
+                className="w-full py-4 text-white font-semibold text-base transition-opacity active:opacity-80 bid-btn-purple rounded-xl"
               >
                 훈련 시작
               </button>
@@ -189,24 +188,24 @@ export default function PracticePage() {
           >
             <div className="px-4 pt-4 pb-3 border-b border-white/10">
               <div className="flex items-center gap-2 mb-3">
-                <span className="flex items-center gap-1 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 bg-red-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
                   <span className="w-1 h-1 bg-white rounded-full animate-pulse inline-block" />
                   LIVE
                 </span>
                 <span className="text-white/65 text-xs flex items-center gap-0.5"><span className="material-symbols-outlined" style={{fontSize:"13px"}}>back_hand</span><b className="text-white/80">38명</b></span>
                 <span className="text-white/65 text-xs flex items-center gap-0.5"><span className="material-symbols-outlined" style={{fontSize:"13px"}}>visibility</span><b className="text-white/80">124명</b></span>
-                <span className="ml-auto bg-white/12 text-white/65 text-[10px] font-bold px-2 py-0.5 rounded-full">연습모드</span>
+                <span className="ml-auto bg-white/12 text-white/65 text-[10px] font-semibold px-2 py-0.5 rounded-full">연습모드</span>
               </div>
 
               {isTense && (
                 <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3 py-1.5 mb-2 rounded-lg">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block flex-shrink-0" />
-                  <span className="text-red-400 text-xs font-bold">위험 구간 진입</span>
+                  <span className="text-red-400 text-xs font-semibold">위험 구간 진입</span>
                 </div>
               )}
 
               <div
-                className="font-black tabular-nums font-mono leading-none transition-all duration-300"
+                className="font-extrabold tabular-nums leading-none transition-all duration-300"
                 style={{
                   fontSize: "3.5rem",
                   color: isTense ? "#fff1f2" : "#f5f3ff",
@@ -236,7 +235,7 @@ export default function PracticePage() {
             <div className="px-4 py-2 h-[72px] flex flex-col justify-end gap-1 overflow-hidden">
               {visibleChats.map((c) => (
                 <div key={c.id} className="chat-in leading-relaxed">
-                  <span className="text-[10px] font-bold text-white/60 mr-1.5">{c.nick}</span>
+                  <span className="text-[10px] font-semibold text-white/60 mr-1.5">{c.nick}</span>
                   <span className="text-[11px] text-white/80">{c.msg}</span>
                 </div>
               ))}
@@ -245,15 +244,15 @@ export default function PracticePage() {
             <div className="px-4 pb-4">
               <button
                 onClick={handlePress}
-                className={`w-full py-5 text-xl font-bold text-white transition-all active:scale-[0.98] rounded-xl ${isTense ? "bid-btn-critical" : "bid-btn-purple"}`}
+                className={`w-full py-5 text-xl font-semibold text-white transition-all active:scale-[0.98] rounded-xl ${isTense ? "bid-btn-critical" : "bid-btn-purple"}`}
               >
                 <span className="flex items-center justify-center gap-1.5"><span className="material-symbols-outlined" style={{fontSize:"22px"}}>local_fire_department</span>낙찰받기</span>
               </button>
               <p className="text-white/42 text-[11px] text-center mt-1.5">
                 지금 누르면{" "}
-                <span className="font-bold text-white/72">{fmt(price)}</span>에 낙찰
+                <span className="font-semibold text-white/72">{fmt(price)}</span>에 낙찰
                 {price < START && (
-                  <span className="ml-1.5 font-bold" style={{ color: isTense ? "#ef4444" : "#c084fc" }}>
+                  <span className="ml-1.5 font-semibold" style={{ color: isTense ? "#ef4444" : "#c084fc" }}>
                     · {fmt(START - price)} 절약
                   </span>
                 )}
@@ -271,7 +270,7 @@ export default function PracticePage() {
             <div className="mb-4"><span className="material-symbols-outlined" style={{fontSize:"3rem"}}>celebration</span></div>
             <p className="text-xs uppercase tracking-widest text-white/60 mb-2 font-medium">모의 낙찰 성공</p>
             <p
-              className="font-black font-mono tabular-nums leading-none mb-1"
+              className="font-extrabold tabular-nums leading-none mb-1"
               style={{ fontSize: "3rem", color: "#f5f3ff", textShadow: NEON_PURPLE }}
             >
               {fmt(winPrice)}
@@ -288,11 +287,11 @@ export default function PracticePage() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={startGame}
-                className="w-full py-4 text-white font-bold text-base transition-opacity active:opacity-80 bid-btn-purple rounded-xl"
+                className="w-full py-4 text-white font-semibold text-base transition-opacity active:opacity-80 bid-btn-purple rounded-xl"
               >
                 다시 훈련하기
               </button>
-              <Link href="/" className="w-full py-4 font-bold text-base text-center border border-white/15 text-white/65 rounded-xl">
+              <Link href="/" className="w-full py-4 font-semibold text-base text-center border border-white/15 text-white/65 rounded-xl">
                 오늘의 DTB 보기
               </Link>
             </div>
@@ -307,7 +306,7 @@ export default function PracticePage() {
           >
             <div className="text-5xl mb-4">😔</div>
             <p className="text-xs uppercase tracking-widest text-white/60 mb-2 font-medium">다른 참가자 낙찰</p>
-            <h2 className="text-lg font-black text-white mb-2">실패!</h2>
+            <h2 className="text-lg font-extrabold text-white mb-2">실패!</h2>
             <p className="text-white/75 text-sm mb-1">다른 참가자가 먼저 낙찰받았습니다.</p>
             <p className="text-white/60 text-sm mb-6">조금만 더 빨리 눌렀어야 해요.</p>
             <div className="px-4 py-3 mb-6 rounded-xl" style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.2)" }}>
@@ -317,7 +316,7 @@ export default function PracticePage() {
             </div>
             <button
               onClick={startGame}
-              className="w-full py-4 text-white font-bold text-base transition-opacity active:opacity-80 bid-btn-purple rounded-xl"
+              className="w-full py-4 text-white font-semibold text-base transition-opacity active:opacity-80 bid-btn-purple rounded-xl"
             >
               다시 훈련하기
             </button>

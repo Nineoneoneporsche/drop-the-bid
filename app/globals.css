@@ -6,6 +6,12 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
+  /* Reserve scrollbar space on every page regardless of whether that page's
+     content is tall enough to scroll — without this, pages center inside
+     `main` against whatever width is left after the scrollbar (present or
+     not), so short pages sit a few px further left/right than tall ones.
+     No-op on mobile, where scrollbars overlay instead of reserving space. */
+  scrollbar-gutter: stable;
 }
 
 body {
