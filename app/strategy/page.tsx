@@ -564,7 +564,7 @@ export default function StrategyPage() {
   if (!state.currentUser) return null;
 
   return (
-    <main className="h-dvh bg-[#0a0a0a] max-w-md mx-auto overflow-hidden relative flex flex-col">
+    <main className="fixed inset-x-0 top-0 h-dvh bg-[#0a0a0a] max-w-md mx-auto overflow-hidden flex flex-col">
 
       {/* ── Background video ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
