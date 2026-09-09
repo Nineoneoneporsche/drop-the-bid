@@ -120,8 +120,8 @@ export default function AdminPage() {
   }
 
   function handleReset() {
-    if (!confirm("게임을 리셋하고 홈으로 이동할까요?")) return;
-    resetGame().then(() => router.push("/"));
+    if (!confirm("게임을 리셋할까요?")) return;
+    resetGame();
   }
 
   function handleClearStorage() {
@@ -388,7 +388,7 @@ export default function AdminPage() {
             onClick={handleReset}
             className="w-full bg-white border-2 border-gray-200 hover:border-red-300 hover:text-red-500 text-gray-500 font-semibold py-4 rounded-2xl text-base transition-all active:scale-[0.98]"
           >
-            게임 리셋 &amp; 홈으로
+            게임 리셋
           </button>
 
           <button

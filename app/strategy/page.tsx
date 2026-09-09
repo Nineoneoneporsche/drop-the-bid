@@ -5,7 +5,6 @@ import { Do_Hyeon } from "next/font/google";
 
 const doHyeon = Do_Hyeon({ weight: "400", subsets: ["latin"], preload: false });
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import {
   useGame,
@@ -187,14 +186,17 @@ export default function StrategyPage() {
   const [showWatchConfirm, setShowWatchConfirm] = useState(false);
   const [showAuctionFailed, setShowAuctionFailed] = useState(false);
   const [tickFlash, setTickFlash] = useState(false);
-  const [djKey, setDjKey] = useState(0);
-  const [showDJ, setShowDJ] = useState(false);
-  const djTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const djIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const firedChatRef = useRef(new Set<number>());
   const firedNarratorRef = useRef(new Set<number>());
   const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rapidIdxRef = useRef(0);
+
+  // DROP ZONE entry sweep — brand mark slides in from the right, holds
+  // center, exits left, once per NORMAL→FAST / FAST→FINAL transition.
+  const [zoneSweepKey, setZoneSweepKey] = useState(0);
+  const [showZoneSweep, setShowZoneSweep] = useState(false);
+  const prevDropStageRef = useRef(state.dropStage);
+  const zoneSweepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Winner reveal sequence (freeze → blackout → video → blackout → LED reveal)
   type WinnerStage = "idle" | "blackout-in" | "video" | "blackout-out" | "reveal";
@@ -329,7 +331,7 @@ export default function StrategyPage() {
     return () => clearInterval(t);
   }, [state.phase, state.strategyStartedAt, state.config.strategyDuration, addLocalMessage]);
 
-  // ── Game tick flash + DJ interval + rapid chat ───────────────────────────
+  // ── Game tick flash + rapid chat ─────────────────────────────────────────
   useEffect(() => {
     if (state.phase !== "game" || isSequenceActive) return;
 
@@ -337,14 +339,6 @@ export default function StrategyPage() {
       setTickFlash(true);
       setTimeout(() => setTickFlash(false), 220);
     }, 1000);
-
-    function triggerDJ() {
-      setDjKey((k) => k + 1);
-      setShowDJ(true);
-      if (djTimerRef.current) clearTimeout(djTimerRef.current);
-      djTimerRef.current = setTimeout(() => setShowDJ(false), 2500);
-    }
-    djIntervalRef.current = setInterval(triggerDJ, 20_000);
 
     rapidIdxRef.current = 0;
     rapidChatRef.current = setInterval(() => {
@@ -361,11 +355,29 @@ export default function StrategyPage() {
 
     return () => {
       clearInterval(flashInterval);
-      if (djIntervalRef.current) clearInterval(djIntervalRef.current);
-      if (djTimerRef.current) clearTimeout(djTimerRef.current);
       if (rapidChatRef.current) clearInterval(rapidChatRef.current);
     };
   }, [state.phase, isSequenceActive, addLocalMessage]);
+
+  // ── DROP ZONE entry sweep ────────────────────────────────────────────────
+  // dropStage only advances while phase === "game" (see GameContext's price
+  // tick effect), so a plain prev-vs-current comparison here is enough — no
+  // extra phase guard needed. Skips the very first "normal" so mount never
+  // fires it, and skips while the winner sequence is running.
+  useEffect(() => {
+    const prev = prevDropStageRef.current;
+    prevDropStageRef.current = state.dropStage;
+    if (isSequenceActive || prev === state.dropStage || state.dropStage === "normal") return;
+
+    setZoneSweepKey((k) => k + 1);
+    setShowZoneSweep(true);
+    if (zoneSweepTimerRef.current) clearTimeout(zoneSweepTimerRef.current);
+    zoneSweepTimerRef.current = setTimeout(() => setShowZoneSweep(false), 2300);
+  }, [state.dropStage, isSequenceActive]);
+
+  useEffect(() => () => {
+    if (zoneSweepTimerRef.current) clearTimeout(zoneSweepTimerRef.current);
+  }, []);
 
   // ── Game chat / narrator events ──────────────────────────────────────────
   useEffect(() => {
@@ -579,10 +591,19 @@ export default function StrategyPage() {
         />
       </div>
 
-      {/* ── DJ overlay ── */}
-      {showDJ && (
-        <div key={djKey} className="dj-pop absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-          <Image src="/gamedj.png" alt="DJ" width={320} height={320} style={{ objectFit: "contain" }} priority />
+      {/* ── DROP ZONE entry sweep ── */}
+      {showZoneSweep && (
+        <div key={`zone-${zoneSweepKey}`} className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none overflow-hidden">
+          <img
+            src="/dtblogowhite.PNG"
+            alt=""
+            className="zone-sweep"
+            style={{
+              width: 320,
+              height: "auto",
+              filter: "drop-shadow(0 0 10px rgba(168,85,247,0.85)) drop-shadow(0 0 24px rgba(139,92,246,0.5))",
+            }}
+          />
         </div>
       )}
 

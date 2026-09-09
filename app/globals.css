@@ -125,16 +125,17 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   mask-image: linear-gradient(to bottom, transparent 0px, rgba(0,0,0,0.6) 36px, black 72px);
 }
 
-/* DJ appearance */
-@keyframes dj-appear {
-  0%   { opacity: 0; transform: scale(0.82); }
-  12%  { opacity: 1; transform: scale(1.04); }
-  20%  { opacity: 1; transform: scale(1);    }
-  78%  { opacity: 1; transform: scale(1);    }
-  100% { opacity: 0; transform: scale(0.92); }
+/* DROP ZONE entry sweep — brand mark enters from the right, holds center,
+   then exits left. Percentages split 2.3s (see zoneSweepTimerRef) into a
+   quick slide-in (~320ms), a clear hold (~1220ms), and a slide-out (~760ms). */
+@keyframes zone-sweep {
+  0%   { transform: translateX(130%); opacity: 0; }
+  14%  { transform: translateX(0); opacity: 1; }
+  67%  { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(-130%); opacity: 0; }
 }
-.dj-pop {
-  animation: dj-appear 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.zone-sweep {
+  animation: zone-sweep 2.3s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 /* Go-button pulse */
