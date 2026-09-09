@@ -929,6 +929,7 @@ export default function StrategyPage() {
                 </div>
               );
               const isMe = msg.nickname === state.currentUser?.nickname;
+              const isOperator = msg.nickname === state.config.operatorNickname;
               const displayName = isMe ? "나" : msg.nickname;
               const initial = displayName[0].toUpperCase();
               const avatarColor = isMe
@@ -941,11 +942,17 @@ export default function StrategyPage() {
                     {initial}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs font-semibold mr-1.5" style={{ color: isMe ? "#a855f7" : "rgba(255,255,255,0.85)" }}>
+                    <span
+                      className={`text-xs font-semibold mr-1.5 ${isOperator ? "px-1.5 py-0.5 rounded-md" : ""}`}
+                      style={{
+                        color: isOperator ? "#f3e8ff" : isMe ? "#a855f7" : "rgba(255,255,255,0.85)",
+                        background: isOperator ? "rgba(168,85,247,0.35)" : undefined,
+                      }}
+                    >
                       {displayName}
                     </span>
                     {!isGame && <span className="text-xs text-white/45">{formatTime(msg.timestamp)}</span>}
-                    <p className="text-sm text-white/90 leading-snug mt-0.5">{msg.message}</p>
+                    <p className={`text-sm leading-snug mt-0.5 ${isOperator ? "font-bold text-white" : "text-white/90"}`}>{msg.message}</p>
                   </div>
                 </div>
               );
