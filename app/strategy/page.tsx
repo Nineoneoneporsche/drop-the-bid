@@ -570,7 +570,6 @@ export default function StrategyPage() {
   const isStrategy = state.phase === "strategy";
   const isGame     = state.phase === "game";
   const isParticipant = state.currentUser?.role === "participant" && !forcedWatcher;
-  const chatBlocked   = isGame && state.currentUser?.role === "participant" && !forcedWatcher;
   const floor = state.config.floorPrice;
   const start = state.config.startPrice;
   const isUrgent = timeLeft <= 15;
@@ -962,30 +961,24 @@ export default function StrategyPage() {
 
         {/* Chat input */}
         <div className="flex-shrink-0 px-4 pt-2 pb-1.5 border-t border-white/8">
-          {chatBlocked ? (
-            <div className="flex items-center justify-center py-2.5 bg-white/4 rounded-xl border border-white/8">
-              <span className="text-white/35 text-xs flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"13px"}}>volume_off</span>경매 중 채팅에 참여할 수 없어요</span>
-            </div>
-          ) : (
-            <div className="flex">
-              <input
-                ref={inputRef}
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder={isStrategy ? "경기 전에 한 마디..." : "메시지..."}
-                className="flex-1 bg-white/5 border border-white/10 border-r-0 px-3 py-2 text-white placeholder-white/18 text-xs focus:outline-none focus:border-purple-500/40 transition-colors min-w-0 rounded-l-xl"
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={!message.trim()}
-                className="bg-white/5 disabled:bg-white/3 disabled:text-white/10 text-white/40 w-10 font-semibold text-sm flex items-center justify-center flex-shrink-0 transition-colors rounded-r-xl"
-              >
-                ↑
-              </button>
-            </div>
-          )}
+          <div className="flex">
+            <input
+              ref={inputRef}
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              placeholder={isStrategy ? "경기 전에 한 마디..." : "메시지..."}
+              className="flex-1 bg-white/5 border border-white/10 border-r-0 px-3 py-2 text-white placeholder-white/18 text-xs focus:outline-none focus:border-purple-500/40 transition-colors min-w-0 rounded-l-xl"
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!message.trim()}
+              className="bg-white/5 disabled:bg-white/3 disabled:text-white/10 text-white/40 w-10 font-semibold text-sm flex items-center justify-center flex-shrink-0 transition-colors rounded-r-xl"
+            >
+              ↑
+            </button>
+          </div>
         </div>
 
         {/* Action buttons */}
