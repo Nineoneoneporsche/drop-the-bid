@@ -365,6 +365,13 @@ export default function AdminPage() {
           </Field>
 
           <div className="space-y-3">
+            {operatorMessages.length > 0 && (
+              <div className="flex gap-2 px-1">
+                <span className="w-20 flex-shrink-0 text-xs font-semibold text-gray-400">구간 (%)</span>
+                <span className="w-4 flex-shrink-0" />
+                <span className="flex-1 text-xs font-semibold text-gray-400">메시지</span>
+              </div>
+            )}
             {operatorMessages.map((row, idx) => (
               <div key={idx} className="flex gap-2 items-start">
                 <input
