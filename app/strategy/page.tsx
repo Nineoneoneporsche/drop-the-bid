@@ -936,16 +936,26 @@ export default function StrategyPage() {
                 : `hsl(${(msg.nickname.charCodeAt(0) * 37) % 360}, 55%, 52%)`;
               return (
                 <div key={msg.id} className="flex items-start gap-2 py-0.5 chat-in">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-extrabold text-white mt-0.5"
-                    style={{ background: avatarColor }}>
-                    {initial}
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-extrabold text-white mt-0.5"
+                    style={{
+                      background: isOperator ? "linear-gradient(135deg, #d8b4fe, #9333ea)" : avatarColor,
+                      boxShadow: isOperator ? "0 0 8px rgba(168,85,247,0.7)" : undefined,
+                    }}
+                  >
+                    {isOperator ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                        <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7Z" />
+                      </svg>
+                    ) : initial}
                   </div>
                   <div className="flex-1 min-w-0">
                     <span
                       className={`text-xs font-semibold mr-1.5 ${isOperator ? "px-1.5 py-0.5 rounded-md" : ""}`}
                       style={{
-                        color: isOperator ? "#f3e8ff" : isMe ? "#a855f7" : "rgba(255,255,255,0.85)",
-                        background: isOperator ? "rgba(168,85,247,0.35)" : undefined,
+                        color: isOperator ? "#fff" : isMe ? "#a855f7" : "rgba(255,255,255,0.85)",
+                        background: isOperator ? "linear-gradient(135deg, #c084fc, #9333ea)" : undefined,
+                        boxShadow: isOperator ? "0 0 10px rgba(168,85,247,0.6)" : undefined,
                       }}
                     >
                       {displayName}
