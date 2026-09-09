@@ -188,6 +188,7 @@ export default function StrategyPage() {
   const [tickFlash, setTickFlash] = useState(false);
   const firedChatRef = useRef(new Set<number>());
   const firedNarratorRef = useRef(new Set<number>());
+  const firedOperatorRef = useRef(new Set<number>());
   const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const rapidIdxRef = useRef(0);
 
@@ -407,7 +408,22 @@ export default function StrategyPage() {
         });
       }
     }
-  }, [state.currentPrice, state.config.startPrice, state.phase, addLocalMessage]);
+    // Admin-configured operator messages (app/admin/page.tsx) — keyed by
+    // index rather than threshold so two rows sharing a % both still fire.
+    state.config.operatorMessages.forEach((evt, idx) => {
+      if (!evt.message.trim() || firedOperatorRef.current.has(idx)) return;
+      if (pct <= evt.threshold) {
+        firedOperatorRef.current.add(idx);
+        addLocalMessage({
+          id: `operator-${idx}`,
+          nickname: state.config.operatorNickname,
+          message: evt.message,
+          kind: "chat",
+          timestamp: Date.now() + 2,
+        });
+      }
+    });
+  }, [state.currentPrice, state.config.startPrice, state.config.operatorMessages, state.config.operatorNickname, state.phase, addLocalMessage]);
 
   // ── Auction failure detection ────────────────────────────────────────────
   // Skipped while `bidding` — a raiseHand() RPC is in flight, and the price

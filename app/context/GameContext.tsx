@@ -18,6 +18,15 @@ export interface ChatMessage {
 
 export type DropStage = "normal" | "fast" | "final";
 
+// Admin-configured chat message that fires once, under operatorNickname,
+// the first time the displayed price drops to/below `threshold`% of
+// startPrice. A free-form list (not fixed to 10%-steps) so the admin can
+// add/remove/re-space thresholds without a code change.
+export interface OperatorMessage {
+  threshold: number; // 0–100, % of startPrice
+  message: string;
+}
+
 export interface GameConfig {
   productName: string;
   startPrice: number;
@@ -39,6 +48,8 @@ export interface GameConfig {
   dropIntervalSeconds: number;      // NORMAL
   fastDropIntervalSeconds: number;  // FAST DROP ZONE
   finalDropIntervalSeconds: number; // FINAL DROP ZONE
+  operatorNickname: string;           // chat nickname operatorMessages fire under
+  operatorMessages: OperatorMessage[];
 }
 
 export interface CurrentUser {
@@ -76,6 +87,8 @@ export const DEFAULT_CONFIG: GameConfig = {
   dropIntervalSeconds: 1,
   fastDropIntervalSeconds: 1,
   finalDropIntervalSeconds: 1,
+  operatorNickname: "운영자",
+  operatorMessages: [],
 };
 
 // FAST requires: a positive rate and a threshold below startPrice.
@@ -158,6 +171,8 @@ type DbRow = {
   drop_interval_seconds: number;
   fast_drop_interval_seconds: number;
   final_drop_interval_seconds: number;
+  operator_nickname: string | null;
+  operator_messages: OperatorMessage[] | null;
 };
 
 function rowToConfig(row: DbRow): GameConfig {
@@ -175,6 +190,8 @@ function rowToConfig(row: DbRow): GameConfig {
     dropIntervalSeconds:      row.drop_interval_seconds       ?? DEFAULT_CONFIG.dropIntervalSeconds,
     fastDropIntervalSeconds:  row.fast_drop_interval_seconds  ?? DEFAULT_CONFIG.fastDropIntervalSeconds,
     finalDropIntervalSeconds: row.final_drop_interval_seconds ?? DEFAULT_CONFIG.finalDropIntervalSeconds,
+    operatorNickname: row.operator_nickname ?? DEFAULT_CONFIG.operatorNickname,
+    operatorMessages: Array.isArray(row.operator_messages) ? row.operator_messages : DEFAULT_CONFIG.operatorMessages,
   };
 }
 
@@ -528,6 +545,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (newConfig.dropIntervalSeconds      !== undefined) updates.drop_interval_seconds       = newConfig.dropIntervalSeconds;
     if (newConfig.fastDropIntervalSeconds  !== undefined) updates.fast_drop_interval_seconds  = newConfig.fastDropIntervalSeconds;
     if (newConfig.finalDropIntervalSeconds !== undefined) updates.final_drop_interval_seconds = newConfig.finalDropIntervalSeconds;
+    if (newConfig.operatorNickname !== undefined) updates.operator_nickname = newConfig.operatorNickname;
+    if (newConfig.operatorMessages !== undefined) updates.operator_messages = newConfig.operatorMessages;
 
     for (const [label, value] of [
       ["NORMAL", newConfig.dropIntervalSeconds],

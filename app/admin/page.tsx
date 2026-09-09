@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useGame, formatKRW, DEFAULT_CONFIG, validateDropZones } from "../context/GameContext";
+import { useGame, formatKRW, DEFAULT_CONFIG, validateDropZones, type OperatorMessage } from "../context/GameContext";
 
 function toLocalInput(iso: string): string {
   const d = new Date(iso);
@@ -36,6 +36,8 @@ export default function AdminPage() {
   });
   const [saved, setSaved] = useState(false);
   const [zoneError, setZoneError] = useState<string | null>(null);
+  const [operatorNickname, setOperatorNickname] = useState(state.config.operatorNickname);
+  const [operatorMessages, setOperatorMessages] = useState<OperatorMessage[]>(state.config.operatorMessages);
 
   // Keep form in sync with state.config — fixes the init race where useState
   // captures DEFAULT_CONFIG before GameProvider's localStorage useEffect fires.
@@ -55,6 +57,8 @@ export default function AdminPage() {
       fastDropIntervalSeconds: state.config.fastDropIntervalSeconds.toString(),
       finalDropIntervalSeconds: state.config.finalDropIntervalSeconds.toString(),
     });
+    setOperatorNickname(state.config.operatorNickname);
+    setOperatorMessages(state.config.operatorMessages);
   }, [state.config]);
 
   function set(key: string, value: string) {
@@ -99,6 +103,12 @@ export default function AdminPage() {
     if (err) { setZoneError(err); return; }
     setZoneError(null);
 
+    for (const row of operatorMessages) {
+      if (isNaN(row.threshold) || row.threshold < 0 || row.threshold > 100) {
+        return alert("운영자 메시지 구간(%)은 0~100 사이여야 합니다");
+      }
+    }
+
     updateConfig({
       productName: form.productName.trim() || DEFAULT_CONFIG.productName,
       startPrice,
@@ -113,6 +123,8 @@ export default function AdminPage() {
       dropIntervalSeconds,
       fastDropIntervalSeconds,
       finalDropIntervalSeconds,
+      operatorNickname: operatorNickname.trim() || DEFAULT_CONFIG.operatorNickname,
+      operatorMessages,
     }).then(() => {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -334,6 +346,70 @@ export default function AdminPage() {
             </p>
           )}
 
+          {/* Operator chat messages — a free list of {%, message} pairs, not
+              fixed to 10%-steps, so the admin can add/remove/re-space
+              thresholds without a code change. */}
+          <div className="pt-2 pb-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-orange-500">운영자 메시지</p>
+            <p className="text-gray-400 text-xs mt-1">가격이 시작가 대비 설정한 % 이하로 내려가는 순간, 채팅창에 운영자 닉네임으로 한 번씩 표시돼요. 메시지를 비워두면 해당 구간은 표시되지 않아요.</p>
+          </div>
+
+          <Field label="운영자 닉네임">
+            <input
+              type="text"
+              value={operatorNickname}
+              onChange={(e) => { setOperatorNickname(e.target.value); setSaved(false); }}
+              placeholder={DEFAULT_CONFIG.operatorNickname}
+              className={INPUT}
+            />
+          </Field>
+
+          <div className="space-y-3">
+            {operatorMessages.map((row, idx) => (
+              <div key={idx} className="flex gap-2 items-start">
+                <input
+                  type="number"
+                  value={row.threshold}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    setOperatorMessages((list) => list.map((r, i) => (i === idx ? { ...r, threshold: Number.isNaN(v) ? 0 : v } : r)));
+                    setSaved(false);
+                  }}
+                  className={INPUT + " font-mono w-20 flex-shrink-0 text-center px-2"}
+                  min={0}
+                  max={100}
+                />
+                <span className="text-gray-400 text-sm pt-3 flex-shrink-0">%</span>
+                <input
+                  type="text"
+                  value={row.message}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setOperatorMessages((list) => list.map((r, i) => (i === idx ? { ...r, message: v } : r)));
+                    setSaved(false);
+                  }}
+                  placeholder="이 구간에서 보여줄 메시지"
+                  className={INPUT + " flex-1"}
+                />
+                <button
+                  type="button"
+                  onClick={() => { setOperatorMessages((list) => list.filter((_, i) => i !== idx)); setSaved(false); }}
+                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-gray-300 hover:text-red-500 border-2 border-gray-200 hover:border-red-300 rounded-2xl transition-colors"
+                  aria-label="메시지 삭제"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => { setOperatorMessages((list) => [...list, { threshold: 0, message: "" }]); setSaved(false); }}
+              className="w-full border-2 border-dashed border-gray-200 hover:border-orange-300 text-gray-400 hover:text-orange-500 font-semibold py-3 rounded-2xl text-sm transition-colors"
+            >
+              + 메시지 추가
+            </button>
+          </div>
+
           <Field
             label="전략 회의 시간 (초)"
             hint={
@@ -421,6 +497,10 @@ export default function AdminPage() {
                   ]
                 : []),
               ["전략 시간", `${state.config.strategyDuration}초`],
+              [
+                "운영자 메시지",
+                `${state.config.operatorMessages.filter((m) => m.message.trim()).length}개 등록됨 · 닉네임 "${state.config.operatorNickname}"`,
+              ],
               [
                 "경매 시작",
                 state.config.gameStartTime
