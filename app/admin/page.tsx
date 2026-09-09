@@ -365,28 +365,31 @@ export default function AdminPage() {
           </Field>
 
           <div className="space-y-3">
-            {operatorMessages.length > 0 && (
-              <div className="flex gap-2 px-1">
-                <span className="w-20 flex-shrink-0 text-xs font-semibold text-gray-400">구간 (%)</span>
-                <span className="w-4 flex-shrink-0" />
-                <span className="flex-1 text-xs font-semibold text-gray-400">메시지</span>
-              </div>
-            )}
             {operatorMessages.map((row, idx) => (
-              <div key={idx} className="flex gap-2 items-start">
-                <input
-                  type="number"
-                  value={row.threshold}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value, 10);
-                    setOperatorMessages((list) => list.map((r, i) => (i === idx ? { ...r, threshold: Number.isNaN(v) ? 0 : v } : r)));
-                    setSaved(false);
-                  }}
-                  className={INPUT + " font-mono w-20 flex-shrink-0 text-center px-2"}
-                  min={0}
-                  max={100}
-                />
-                <span className="text-gray-400 text-sm pt-3 flex-shrink-0">%</span>
+              <div key={idx} className="border-2 border-gray-200 rounded-2xl p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={row.threshold}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      setOperatorMessages((list) => list.map((r, i) => (i === idx ? { ...r, threshold: Number.isNaN(v) ? 0 : v } : r)));
+                      setSaved(false);
+                    }}
+                    className={INPUT + " font-mono w-20 flex-shrink-0 text-center px-2"}
+                    min={0}
+                    max={100}
+                  />
+                  <span className="text-gray-400 text-sm flex-shrink-0">%</span>
+                  <button
+                    type="button"
+                    onClick={() => { setOperatorMessages((list) => list.filter((_, i) => i !== idx)); setSaved(false); }}
+                    className="ml-auto flex-shrink-0 w-9 h-9 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors"
+                    aria-label="메시지 삭제"
+                  >
+                    ✕
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={row.message}
@@ -396,16 +399,8 @@ export default function AdminPage() {
                     setSaved(false);
                   }}
                   placeholder="이 구간에서 보여줄 메시지"
-                  className={INPUT + " flex-1"}
+                  className={INPUT + " w-full"}
                 />
-                <button
-                  type="button"
-                  onClick={() => { setOperatorMessages((list) => list.filter((_, i) => i !== idx)); setSaved(false); }}
-                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-gray-300 hover:text-red-500 border-2 border-gray-200 hover:border-red-300 rounded-2xl transition-colors"
-                  aria-label="메시지 삭제"
-                >
-                  ✕
-                </button>
               </div>
             ))}
             <button
