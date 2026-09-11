@@ -496,7 +496,7 @@ export default function StrategyPage() {
   }, []);
 
   // Skip straight to the Today's Winner LED screen — used by the skip button
-  // during video playback.
+  // during video playback, and by the stall/error safety net below.
   const handleSkipWinnerVideo = useCallback(() => {
     if (skipButtonTimerRef.current) { clearTimeout(skipButtonTimerRef.current); skipButtonTimerRef.current = null; }
     setShowSkipButton(false);
@@ -504,6 +504,29 @@ export default function StrategyPage() {
     if (v) v.pause();
     setWinnerStage("reveal");
   }, []);
+
+  // Safety net: the manual SKIP button only *appears* at 3s — it doesn't help
+  // if the video never becomes playable at all (stalled network, decode error,
+  // a backgrounded/occluded tab deferring the load) and the user doesn't tap
+  // it. Without this, that leaves the user stranded on a black screen forever.
+  // If the video hasn't started actually playing within a generous window, or
+  // it errors outright, auto-advance straight to the reveal screen.
+  useEffect(() => {
+    if (winnerStage !== "video") return;
+    const v = winnerVideoRef.current;
+
+    const onError = () => handleSkipWinnerVideo();
+    v?.addEventListener("error", onError);
+
+    const autoSkip = setTimeout(() => {
+      if (!v || v.readyState < 2 /* HAVE_CURRENT_DATA */) handleSkipWinnerVideo();
+    }, 8000);
+
+    return () => {
+      v?.removeEventListener("error", onError);
+      clearTimeout(autoSkip);
+    };
+  }, [winnerStage, handleSkipWinnerVideo]);
 
   // ── LED reveal sub-sequence: price count-down ────────────────────────────
   // Timed off entering "reveal" (not off state.winner directly), never twice
