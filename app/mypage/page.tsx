@@ -265,7 +265,11 @@ export default function MyPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
+      // Anonymous Auth sessions (app-wide identity bootstrap, see
+      // GameContext.tsx) are real sessions with a real user object — must be
+      // excluded here or every first-time/signed-out visitor would see the
+      // logged-in dashboard instead of the login form.
+      if (session?.user && !session.user.is_anonymous) {
         const meta = session.user.user_metadata ?? {};
         setUser({
           nickname:      meta.nickname || meta.name || session.user.email?.split("@")[0] || "사용자",

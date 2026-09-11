@@ -64,7 +64,7 @@ export interface GameState {
   currentUser: CurrentUser | null;
   currentPrice: number;
   dropStage: DropStage;
-  winner: { id: string; nickname: string; price: number } | null;
+  winner: { id: string; nickname: string; price: number; claimedAt: number | null } | null;
   chatMessages: ChatMessage[];
   strategyStartedAt: number | null;
   gameStartedAt: number | null;
@@ -91,61 +91,20 @@ export const DEFAULT_CONFIG: GameConfig = {
   operatorMessages: [],
 };
 
-// FAST requires: a positive rate and a threshold below startPrice.
-// FINAL requires FAST to be set too, plus a positive rate and a threshold
-// below fastDropPrice. Mirrors the DB CHECK constraints in
-// supabase/migrations/20260902120000_drop_zones.sql — keep both in sync.
-// Returns an error message, or null if the config is valid (including the
-// "zones disabled" case where fastDropPrice/fastDropAmount are both null).
-export function validateDropZones(config: Pick<GameConfig,
-  "startPrice" | "floorPrice" | "fastDropPrice" | "fastDropAmount" | "finalDropPrice" | "finalDropAmount"
->): string | null {
-  const { startPrice, floorPrice, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount } = config;
-
-  if (floorPrice >= startPrice) return "목표 하한가는 시작가보다 낮아야 합니다";
-
-  const fastSet = fastDropPrice != null || fastDropAmount != null;
-  const finalSet = finalDropPrice != null || finalDropAmount != null;
-
-  // Each zone's price/amount must both be set or both be blank — never one
-  // without the other. Mirrors the DB CHECK constraints in
-  // supabase/migrations/20260902120000_drop_zones.sql exactly; keep both in
-  // sync if either changes.
-  if (fastSet && (fastDropPrice == null || fastDropAmount == null)) {
-    return "FAST DROP ZONE은 시작가와 속도를 둘 다 입력하거나 둘 다 비워야 합니다";
-  }
-  if (finalSet && (finalDropPrice == null || finalDropAmount == null)) {
-    return "FINAL DROP ZONE은 시작가와 속도를 둘 다 입력하거나 둘 다 비워야 합니다";
-  }
-  if (finalSet && !fastSet) {
-    return "FINAL DROP ZONE을 쓰려면 FAST DROP ZONE도 설정해야 합니다";
-  }
-  if (!fastSet) return null; // zones disabled
-
-  if (fastDropAmount! <= 0) return "FAST DROP 속도는 0보다 커야 합니다";
-  if (fastDropPrice! <= floorPrice) return "FAST DROP ZONE 시작가는 목표 하한가보다 높아야 합니다";
-  if (fastDropPrice! >= startPrice) return "FAST DROP ZONE 시작가는 시작가보다 낮아야 합니다";
-
-  if (finalSet) {
-    if (finalDropAmount! <= 0) return "FINAL DROP 속도는 0보다 커야 합니다";
-    if (finalDropPrice! <= floorPrice) return "FINAL DROP ZONE 시작가는 목표 하한가보다 높아야 합니다";
-    if (finalDropPrice! >= fastDropPrice!) return "FINAL DROP ZONE 시작가는 FAST DROP ZONE 시작가보다 낮아야 합니다";
-  }
-
-  return null;
-}
+// Moved to app/lib/dropZones.ts (no React dependency) so the server-side
+// /api/admin/update-config route can reuse the exact same validation —
+// re-exported here so existing `from "../context/GameContext"` imports
+// keep working unchanged.
+export { validateDropZones } from "../lib/dropZones";
 
 
 interface GameContextValue {
   state: GameState;
   joinGame: (nickname: string, role: Role) => Promise<void>;
   leaveGame: () => Promise<void>;
-  sendMessage: (nickname: string, message: string, kind?: MessageKind) => Promise<void>;
+  sendMessage: (message: string) => Promise<void>;
   addLocalMessage: (msg: ChatMessage) => void;
-  raiseHand: (nickname: string, price: number) => Promise<boolean>;
-  startGame: () => Promise<void>;
-  resetGame: () => Promise<void>;
-  updateConfig: (config: Partial<GameConfig>) => Promise<void>;
+  raiseHand: () => Promise<boolean>;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -164,6 +123,7 @@ type DbRow = {
   winner_id: string | null;
   winner_nickname: string | null;
   winner_price: number | null;
+  winner_claimed_at: string | null;
   fast_drop_price: number | null;
   fast_drop_amount: number | null;
   final_drop_price: number | null;
@@ -278,6 +238,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const configRef    = useRef(config);
   const gameAtRef    = useRef(gameStartedAt);
   const userRef      = useRef(currentUser);
+  const lastCleanupRef = useRef(0);
   configRef.current  = config;
   gameAtRef.current  = gameStartedAt;
   userRef.current    = currentUser;
@@ -288,7 +249,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const stratAt = row.strategy_started_at ? new Date(row.strategy_started_at).getTime() : null;
     const gameAt  = row.game_started_at     ? new Date(row.game_started_at).getTime()     : null;
     const w = row.winner_id
-      ? { id: row.winner_id, nickname: row.winner_nickname ?? "", price: row.winner_price ?? 0 }
+      ? {
+          id: row.winner_id,
+          nickname: row.winner_nickname ?? "",
+          price: row.winner_price ?? 0,
+          claimedAt: row.winner_claimed_at ? new Date(row.winner_claimed_at).getTime() : null,
+        }
       : null;
 
     setPhase(mappedPhase);
@@ -314,36 +280,87 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
+  // Identity bootstrap (Phase 1): every visitor needs a Supabase Auth
+  // session before joinGame() can call join_game(), since that RPC uses
+  // auth.uid() as the sole identity — never a client-supplied id. A signed-in
+  // user already has a real session; a first-time/signed-out visitor gets an
+  // Anonymous Auth session instead. Supabase persists either kind across
+  // reloads on its own (localStorage refresh token), so this only actually
+  // calls the network once per browser, not once per page load.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) void supabase.auth.signInAnonymously();
+    });
+  }, []);
+
   // Client/server clock offset — initial sync, periodic resync, and an
   // immediate resync on returning from background. See
   // app/lib/serverClock.ts; calcPriceAndStage above and the strategy
   // countdown both read getServerNow() from that same module.
   useEffect(() => startClockSync(), []);
 
-  const refreshCounts = useCallback(async () => {
-    // Remove stale participants (no heartbeat in 90s)
-    await supabase
-      .from("participants")
-      .delete()
-      .lt("last_seen", new Date(Date.now() - 90_000).toISOString());
+  const CLEANUP_THROTTLE_MS = 45_000;
 
-    const { data } = await supabase.from("participants").select("role");
-    if (!data) return;
-    setParticipantCount(data.filter((r) => r.role === "participant").length);
-    setSpectatorCount(data.filter((r) => r.role === "spectator").length);
+  // Phase 8: participant/spectator counts are now maintained as a local
+  // diff (guest_id -> role map) instead of re-SELECTing the whole
+  // participants table on every INSERT/DELETE Realtime event — see
+  // recomputeParticipantCounts()/fetchParticipantsSnapshot() below. This
+  // ref is the map's source of truth; it never triggers a re-render itself
+  // (only the derived participantCount/spectatorCount state does).
+  const participantsMapRef = useRef<Map<string, Role>>(new Map());
+
+  const recomputeParticipantCounts = useCallback(() => {
+    let p = 0, s = 0;
+    for (const role of participantsMapRef.current.values()) {
+      if (role === "participant") p++; else s++;
+    }
+    setParticipantCount(p);
+    setSpectatorCount(s);
   }, []);
+
+  // Authoritative full re-fetch — rebuilds the local map from the DB
+  // directly, correcting any drift (a missed Realtime event during a
+  // disconnect, a duplicate delivery, etc.) instead of trusting the map's
+  // incremental state. Called on mount and from resyncAll() below.
+  const fetchParticipantsSnapshot = useCallback(async () => {
+    const { data } = await supabase.from("participants").select("guest_id, role");
+    if (!data) return;
+    participantsMapRef.current = new Map(data.map((r) => [r.guest_id as string, r.role as Role]));
+    recomputeParticipantCounts();
+  }, [recomputeParticipantCounts]);
+
+  const fetchGameStateSnapshot = useCallback(async () => {
+    const { data } = await supabase.from("game_state").select("*").eq("id", 1).single();
+    if (data) applyDbRow(data as unknown as DbRow);
+  }, [applyDbRow]);
+
+  // Ghost-participant cleanup — unchanged from Phase 7 other than being
+  // split out of the old refreshCounts() (which used to also do the full
+  // count re-fetch this function no longer needs to trigger). Still
+  // throttled per client so a burst of joins/leaves doesn't fire
+  // cleanup_stale_participants() from every connected browser at once.
+  const maybeCleanupStale = useCallback(() => {
+    const now = Date.now();
+    if (now - lastCleanupRef.current > CLEANUP_THROTTLE_MS) {
+      lastCleanupRef.current = now;
+      void supabase.rpc("cleanup_stale_participants");
+    }
+  }, []);
+
+  // Drift-correction resync — re-fetches both game_state and the full
+  // participants roster from the DB directly, discarding whatever the
+  // local Realtime-driven state currently says. Wired up below to fire
+  // when a tab becomes visible again and when a Realtime channel
+  // reconnects after having dropped, so a missed UPDATE/INSERT/DELETE
+  // during a disconnect never leaves the UI stuck on stale state.
+  const resyncAll = useCallback(() => {
+    void fetchGameStateSnapshot();
+    void fetchParticipantsSnapshot();
+  }, [fetchGameStateSnapshot, fetchParticipantsSnapshot]);
 
   // Fetch initial game state + recent messages
   useEffect(() => {
-    supabase
-      .from("game_state")
-      .select("*")
-      .eq("id", 1)
-      .single()
-      .then(({ data }) => {
-        if (data) applyDbRow(data as unknown as DbRow);
-        setIsLoaded(true);
-      });
+    fetchGameStateSnapshot().then(() => setIsLoaded(true));
 
     supabase
       .from("chat_messages")
@@ -362,29 +379,81 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-    refreshCounts();
-  }, [applyDbRow, refreshCounts]);
+    void fetchParticipantsSnapshot();
+  }, [fetchGameStateSnapshot, fetchParticipantsSnapshot]);
+
+  // Resync on tab foreground — reuses the same visibilitychange moment
+  // app/lib/serverClock.ts already resyncs the clock offset on, for the
+  // same reason: a backgrounded/suspended tab can miss Realtime events
+  // entirely while asleep.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") resyncAll();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [resyncAll]);
 
   // Realtime: game state changes
   useEffect(() => {
+    let hasConnectedOnce = false;
     const ch = supabase
       .channel("game_state_rt")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_state" }, (p) => {
         applyDbRow(p.new as unknown as DbRow);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          // A second (or later) SUBSCRIBED on the same channel instance
+          // means the socket dropped and came back — not the initial
+          // connect — so re-sync from the DB in case anything was missed
+          // while disconnected.
+          if (hasConnectedOnce) resyncAll();
+          hasConnectedOnce = true;
+        }
+      });
     return () => { supabase.removeChannel(ch); };
-  }, [applyDbRow]);
+  }, [applyDbRow, resyncAll]);
 
-  // Realtime: participants join/leave
+  // Realtime: participants join/leave. Deliberately does NOT subscribe to
+  // UPDATE — heartbeat() below updates participants.last_seen every 30s
+  // per connected client, and postgres_changes has no way to filter "only
+  // when a specific column changed"; subscribing to UPDATE would broadcast
+  // every single heartbeat to every connected client (at 1000 concurrent
+  // users, ~33 heartbeats/sec fan-out to 1000 subscribers each), which is
+  // exactly the kind of Realtime fan-out load this diff-based rework
+  // exists to reduce, not add back at a different layer. The cost: a
+  // participant's role change via re-join (spectator <-> participant, no
+  // leave in between) isn't reflected in *other* clients' local map until
+  // the next resyncAll() (visibility/reconnect) — joinGame() below updates
+  // the acting client's own map entry immediately, so only cross-client
+  // visibility of someone else's role change is deferred, not lost.
   useEffect(() => {
+    let hasConnectedOnce = false;
     const ch = supabase
       .channel("participants_rt")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "participants" }, () => refreshCounts())
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "participants" }, () => refreshCounts())
-      .subscribe();
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "participants" }, (p) => {
+        const row = p.new as { guest_id: string; role: Role };
+        participantsMapRef.current.set(row.guest_id, row.role);
+        recomputeParticipantCounts();
+        maybeCleanupStale();
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "participants" }, (p) => {
+        // Default REPLICA IDENTITY means the DELETE payload's old record
+        // only carries the primary key (guest_id) — that's all this needs.
+        const row = p.old as { guest_id: string };
+        participantsMapRef.current.delete(row.guest_id);
+        recomputeParticipantCounts();
+        maybeCleanupStale();
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          if (hasConnectedOnce) resyncAll();
+          hasConnectedOnce = true;
+        }
+      });
     return () => { supabase.removeChannel(ch); };
-  }, [refreshCounts]);
+  }, [recomputeParticipantCounts, maybeCleanupStale, resyncAll]);
 
   // Realtime: new chat messages
   useEffect(() => {
@@ -456,41 +525,62 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // ── Actions ────────────────────────────────────────────────────────────────
 
   const joinGame = useCallback(async (nickname: string, role: Role) => {
-    const guestId = crypto.randomUUID();
+    // Identity comes from the Supabase Auth session (auth.uid()), never a
+    // client-generated id — the bootstrap effect above should already have
+    // one ready, but cover the race where joinGame() runs before it resolves.
+    let { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+      session = data.session;
+    }
+    const guestId = session!.user.id;
     const user: CurrentUser = { guestId, nickname, role };
+
+    // Register participant — join_game() validates role/nickname and uses
+    // auth.uid() itself, rejecting role='participant' for an Anonymous Auth
+    // session server-side (not just the /join page's UI gate). It also
+    // atomically flips game_state waiting -> strategy itself, server-side,
+    // when p_role is 'participant' (Phase 6) — a spectator-only first
+    // arrival never advances the phase. This replaces the old client-side
+    // check-then-act UPDATE (unguarded, client-clock timestamp) that used
+    // to live here.
+    const { error: joinError } = await supabase.rpc("join_game", {
+      p_role: role,
+      p_nickname: nickname,
+    });
+    if (joinError) throw joinError;
+
+    // A re-join by an already-registered participant is an UPDATE at the
+    // DB level (upsert on the guest_id PK), not an INSERT — and the
+    // participants_rt channel deliberately doesn't subscribe to UPDATE
+    // (see that effect's comment). So a role change via re-join wouldn't
+    // otherwise reach this client's own local count until the next
+    // resyncAll(); reflect it in the local map immediately here instead.
+    // A genuinely new join is already covered by the INSERT Realtime event
+    // this same client receives back for its own insert, so this is only
+    // load-bearing for the re-join/role-change case.
+    participantsMapRef.current.set(guestId, role);
+    recomputeParticipantCounts();
+
     setCurrentUser(user);
     localStorage.setItem("dtb_guest", JSON.stringify(user));
     // Signal to strategy page redirect guard: don't kick on first mount
     sessionStorage.setItem("dtb_joining", "1");
 
-    // Register participant
-    await supabase.from("participants").insert({ guest_id: guestId, nickname, role });
-
-    // Start strategy phase if game is waiting; set local phase immediately
-    // so the strategy page redirect guard sees the correct phase before Realtime arrives
+    // Read back whatever the phase now actually is (post-RPC) and reflect
+    // it locally immediately, so the strategy page redirect guard sees the
+    // right phase before Realtime's UPDATE event arrives.
     const { data } = await supabase.from("game_state").select("phase, strategy_started_at").eq("id", 1).single();
-    if (data?.phase === "waiting") {
-      const strategyAt = new Date().toISOString();
-      await supabase
-        .from("game_state")
-        .update({ phase: "strategy", strategy_started_at: strategyAt })
-        .eq("id", 1);
-      setPhase("strategy");
-      setStrategyStartedAt(new Date(strategyAt).getTime());
-    } else if (data?.phase) {
+    if (data?.phase) {
       const mapped: Phase = data.phase === "waiting" ? "home" : (data.phase as Phase);
       setPhase(mapped);
       if (data.strategy_started_at) setStrategyStartedAt(new Date(data.strategy_started_at).getTime());
     }
-
-    // Announce entry
-    await supabase.from("chat_messages").insert({
-      guest_id: guestId,
-      nickname: "system",
-      message: `${nickname}님이 ${role === "participant" ? "참여자로" : "관전자로"} 입장했습니다 👋`,
-      kind: "system",
-    });
-  }, []);
+    // The entry-announcement system message is now inserted inside
+    // join_game() itself (Phase 4) — a client can no longer produce a
+    // kind='system' chat row directly.
+  }, [recomputeParticipantCounts]);
 
   const leaveGame = useCallback(async () => {
     const guestId = userRef.current?.guestId;
@@ -501,9 +591,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("dtb_guest");
   }, []);
 
-  const sendMessage = useCallback(async (nickname: string, message: string, kind: MessageKind = "chat") => {
-    const guestId = userRef.current?.guestId ?? null;
-    await supabase.from("chat_messages").insert({ guest_id: guestId, nickname, message, kind });
+  const sendMessage = useCallback(async (message: string) => {
+    // send_chat_message() (Phase 4) derives identity (auth.uid()) and
+    // nickname (the caller's own participants row) itself — a client can
+    // no longer supply either, or a kind other than 'chat'. Errors (not
+    // joined, empty/too-long message, rate limit) are swallowed here,
+    // matching this function's existing fire-and-forget behavior — it
+    // never surfaced insert errors to the UI before this either.
+    await supabase.rpc("send_chat_message", { p_message: message });
   }, []);
 
   const addLocalMessage = useCallback((msg: ChatMessage) => {
@@ -515,81 +610,33 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
   }, []);
 
-  const raiseHand = useCallback(async (nickname: string, price: number): Promise<boolean> => {
-    const guestId = userRef.current?.guestId ?? null;
-    // RPC handles UPDATE + chat insert atomically; returns true only if this client won
-    const { data, error } = await supabase.rpc("claim_winner", {
-      p_guest_id: guestId,
-      p_nickname: nickname,
-      p_price:    price,
-    });
+  const raiseHand = useCallback(async (): Promise<boolean> => {
+    // claim_winner() takes no params (Identity Phase 2) — it uses auth.uid()
+    // to find the caller's own participants row and recomputes the price
+    // itself from server now(), never trusting a client-supplied identity
+    // or price. RPC handles UPDATE + chat insert atomically; returns true
+    // only if this client won.
+    const { data, error } = await supabase.rpc("claim_winner");
     return !error && data === true;
   }, []);
 
-  const startGame = useCallback(async () => {
-    await supabase.rpc("start_game");
-  }, []);
+  // startGame()/"바로시작" (client-triggered force-start) removed — Phase 6
+  // makes start_game() itself time-gated (only succeeds once the strategy
+  // period has actually elapsed per the DB's own now()), so an
+  // unconditional client-triggered force-start no longer belongs on a page
+  // every user can reach. The auto-transition effect above still calls
+  // supabase.rpc("start_game") directly and just ignores a false result —
+  // that's expected/normal until the timer genuinely elapses, not an
+  // error. Admin-only force-start is now a separate, session-gated path:
+  // see app/admin/(protected)/page.tsx + /api/admin/force-start-game.
 
-  const updateConfig = useCallback(async (newConfig: Partial<GameConfig>) => {
-    const updates: Record<string, unknown> = {};
-    if (newConfig.productName      !== undefined) updates.product_name      = newConfig.productName;
-    if (newConfig.startPrice       !== undefined) updates.start_price       = newConfig.startPrice;
-    if (newConfig.dropAmount       !== undefined) updates.drop_amount       = newConfig.dropAmount;
-    if (newConfig.floorPrice       !== undefined) updates.minimum_price     = newConfig.floorPrice;
-    if (newConfig.strategyDuration !== undefined) updates.strategy_duration = newConfig.strategyDuration;
-    if (newConfig.gameStartTime    !== undefined) updates.scheduled_start_at = newConfig.gameStartTime || null;
-    if (newConfig.fastDropPrice    !== undefined) updates.fast_drop_price    = newConfig.fastDropPrice;
-    if (newConfig.fastDropAmount   !== undefined) updates.fast_drop_amount   = newConfig.fastDropAmount;
-    if (newConfig.finalDropPrice   !== undefined) updates.final_drop_price   = newConfig.finalDropPrice;
-    if (newConfig.finalDropAmount  !== undefined) updates.final_drop_amount  = newConfig.finalDropAmount;
-    if (newConfig.dropIntervalSeconds      !== undefined) updates.drop_interval_seconds       = newConfig.dropIntervalSeconds;
-    if (newConfig.fastDropIntervalSeconds  !== undefined) updates.fast_drop_interval_seconds  = newConfig.fastDropIntervalSeconds;
-    if (newConfig.finalDropIntervalSeconds !== undefined) updates.final_drop_interval_seconds = newConfig.finalDropIntervalSeconds;
-    if (newConfig.operatorNickname !== undefined) updates.operator_nickname = newConfig.operatorNickname;
-    if (newConfig.operatorMessages !== undefined) updates.operator_messages = newConfig.operatorMessages;
-
-    for (const [label, value] of [
-      ["NORMAL", newConfig.dropIntervalSeconds],
-      ["FAST DROP", newConfig.fastDropIntervalSeconds],
-      ["FINAL DROP", newConfig.finalDropIntervalSeconds],
-    ] as const) {
-      if (value !== undefined && value <= 0) {
-        throw new Error(`${label} 하락 주기는 0보다 커야 합니다`);
-      }
-    }
-
-    const zoneError = validateDropZones({
-      startPrice:      newConfig.startPrice      ?? configRef.current.startPrice,
-      floorPrice:      newConfig.floorPrice      ?? configRef.current.floorPrice,
-      fastDropPrice:   newConfig.fastDropPrice   !== undefined ? newConfig.fastDropPrice   : configRef.current.fastDropPrice,
-      fastDropAmount:  newConfig.fastDropAmount  !== undefined ? newConfig.fastDropAmount  : configRef.current.fastDropAmount,
-      finalDropPrice:  newConfig.finalDropPrice  !== undefined ? newConfig.finalDropPrice  : configRef.current.finalDropPrice,
-      finalDropAmount: newConfig.finalDropAmount !== undefined ? newConfig.finalDropAmount : configRef.current.finalDropAmount,
-    });
-    if (zoneError) throw new Error(zoneError);
-
-    // Surface write failures (e.g. a DB CHECK constraint rejecting an
-    // invalid drop-zone combination the client-side check missed) instead
-    // of letting the admin page report success on a no-op update.
-    const { error } = await supabase.from("game_state").update(updates).eq("id", 1);
-    if (error) throw new Error(error.message);
-  }, []);
-
-  const resetGame = useCallback(async () => {
-    setCurrentUser(null);
-    setMessages([]);
-    localStorage.removeItem("dtb_guest");
-    await supabase.from("chat_messages").delete().gte("created_at", "1970-01-01");
-    await supabase.from("participants").delete().gte("joined_at", "1970-01-01");
-    await supabase.from("game_state").update({
-      phase: "waiting",
-      strategy_started_at: null,
-      game_started_at: null,
-      winner_id: null,
-      winner_nickname: null,
-      winner_price: null,
-    }).eq("id", 1);
-  }, []);
+  // updateConfig()/resetGame() (anon-client writes to game_state /
+  // chat_messages / participants) removed — Phase 5 moves both to
+  // service-role-backed server routes (/api/admin/update-config,
+  // /api/admin/reset-game), gated by a verified admin session. The
+  // non-admin "경매 실패" failure-popup flow no longer performs a global
+  // DB reset at all (see app/strategy/page.tsx) — it only clears local
+  // state and leaves the game via leaveGame() below (own row only).
 
   const state: GameState = {
     config,
@@ -607,7 +654,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <GameContext.Provider value={{ state, joinGame, leaveGame, sendMessage, addLocalMessage, raiseHand, startGame, resetGame, updateConfig }}>
+    <GameContext.Provider value={{ state, joinGame, leaveGame, sendMessage, addLocalMessage, raiseHand }}>
       {children}
     </GameContext.Provider>
   );

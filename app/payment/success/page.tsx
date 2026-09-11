@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ProductThumb } from "../../components/ProductImage";
@@ -16,6 +16,19 @@ function getTodayPlus(days: number) {
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
+// The confirm API's `error` is either one of our own plain-string messages
+// (auth/winner/amount checks) or Toss's error object (has a `message`
+// field) — pull a displayable string out of either shape.
+function extractErrorMessage(json: unknown): string | null {
+  if (!json || typeof json !== "object") return null;
+  const err = (json as { error?: unknown }).error;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && typeof (err as { message?: unknown }).message === "string") {
+    return (err as { message: string }).message;
+  }
+  return null;
+}
+
 function SuccessInner() {
   const params = useSearchParams();
   const paymentKey = params.get("paymentKey") ?? "";
@@ -24,27 +37,46 @@ function SuccessInner() {
 
   const [status, setStatus]     = useState<"loading" | "done" | "error">("loading");
   const [payMethod, setPayMethod] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const confirm = useCallback(async () => {
+    if (!paymentKey || !orderId || !amount) {
+      setErrorMessage("잘못된 결제 접근입니다.");
+      setStatus("error");
+      return;
+    }
+    setStatus("loading");
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+
+    try {
+      const res = await fetch("/api/payment/confirm", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ paymentKey, orderId, amount }),
+      });
+      // A non-2xx or a body that isn't { ok: true } is a real failure —
+      // never show the completion screen for either. res.json() itself can
+      // throw on a malformed body, which the catch below also treats as
+      // failure, not success.
+      const json = await res.json();
+      if (!res.ok || json?.ok !== true) {
+        setErrorMessage(extractErrorMessage(json) ?? "결제 확인에 실패했습니다.");
+        setStatus("error");
+        return;
+      }
+      setPayMethod(json.data?.method ?? "카드");
+      setStatus("done");
+    } catch {
+      setErrorMessage("네트워크 오류로 결제 확인에 실패했습니다.");
+      setStatus("error");
+    }
+  }, [paymentKey, orderId, amount]);
 
   useEffect(() => {
-    if (!paymentKey || !orderId || !amount) { setStatus("error"); return; }
-
-    async function confirm() {
-      const { data: { session } } = await supabase.auth.getSession();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
-
-      try {
-        const res = await fetch("/api/payment/confirm", {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ paymentKey, orderId, amount }),
-        });
-        const data = await res.json();
-        setPayMethod(data.data?.method ?? "카드");
-      } catch { /* 데모: 네트워크 오류도 완료 처리 */ }
-      setStatus("done");
-    }
     confirm();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentKey, orderId, amount]);
 
   if (status === "loading") {
@@ -56,6 +88,36 @@ function SuccessInner() {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
           </svg>
           <p className="text-white/60 text-sm">결제를 확인하고 있습니다...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-red-500/12 border border-red-500/25 flex items-center justify-center mb-5">
+          <svg viewBox="0 0 24 24" className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </div>
+        <p className="text-xs uppercase tracking-[0.18em] font-semibold mb-1 text-red-400">결제 확인 실패</p>
+        <h1 className="text-lg font-extrabold text-white mb-2">결제를 완료하지 못했습니다</h1>
+        <p className="text-white/55 text-sm leading-relaxed mb-8">{errorMessage || "결제 확인 중 문제가 발생했습니다."}</p>
+        <div className="w-full max-w-xs space-y-3">
+          <button
+            onClick={() => confirm()}
+            className="block w-full py-3.5 text-white font-semibold text-base text-center transition-opacity active:opacity-80"
+            style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
+          >
+            다시 시도
+          </button>
+          <Link
+            href="/payment"
+            className="block w-full py-3.5 text-center text-white/60 font-medium text-base border border-white/15 transition-colors hover:border-white/30"
+          >
+            결제 페이지로 돌아가기
+          </Link>
         </div>
       </main>
     );

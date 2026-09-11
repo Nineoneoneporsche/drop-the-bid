@@ -3,7 +3,138 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useGame, formatKRW, DEFAULT_CONFIG, validateDropZones, type OperatorMessage } from "../context/GameContext";
+import { useGame, formatKRW, DEFAULT_CONFIG, validateDropZones, type OperatorMessage } from "../../context/GameContext";
+import { getServerNow } from "../../lib/serverClock";
+
+const PHASE_LABEL: Record<string, string> = {
+  home: "대기중 (waiting)",
+  strategy: "전략 회의중",
+  game: "경매 진행중",
+  ended: "종료 (낙찰됨)",
+};
+
+function fmtElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}분 ${s}초`;
+}
+
+type PaymentStatus = {
+  paymentComplete: boolean | null;
+  stalePendingCount: number;
+  reconciliationRequiredCount: number;
+};
+
+function MonitoringPanel() {
+  const { state } = useGame();
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
+  const [statusError, setStatusError] = useState(false);
+  const [now, setNow] = useState(() => getServerNow());
+
+  // Payment-related figures come from a service-role-backed admin route
+  // (Phase 8) — payment_attempts/orders are locked down since Phase 3.6/7
+  // and were never meant to be readable from the browser. Everything else
+  // on this panel (phase, counts, winner) is already live via useGame()'s
+  // existing Realtime subscriptions, no new plumbing needed for those.
+  async function refreshPaymentStatus() {
+    try {
+      const res = await fetch("/api/admin/payment-status");
+      const data = await res.json();
+      if (data.ok) {
+        setPaymentStatus(data);
+        setStatusError(false);
+      } else {
+        setStatusError(true);
+      }
+    } catch {
+      setStatusError(true);
+    }
+  }
+
+  useEffect(() => {
+    refreshPaymentStatus();
+    const t = setInterval(refreshPaymentStatus, 15_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Ticks the "낙찰 후 경과시간" display once a second while a winner is
+  // pending — same getServerNow()-based pattern the price ticker/strategy
+  // countdown already use elsewhere in the app.
+  useEffect(() => {
+    if (!state.winner?.claimedAt) return;
+    const t = setInterval(() => setNow(getServerNow()), 1000);
+    return () => clearInterval(t);
+  }, [state.winner?.claimedAt]);
+
+  const elapsedSeconds = state.winner?.claimedAt != null
+    ? Math.max(0, Math.floor((now - state.winner.claimedAt) / 1000))
+    : null;
+
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm mb-8 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-gray-400 text-xs uppercase tracking-wider font-medium">현재 상태</p>
+        <button
+          onClick={refreshPaymentStatus}
+          className="text-gray-400 hover:text-orange-500 text-xs border border-gray-200 rounded-lg px-2 py-1"
+        >
+          새로고침
+        </button>
+      </div>
+
+      <div className="flex justify-between items-baseline">
+        <span className="text-gray-400 text-sm">phase</span>
+        <span className="text-gray-900 text-sm font-semibold">{PHASE_LABEL[state.phase] ?? state.phase}</span>
+      </div>
+      <div className="flex justify-between items-baseline">
+        <span className="text-gray-400 text-sm">참가자 / 관전자</span>
+        <span className="text-gray-900 text-sm font-semibold">{state.participantCount}명 / {state.spectatorCount}명</span>
+      </div>
+
+      {state.winner && (
+        <>
+          <div className="border-t border-gray-100 pt-3 flex justify-between items-baseline">
+            <span className="text-gray-400 text-sm">낙찰자</span>
+            <span className="text-gray-900 text-sm font-semibold">{state.winner.nickname} · {formatKRW(state.winner.price)}</span>
+          </div>
+          <div className="flex justify-between items-baseline">
+            <span className="text-gray-400 text-sm">낙찰자 ID</span>
+            <span className="text-gray-500 text-xs font-mono">{state.winner.id}</span>
+          </div>
+          <div className="flex justify-between items-baseline">
+            <span className="text-gray-400 text-sm">낙찰 후 경과</span>
+            <span className="text-gray-900 text-sm font-semibold">
+              {elapsedSeconds != null ? fmtElapsed(elapsedSeconds) : "—"}
+            </span>
+          </div>
+          <div className="flex justify-between items-baseline">
+            <span className="text-gray-400 text-sm">결제 상태</span>
+            <span className={`text-sm font-semibold ${paymentStatus?.paymentComplete ? "text-green-600" : "text-red-500"}`}>
+              {paymentStatus == null ? "확인 중..." : paymentStatus.paymentComplete ? "결제 완료" : "결제 미완료"}
+            </span>
+          </div>
+        </>
+      )}
+
+      <div className="border-t border-gray-100 pt-3 flex justify-between items-baseline">
+        <span className="text-gray-400 text-sm">결제 정체 (10분 이상 pending)</span>
+        <span className={`text-sm font-semibold ${paymentStatus && paymentStatus.stalePendingCount > 0 ? "text-red-500" : "text-gray-900"}`}>
+          {paymentStatus?.stalePendingCount ?? "—"}건
+        </span>
+      </div>
+      <div className="flex justify-between items-baseline">
+        <span className="text-gray-400 text-sm">수동 확인 필요 (reconciliation_required)</span>
+        <span className={`text-sm font-semibold ${paymentStatus && paymentStatus.reconciliationRequiredCount > 0 ? "text-red-500" : "text-gray-900"}`}>
+          {paymentStatus?.reconciliationRequiredCount ?? "—"}건
+        </span>
+      </div>
+
+      {statusError && (
+        <p className="text-red-500 text-xs">결제 현황을 불러오지 못했습니다. 새로고침을 눌러 다시 시도해주세요.</p>
+      )}
+    </div>
+  );
+}
 
 function toLocalInput(iso: string): string {
   const d = new Date(iso);
@@ -12,7 +143,7 @@ function toLocalInput(iso: string): string {
 }
 
 export default function AdminPage() {
-  const { state, updateConfig, resetGame } = useGame();
+  const { state } = useGame();
   const router = useRouter();
 
   function toFormNum(n: number | null): string {
@@ -109,31 +240,67 @@ export default function AdminPage() {
       }
     }
 
-    updateConfig({
-      productName: form.productName.trim() || DEFAULT_CONFIG.productName,
-      startPrice,
-      dropAmount,
-      strategyDuration,
-      floorPrice,
-      gameStartTime: form.gameStartTime ? new Date(form.gameStartTime).toISOString() : null,
-      fastDropPrice,
-      fastDropAmount,
-      finalDropPrice,
-      finalDropAmount,
-      dropIntervalSeconds,
-      fastDropIntervalSeconds,
-      finalDropIntervalSeconds,
-      operatorNickname: operatorNickname.trim() || DEFAULT_CONFIG.operatorNickname,
-      operatorMessages,
-    }).then(() => {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-    }).catch((e: Error) => setZoneError(e.message));
+    // Server-side (service-role, admin-session-gated) write — see
+    // app/api/admin/update-config/route.ts. Re-validates everything here
+    // again (whitelisted fields + validateDropZones) so a raw REST call
+    // bypassing this UI can't write an invalid or arbitrary config.
+    fetch("/api/admin/update-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        productName: form.productName.trim() || DEFAULT_CONFIG.productName,
+        startPrice,
+        dropAmount,
+        strategyDuration,
+        floorPrice,
+        gameStartTime: form.gameStartTime ? new Date(form.gameStartTime).toISOString() : null,
+        fastDropPrice,
+        fastDropAmount,
+        finalDropPrice,
+        finalDropAmount,
+        dropIntervalSeconds,
+        fastDropIntervalSeconds,
+        finalDropIntervalSeconds,
+        operatorNickname: operatorNickname.trim() || DEFAULT_CONFIG.operatorNickname,
+        operatorMessages,
+      }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "저장에 실패했습니다");
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      })
+      .catch((e: Error) => setZoneError(e.message));
   }
 
   function handleReset() {
     if (!confirm("게임을 리셋할까요?")) return;
-    resetGame();
+    // Server-side (service-role, admin-session-gated), single atomic RPC —
+    // see app/api/admin/reset-game/route.ts and admin_reset_game() in
+    // supabase/migrations/20260910140000_admin_security.sql.
+    fetch("/api/admin/reset-game", { method: "POST" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!data.ok) alert(data.error || "리셋에 실패했습니다");
+      })
+      .catch(() => alert("리셋에 실패했습니다"));
+  }
+
+  function handleForceStart() {
+    if (!confirm("전략 회의를 건너뛰고 지금 바로 경매를 시작할까요?")) return;
+    // Server-side (service-role, admin-session-gated), no time gate — see
+    // app/api/admin/force-start-game/route.ts and admin_force_start_game()
+    // in supabase/migrations/20260910150000_game_transition_security.sql.
+    // Replaces the old public "바로시작" button that used to live on
+    // /strategy with zero gating at all.
+    fetch("/api/admin/force-start-game", { method: "POST" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!data.ok) alert(data.error || "시작에 실패했습니다");
+        else if (!data.started) alert("지금은 전략 회의 단계가 아니라 시작할 수 없습니다");
+      })
+      .catch(() => alert("시작에 실패했습니다"));
   }
 
   function handleClearStorage() {
@@ -191,6 +358,8 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+
+        <MonitoringPanel />
 
         {/* Form */}
         <div className="space-y-5">
@@ -461,6 +630,15 @@ export default function AdminPage() {
           >
             {saved ? "✅ 저장되었습니다!" : "설정 저장"}
           </button>
+
+          {state.phase === "strategy" && (
+            <button
+              onClick={handleForceStart}
+              className="w-full bg-white border-2 border-gray-200 hover:border-orange-300 hover:text-orange-500 text-gray-500 font-semibold py-4 rounded-2xl text-base transition-all active:scale-[0.98]"
+            >
+              바로 시작 (전략 회의 건너뛰기)
+            </button>
+          )}
 
           <button
             onClick={handleReset}

@@ -21,9 +21,12 @@ function ResetPasswordInner() {
       });
       return;
     }
-    // Legacy flow: token in hash
+    // Legacy flow: token in hash. An Anonymous Auth session (app-wide
+    // identity bootstrap, see GameContext.tsx) is a real session too, so
+    // exclude it — otherwise any stray visit to this URL with no recovery
+    // token would show the reset form instead of the error state.
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setStatus(session ? "ready" : "error");
+      setStatus(session && !session.user.is_anonymous ? "ready" : "error");
     });
   }, []);
 

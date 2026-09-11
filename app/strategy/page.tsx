@@ -162,7 +162,7 @@ const NARRATOR_EVENTS = [
 ];
 
 export default function StrategyPage() {
-  const { state, sendMessage, addLocalMessage, raiseHand, startGame, resetGame, leaveGame } = useGame();
+  const { state, sendMessage, addLocalMessage, raiseHand, leaveGame } = useGame();
   const router = useRouter();
 
   // Shared
@@ -549,19 +549,22 @@ export default function StrategyPage() {
   const handleRaiseHand = useCallback(async () => {
     if (state.phase !== "game" || isSequenceActive) return;
     if (!state.currentUser || state.currentUser.role !== "participant" || raised || forcedWatcher) return;
-    const price = state.currentPrice;
     setBidding(true);
     try {
-      const won = await raiseHand(state.currentUser.nickname, price);
+      // claim_winner() takes no params — it derives the caller's identity
+      // from auth.uid() and recomputes the price itself server-side; the
+      // displayed price here is never sent or trusted for the win/price
+      // decision, only used for the optimistic `raised` UI flag below.
+      const won = await raiseHand();
       if (won) setRaised(true);
     } finally {
       setBidding(false);
     }
-  }, [state.phase, isSequenceActive, state.currentUser, state.currentPrice, raised, forcedWatcher, raiseHand]);
+  }, [state.phase, isSequenceActive, state.currentUser, raised, forcedWatcher, raiseHand]);
 
   function handleSendMessage() {
     if (!message.trim() || !state.currentUser) return;
-    sendMessage(state.currentUser.nickname, message.trim());
+    sendMessage(message.trim());
     setMessage("");
     inputRef.current?.focus();
   }
@@ -632,7 +635,13 @@ export default function StrategyPage() {
               아무도 낙찰받지 않아 경매가 종료됐어요.
             </p>
             <button
-              onClick={async () => { await resetGame(); await leaveGame(); router.replace("/"); }}
+              onClick={async () => {
+                // Local-only: leaveGame() removes just this browser's own
+                // participant row. No global DB reset here anymore — that's
+                // admin-only now, via /api/admin/reset-game (Phase 5).
+                await leaveGame();
+                router.replace("/");
+              }}
               className="w-full py-3.5 font-semibold text-base text-white rounded-xl"
               style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
             >
@@ -889,14 +898,6 @@ export default function StrategyPage() {
               </span>
             </button>
           </div>
-          {isStrategy && (
-            <button
-              onClick={() => startGame()}
-              className="text-xs font-semibold text-white/50 border border-white/15 px-2.5 py-1 rounded-lg transition-colors hover:text-white/80 hover:border-white/30 active:scale-95"
-            >
-              바로시작 →
-            </button>
-          )}
         </div>
 
         {/* Product info */}

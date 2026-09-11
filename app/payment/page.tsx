@@ -4,9 +4,21 @@ import { useEffect, useRef, useState } from "react";
 import { ProductThumb } from "../components/ProductImage";
 import HomeButton from "../components/HomeButton";
 import { supabase } from "../lib/supabase";
+import { getServerNow } from "../lib/serverClock";
+import { WINNER_PAYMENT_WINDOW_SECONDS } from "../lib/paymentWindow";
 
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
-const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? "test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq";
+// Same reasoning as TOSS_SECRET_KEY in app/api/payment/confirm/route.ts:
+// sandbox fallback only outside production, so a missing env var in an
+// actual production build fails clearly (see the check in handlePay()
+// below) instead of quietly loading Toss's test widget for real users.
+// NEXT_PUBLIC_* values are inlined at build time, so this evaluates once
+// per build, not per request — `next dev`/local `next build && next start`
+// still get the sandbox key with no setup.
+const TOSS_CLIENT_KEY: string | undefined =
+  process.env.NODE_ENV === "production"
+    ? process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
+    : (process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? "test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq");
 
 type PayMethod = { id: string; label: string; bg?: string; letter?: string; dark?: boolean };
 const METHODS: PayMethod[] = [
@@ -30,12 +42,18 @@ export default function PaymentPage() {
   const [guestId,   setGuestId]     = useState("");
   const [profile,   setProfile]     = useState<{ name: string; phone: string; address: string; addressDetail: string; postcode: string } | null>(null);
 
-  const [timeLeft, setTimeLeft] = useState(600);
+  const [timeLeft, setTimeLeft] = useState(WINNER_PAYMENT_WINDOW_SECONDS);
   const [expired,  setExpired]  = useState(false);
   const [method,   setMethod]   = useState("card");
   const [agreed,   setAgreed]   = useState(false);
   const [paying,   setPaying]   = useState(false);
   const [error,    setError]    = useState("");
+
+  // Server-anchored — populated from game_state.winner_claimed_at (Phase
+  // 8), never a client-side "when this page happened to load" timestamp.
+  // This is what makes the countdown below survive a page refresh instead
+  // of resetting back to the full window every time.
+  const [claimedAtMs, setClaimedAtMs] = useState<number | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -52,7 +70,7 @@ export default function PaymentPage() {
 
       const { data } = await supabase
         .from("game_state")
-        .select("winner_id, winner_price")
+        .select("winner_id, winner_price, winner_claimed_at")
         .eq("id", 1)
         .single();
 
@@ -64,6 +82,10 @@ export default function PaymentPage() {
 
       setGuestId(gId);
       setPRICE(data.winner_price);
+      // Fallback to "now" only covers a win claimed before this column
+      // existed and never since reset — every win after this migration
+      // always has winner_claimed_at set atomically by claim_winner().
+      setClaimedAtMs(data.winner_claimed_at ? new Date(data.winner_claimed_at).getTime() : getServerNow());
 
       // Load member profile from Supabase Auth session
       const { data: { session } } = await supabase.auth.getSession();
@@ -84,16 +106,22 @@ export default function PaymentPage() {
   }, []);
 
   useEffect(() => {
-    if (verifying || notWinner) return;
-    const t = setInterval(() => {
-      setTimeLeft((s) => {
-        if (s <= 1) { clearInterval(t); setExpired(true); return 0; }
-        return s - 1;
-      });
-    }, 1000);
+    if (verifying || notWinner || claimedAtMs == null) return;
+    const tick = () => {
+      const remaining = WINNER_PAYMENT_WINDOW_SECONDS - Math.floor((getServerNow() - claimedAtMs) / 1000);
+      if (remaining <= 0) {
+        setTimeLeft(0);
+        setExpired(true);
+        if (timerRef.current) clearInterval(timerRef.current);
+      } else {
+        setTimeLeft(remaining);
+      }
+    };
+    tick();
+    const t = setInterval(tick, 1000);
     timerRef.current = t;
     return () => clearInterval(t);
-  }, [verifying, notWinner]);
+  }, [verifying, notWinner, claimedAtMs]);
 
   const canPay = agreed && !expired && !paying && PRICE > 0;
 
@@ -101,6 +129,12 @@ export default function PaymentPage() {
     if (!canPay) return;
     setError("");
     setPaying(true);
+
+    if (!TOSS_CLIENT_KEY) {
+      setPaying(false);
+      setError("결제 시스템이 설정되지 않았습니다. 운영자에게 문의해주세요.");
+      return;
+    }
 
     try {
       const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");

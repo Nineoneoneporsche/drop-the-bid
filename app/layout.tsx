@@ -3,8 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { GameProvider } from "./context/GameContext";
 
-// Same self-hosted variable-font file already used on /font-compare — one
-// woff2 covering the whole 400–1000 weight range, so no per-weight files.
+// Self-hosted variable font — one woff2 covering the whole 400–1000 weight
+// range, so no per-weight files.
 const wantedSans = localFont({
   src: "../public/fonts/WantedSansVariable.woff2",
   display: "swap",

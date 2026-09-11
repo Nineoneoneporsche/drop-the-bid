@@ -28,6 +28,7 @@ export default function JoinPage() {
   const [loading, setLoading] = useState(false);
   const [memberNickname, setMemberNickname] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -38,6 +39,7 @@ export default function JoinPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const nick = session?.user?.user_metadata?.nickname;
       if (nick) { setNickname(nick); setMemberNickname(nick); }
+      setIsAnonymous(!!session?.user?.is_anonymous);
     });
   }, []);
 
@@ -45,7 +47,9 @@ export default function JoinPage() {
     ? new Date(state.config.gameStartTime).getTime() <= now
     : false;
   const auctionLive = state.phase === "game";
-  const participantBlocked = auctionLive || countdownExpired;
+  // Participant role requires a real (non-Anonymous-Auth) session — enforced
+  // server-side by join_game() too, this just avoids a round-trip failure.
+  const participantBlocked = auctionLive || countdownExpired || isAnonymous;
 
   useEffect(() => {
     if (participantBlocked) setRole("spectator");
@@ -64,8 +68,16 @@ export default function JoinPage() {
     try {
       await joinGame(trimmed, role);
       router.push("/strategy");
-    } catch {
-      setError("입장 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } catch (e) {
+      // join_game() (Phase 8) rejects a nickname matching the room's
+      // current operator_nickname — surface that specific case instead of
+      // the generic fallback below.
+      const message = e instanceof Error ? e.message : "";
+      setError(
+        message.includes("nickname reserved")
+          ? "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해주세요."
+          : "입장 중 오류가 발생했습니다. 다시 시도해주세요."
+      );
       setLoading(false);
     }
   }
@@ -144,7 +156,13 @@ export default function JoinPage() {
               <div>
                 <p className={`font-semibold text-lg ${sel ? "text-white" : "text-white/60"}`}>{label}</p>
                 <p className="text-white/55 text-sm mt-1 leading-snug">
-                  {disabled ? (auctionLive ? "경매가 진행 중입니다. 관전으로만 입장 가능합니다." : "경매가 시작되어 참여자로 입장할 수 없습니다.") : desc}
+                  {disabled
+                    ? (auctionLive
+                        ? "경매가 진행 중입니다. 관전으로만 입장 가능합니다."
+                        : countdownExpired
+                          ? "경매가 시작되어 참여자로 입장할 수 없습니다."
+                          : "참여자로 입장하려면 로그인이 필요합니다.")
+                    : desc}
                 </p>
               </div>
             </button>
