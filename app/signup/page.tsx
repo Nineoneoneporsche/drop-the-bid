@@ -517,7 +517,7 @@ export default function SignupPage() {
             {/* 소셜 로그인 */}
             <button
               type="button"
-              onClick={() => supabase.auth.signInWithOAuth({ provider: "kakao", options: { redirectTo: `${window.location.origin}/auth/callback` } })}
+              onClick={() => supabase.auth.signInWithOAuth({ provider: "kakao", options: { redirectTo: `${window.location.origin}/auth/callback`, queryParams: { prompt: "login", lang: "ko" } } })}
               className="w-full py-3.5 font-semibold text-base rounded-xl mb-2.5 flex items-center justify-center gap-2.5 active:opacity-80 transition-opacity"
               style={{ background: "#FEE500", color: "#191919" }}
             >
@@ -528,7 +528,7 @@ export default function SignupPage() {
             </button>
             <button
               type="button"
-              onClick={() => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback` } })}
+              onClick={() => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback`, queryParams: { prompt: "select_account" } } })}
               className="w-full py-3.5 font-semibold text-base rounded-xl mb-5 flex items-center justify-center gap-2.5 border border-white/15 active:opacity-80 transition-opacity"
               style={{ background: "#fff", color: "#1f1f1f" }}
             >

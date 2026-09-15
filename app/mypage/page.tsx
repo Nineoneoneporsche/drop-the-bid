@@ -72,7 +72,16 @@ function LoggedOut() {
   async function handleSocialLogin(provider: "google" | "kakao") {
     await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        // A stale provider session in the browser must not silently sign
+        // the user into the wrong account. Google: force the account
+        // chooser. Kakao: chooser (select_account) can still auto-pick when
+        // only one session exists, so force the login screen outright.
+        queryParams: provider === "google"
+          ? { prompt: "select_account" }
+          : { prompt: "login", lang: "ko" },
+      },
     });
   }
 
@@ -264,7 +273,7 @@ export default function MyPage() {
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       // Anonymous Auth sessions (app-wide identity bootstrap, see
       // GameContext.tsx) are real sessions with a real user object — must be
       // excluded here or every first-time/signed-out visitor would see the
@@ -281,9 +290,12 @@ export default function MyPage() {
           address:       meta.address       ?? "",
           addressDetail: meta.addressDetail ?? "",
         });
+        // Loaded flips as soon as the profile itself is known — order
+        // history / savings stats aren't needed for first paint, so they're
+        // fetched separately below rather than held on the critical path.
+        setLoaded(true);
 
-        // Load real order history + game_state start_price for savings calc
-        const [{ data: orderData }, { data: gsData }] = await Promise.all([
+        Promise.all([
           supabase
             .from("orders")
             .select("product_name, amount, created_at")
@@ -291,16 +303,18 @@ export default function MyPage() {
             .order("created_at", { ascending: false })
             .limit(20),
           supabase.from("game_state").select("start_price").eq("id", 1).single(),
-        ]);
-        if (orderData) {
-          setOrders(orderData);
-          const sp = gsData?.start_price ?? 899_000;
-          const savings = orderData.reduce((sum, o) => sum + Math.max(0, sp - o.amount), 0);
-          setStats({ wins: orderData.length, savings });
-          setStartPrice(sp);
-        }
+        ]).then(([{ data: orderData }, { data: gsData }]) => {
+          if (orderData) {
+            setOrders(orderData);
+            const sp = gsData?.start_price ?? 899_000;
+            const savings = orderData.reduce((sum, o) => sum + Math.max(0, sp - o.amount), 0);
+            setStats({ wins: orderData.length, savings });
+            setStartPrice(sp);
+          }
+        });
+      } else {
+        setLoaded(true);
       }
-      setLoaded(true);
     });
   }, []);
 
@@ -450,7 +464,16 @@ export default function MyPage() {
 
   const setRef = (i: number) => (el: HTMLElement | null) => { cardRefs.current[i] = el; };
 
-  if (!loaded) return null;
+  if (!loaded) {
+    return (
+      <main className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
+        <svg className="animate-spin w-6 h-6 text-[#a855f7]" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+        </svg>
+      </main>
+    );
+  }
   if (!user) return <LoggedOut />;
 
   return (

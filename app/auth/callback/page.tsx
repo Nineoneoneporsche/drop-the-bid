@@ -10,7 +10,7 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get("code");
     if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(async ({ data, error }) => {
+      supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
         if (!error && data.session?.user) {
           const user = data.session.user;
           const meta = user.user_metadata ?? {};
@@ -18,8 +18,11 @@ export default function AuthCallbackPage() {
             .replace(/\s+/g, "_")
             .replace(/[^가-힣a-zA-Z0-9_]/g, "")
             .slice(0, 12);
+          // Fire-and-forget: /mypage reads the nickname from user_metadata,
+          // not this profiles row, so there's nothing worth blocking the
+          // redirect on here.
           if (rawNick) {
-            await supabase.from("profiles").upsert(
+            supabase.from("profiles").upsert(
               { id: user.id, nickname: rawNick },
               { onConflict: "id", ignoreDuplicates: true }
             );
