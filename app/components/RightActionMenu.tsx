@@ -78,8 +78,11 @@ function ActionBtn({
 /* ─── Main export ─── */
 export default function RightActionMenu({
   containerClassName = "absolute right-3 top-[95px] z-50 flex flex-col gap-3",
+  productName,
 }: {
   containerClassName?: string;
+  /** Current auction item's name, used to build the share title. */
+  productName?: string;
 }) {
   const [sheet, setSheet] = useState<"more" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -90,26 +93,34 @@ export default function RightActionMenu({
   }, []);
 
   const handleShare = useCallback(async () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    const text = "🔥 Drop The Bid 진행중! 지금 가격이 내려가고 있어요.";
+    // Never share the live game/strategy URL directly — an outside visitor
+    // landing mid-round has no session/role there. Send them through /join
+    // instead, which is the safe, generic entry point for new participants.
+    const url = typeof window !== "undefined"
+      ? `${window.location.origin}/join?utm_source=share`
+      : "";
+    const title = `${productName ? productName + " · " : ""}드랍더비드`;
+    const text = "🔥 지금 가격이 실시간으로 떨어지고 있어요. 낙찰의 짜릿함, DTB에서 확인해보세요!";
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ text, url });
+        await navigator.share({ title, text, url });
         return;
-      } catch {
-        // user cancelled or API unavailable — fall through to clipboard
+      } catch (err) {
+        // User dismissed the system share sheet — not an error, do nothing.
+        if (err instanceof Error && err.name === "AbortError") return;
+        // Any other failure (unsupported, permission denied, etc.) — fall
+        // through to the clipboard fallback below.
       }
     }
 
     try {
       await navigator.clipboard.writeText(url);
+      showToast("링크를 복사했습니다");
     } catch {
-      // clipboard unavailable
+      // clipboard unavailable — nothing more we can do here.
     }
-
-    showToast("링크가 복사되었습니다.");
-  }, [showToast]);
+  }, [productName, showToast]);
 
   return (
     <>

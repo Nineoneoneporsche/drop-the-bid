@@ -12,9 +12,38 @@ const wantedSans = localFont({
   variable: "--font-wanted-sans",
 });
 
+// Absolute base for resolving relative og:image/og:url values in metadata.
+// Prefers an explicit override, then Vercel's stable production-domain
+// system env var (works whether the project is on the default .vercel.app
+// domain or a custom one added later), then falls back to the known live
+// domain — never localhost, since metadataBase only matters for what an
+// external crawler (Kakao/Slack/etc.) resolves, and that's always prod.
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+  "https://drop-the-bid.vercel.app";
+
+const SITE_TITLE = "드랍더비드";
+const SITE_DESCRIPTION = "가격은 계속 내려갑니다. 원하는 타이밍에 먼저 선택한 한 명이 그 가격에 구매하는 실시간 역경매.";
+
 export const metadata: Metadata = {
-  title: "Rabbit",
-  description: "기다릴수록 가격은 내려갑니다 — 실시간 역경매 라이브",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: "/",
+    siteName: SITE_TITLE,
+    type: "website",
+    images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: SITE_TITLE }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/og-image.jpg"],
+  },
 };
 
 export const viewport: Viewport = {
