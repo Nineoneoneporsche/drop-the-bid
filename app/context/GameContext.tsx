@@ -71,6 +71,14 @@ export interface GameState {
   participantCount: number;
   spectatorCount: number;
   isLoaded: boolean;
+  // Fail-closed pause (see supabase/migrations/20260917100000_fail_closed_pause.sql).
+  // isPaused is the DB-level, all-participants-affected pause (admin action
+  // or an auto-pause from an expired health lease). transportSafePaused is
+  // purely local — *this* client's own heartbeat has failed a couple of
+  // times in a row, so it can no longer trust that a claim would even
+  // reach the server, but nobody else's game is affected.
+  isPaused: boolean;
+  transportSafePaused: boolean;
 }
 
 export const DEFAULT_CONFIG: GameConfig = {
@@ -133,6 +141,9 @@ type DbRow = {
   final_drop_interval_seconds: number;
   operator_nickname: string | null;
   operator_messages: OperatorMessage[] | null;
+  is_paused: boolean | null;
+  paused_at: string | null;
+  paused_total_ms: number | null;
 };
 
 function rowToConfig(row: DbRow): GameConfig {
@@ -174,8 +185,26 @@ function rowToConfig(row: DbRow): GameConfig {
 // shifts when the other zones' boundaries land. Zone thresholds (tFast,
 // tFinal) always come from the continuous, unstepped rate math; only the
 // price displayed within a zone steps.
-function calcPriceAndStage(gameStartedAt: number, config: GameConfig): { price: number; stage: DropStage } {
-  const rawElapsed = Math.max(0, (getServerNow() - gameStartedAt) / 1000);
+// Pause info: mirrors game_state.is_paused/paused_at/paused_total_ms. While
+// paused, "now" is pinned to the moment the pause started (pausedAt) rather
+// than the live clock, and pausedTotalMs (accumulated from *previous*
+// pauses, already resolved) is subtracted from elapsed either way — so the
+// price freezes exactly where it was and never counts paused time once
+// resumed. Matches claim_winner()'s own paused-time-adjusted calc in
+// supabase/migrations/20260917100000_fail_closed_pause.sql.
+interface PauseInfo {
+  isPaused: boolean;
+  pausedAt: number | null;
+  pausedTotalMs: number;
+}
+
+function calcPriceAndStage(
+  gameStartedAt: number,
+  config: GameConfig,
+  pause: PauseInfo
+): { price: number; stage: DropStage } {
+  const asOf = pause.isPaused && pause.pausedAt ? pause.pausedAt : getServerNow();
+  const rawElapsed = Math.max(0, (asOf - gameStartedAt - pause.pausedTotalMs) / 1000);
   const {
     startPrice, floorPrice, dropAmount, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount,
     dropIntervalSeconds, fastDropIntervalSeconds, finalDropIntervalSeconds,
@@ -233,15 +262,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [participantCount, setParticipantCount]   = useState(0);
   const [spectatorCount, setSpectatorCount]       = useState(0);
   const [isLoaded, setIsLoaded]                   = useState(false);
+  const [isPaused, setIsPaused]                   = useState(false);
+  const [pausedAt, setPausedAt]                   = useState<number | null>(null);
+  const [pausedTotalMs, setPausedTotalMs]         = useState(0);
+  const [transportSafePaused, setTransportSafePaused] = useState(false);
 
   const tickRef      = useRef<ReturnType<typeof setInterval> | null>(null);
   const configRef    = useRef(config);
   const gameAtRef    = useRef(gameStartedAt);
   const userRef      = useRef(currentUser);
   const lastCleanupRef = useRef(0);
+  const pauseRef     = useRef<PauseInfo>({ isPaused: false, pausedAt: null, pausedTotalMs: 0 });
   configRef.current  = config;
   gameAtRef.current  = gameStartedAt;
   userRef.current    = currentUser;
+  pauseRef.current    = { isPaused, pausedAt, pausedTotalMs };
 
   const applyDbRow = useCallback((row: DbRow) => {
     const mappedPhase: Phase = row.phase === "waiting" ? "home" : (row.phase as Phase);
@@ -256,14 +291,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           claimedAt: row.winner_claimed_at ? new Date(row.winner_claimed_at).getTime() : null,
         }
       : null;
+    const pause: PauseInfo = {
+      isPaused: row.is_paused === true,
+      pausedAt: row.paused_at ? new Date(row.paused_at).getTime() : null,
+      pausedTotalMs: row.paused_total_ms ?? 0,
+    };
 
     setPhase(mappedPhase);
     setConfig(cfg);
     setStrategyStartedAt(stratAt);
     setGameStartedAt(gameAt);
     setWinner(w);
+    setIsPaused(pause.isPaused);
+    setPausedAt(pause.pausedAt);
+    setPausedTotalMs(pause.pausedTotalMs);
     if (gameAt) {
-      const { price, stage } = calcPriceAndStage(gameAt, cfg);
+      const { price, stage } = calcPriceAndStage(gameAt, cfg, pause);
       setCurrentPrice(price);
       setDropStage(stage);
     } else {
@@ -477,7 +520,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const update = () => {
-      const { price, stage } = calcPriceAndStage(gameAtRef.current!, configRef.current);
+      const { price, stage } = calcPriceAndStage(gameAtRef.current!, configRef.current, pauseRef.current);
       setCurrentPrice(price);
       setDropStage(stage);
     };
@@ -521,6 +564,50 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const t = setInterval(ping, 30_000);
     return () => clearInterval(t);
   }, [currentUser]);
+
+  // Health-lease poll (see supabase/migrations/20260917100000_fail_closed_pause.sql).
+  // Distinct from the participants.last_seen ping above — this one's job is
+  // purely to detect *this client's* ability to reach the backend at all,
+  // and keep the shared service_health lease alive while a round is live.
+  // Two consecutive failures flips a local-only transportSafePaused flag
+  // (see GameState.transportSafePaused) — never a DB write, never affects
+  // any other participant. A response carrying recovered_from_expiry means
+  // the server just auto-paused the live game on our behalf; re-fetch
+  // game_state immediately rather than wait on a Realtime event that may
+  // itself have been dropped during the same outage.
+  useEffect(() => {
+    if (phase !== "game") return;
+    let stopped = false;
+    let failures = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const check = async () => {
+      if (stopped) return;
+      try {
+        const controller = new AbortController();
+        const abortTimer = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch("/api/game/heartbeat", { cache: "no-store", signal: controller.signal });
+        clearTimeout(abortTimer);
+        if (!res.ok) throw new Error("heartbeat failed");
+
+        failures = 0;
+        setTransportSafePaused(false);
+
+        const data = await res.json().catch(() => null);
+        if (data?.recovered_from_expiry) {
+          const { data: row } = await supabase.from("game_state").select("*").eq("id", 1).single();
+          if (row) applyDbRow(row as unknown as DbRow);
+        }
+      } catch {
+        failures += 1;
+        if (failures >= 2) setTransportSafePaused(true);
+      }
+      if (!stopped) timer = setTimeout(check, 3000);
+    };
+
+    check();
+    return () => { stopped = true; if (timer) clearTimeout(timer); setTransportSafePaused(false); };
+  }, [phase, applyDbRow]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -651,6 +738,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     participantCount,
     spectatorCount,
     isLoaded,
+    isPaused,
+    transportSafePaused,
   };
 
   return (

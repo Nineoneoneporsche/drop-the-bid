@@ -595,6 +595,14 @@ export default function StrategyPage() {
   // ── Derived values ───────────────────────────────────────────────────────
   const isStrategy = state.phase === "strategy";
   const isGame     = state.phase === "game";
+  // isPaused: DB-level, affects every participant (admin action or an
+  // auto-pause from an expired health lease). transportSafePaused: local
+  // only — this client's own connection has failed a couple of heartbeat
+  // checks in a row, so it can't trust a claim would even reach the
+  // server. Either one disables the bid button, but only isPaused should
+  // ever be described to the user as "경매가 일시중지됐다" — the other is
+  // this device's own connection, not a global event.
+  const isGamePaused = state.isPaused || state.transportSafePaused;
   const isParticipant = state.currentUser?.role === "participant" && !forcedWatcher;
   const floor = state.config.floorPrice;
   const start = state.config.startPrice;
@@ -1054,9 +1062,9 @@ export default function StrategyPage() {
                 checkout, bypassing the blackout/video/reveal sequence. */}
             <button
               onClick={handleRaiseHand}
-              disabled={isStrategy || !isParticipant || displayPrice <= 0 || isSequenceActive || raised || bidding}
+              disabled={isStrategy || !isParticipant || displayPrice <= 0 || isSequenceActive || raised || bidding || isGamePaused}
               className={`relative overflow-hidden flex-[7] flex flex-col items-center justify-center h-[88px] text-white transition-all active:scale-[0.97] disabled:cursor-not-allowed rounded-xl ${
-                isStrategy || !isParticipant || displayPrice <= 0 || isSequenceActive || raised || bidding
+                isStrategy || !isParticipant || displayPrice <= 0 || isSequenceActive || raised || bidding || isGamePaused
                   ? ""
                   : isCritical ? "bid-btn-critical critical-shake" : "bid-btn-purple"
               }`}
@@ -1093,10 +1101,16 @@ export default function StrategyPage() {
                   >
                     {formatKRW(displayPrice)}
                   </span>
-                  <div className={`flex items-center gap-2 mt-1 transition-opacity duration-300 ${currentSavings > 0 ? "opacity-100" : "opacity-0"}`}>
-                    <span className="text-[11px] font-semibold text-white">-{currentSavingsPct}% · {formatKRW(currentSavings)} 절약</span>
-                    <span className="text-sm font-extrabold text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>local_fire_department</span>낙찰받기</span>
-                  </div>
+                  {isGamePaused ? (
+                    <span className="text-[11px] font-semibold text-white/70 mt-1">
+                      {state.isPaused ? "⏸ 경매가 일시중지됐습니다" : "연결을 확인하고 있어요…"}
+                    </span>
+                  ) : (
+                    <div className={`flex items-center gap-2 mt-1 transition-opacity duration-300 ${currentSavings > 0 ? "opacity-100" : "opacity-0"}`}>
+                      <span className="text-[11px] font-semibold text-white">-{currentSavingsPct}% · {formatKRW(currentSavings)} 절약</span>
+                      <span className="text-sm font-extrabold text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>local_fire_department</span>낙찰받기</span>
+                    </div>
+                  )}
                 </>
               )}
             </button>

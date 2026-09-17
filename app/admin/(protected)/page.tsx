@@ -86,6 +86,12 @@ function MonitoringPanel() {
         <span className="text-gray-400 text-sm">phase</span>
         <span className="text-gray-900 text-sm font-semibold">{PHASE_LABEL[state.phase] ?? state.phase}</span>
       </div>
+      {state.isPaused && (
+        <div className="flex justify-between items-baseline">
+          <span className="text-gray-400 text-sm">일시정지</span>
+          <span className="text-amber-600 text-sm font-semibold">⏸ 일시정지됨</span>
+        </div>
+      )}
       <div className="flex justify-between items-baseline">
         <span className="text-gray-400 text-sm">참가자 / 관전자</span>
         <span className="text-gray-900 text-sm font-semibold">{state.participantCount}명 / {state.spectatorCount}명</span>
@@ -285,6 +291,36 @@ export default function AdminPage() {
         if (!data.ok) alert(data.error || "리셋에 실패했습니다");
       })
       .catch(() => alert("리셋에 실패했습니다"));
+  }
+
+  function handlePause() {
+    if (!confirm("경매를 일시정지할까요? 모든 참가자의 화면이 멈춥니다.")) return;
+    // Server-side (service-role, admin-session-gated) — see
+    // app/api/admin/pause-game/route.ts and pause_game() in
+    // supabase/migrations/20260917100000_fail_closed_pause.sql. Only takes
+    // effect while phase='game' and not already paused.
+    fetch("/api/admin/pause-game", { method: "POST" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!data.ok) alert(data.error || "일시정지에 실패했습니다");
+        else if (!data.paused) alert("지금은 경매 진행중이 아니라 일시정지할 수 없습니다");
+      })
+      .catch(() => alert("일시정지에 실패했습니다"));
+  }
+
+  function handleResume() {
+    // Server-side (service-role, admin-session-gated) — see
+    // app/api/admin/resume-game/route.ts and resume_game() in
+    // supabase/migrations/20260917100000_fail_closed_pause.sql. Folds the
+    // elapsed pause duration into paused_total_ms so price calc never
+    // counts paused time as elapsed.
+    fetch("/api/admin/resume-game", { method: "POST" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!data.ok) alert(data.error || "재개에 실패했습니다");
+        else if (!data.resumed) alert("지금은 일시정지 상태가 아닙니다");
+      })
+      .catch(() => alert("재개에 실패했습니다"));
   }
 
   function handleForceStart() {
@@ -637,6 +673,24 @@ export default function AdminPage() {
               className="w-full bg-white border-2 border-gray-200 hover:border-orange-300 hover:text-orange-500 text-gray-500 font-semibold py-4 rounded-2xl text-base transition-all active:scale-[0.98]"
             >
               바로 시작 (전략 회의 건너뛰기)
+            </button>
+          )}
+
+          {state.phase === "game" && !state.isPaused && (
+            <button
+              onClick={handlePause}
+              className="w-full bg-white border-2 border-amber-300 hover:border-amber-400 text-amber-600 font-semibold py-4 rounded-2xl text-base transition-all active:scale-[0.98]"
+            >
+              ⏸ 경매 일시정지
+            </button>
+          )}
+
+          {state.isPaused && (
+            <button
+              onClick={handleResume}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-2xl text-base transition-all active:scale-[0.98]"
+            >
+              ▶ 경매 재개
             </button>
           )}
 
