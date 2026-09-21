@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGame, type Role, formatKRW } from "../context/GameContext";
 import { supabase } from "../lib/supabase";
+import { loadTurnstile } from "../lib/turnstile";
 import HomeButton from "../components/HomeButton";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 const ROLES: { value: Role; label: string; desc: string }[] = [
   {
@@ -29,6 +32,10 @@ export default function JoinPage() {
   const [memberNickname, setMemberNickname] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileUnavailable, setTurnstileUnavailable] = useState(false);
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -55,10 +62,43 @@ export default function JoinPage() {
     if (participantBlocked) setRole("spectator");
   }, [participantBlocked]);
 
+  // Render the Turnstile widget only for the role that actually needs it,
+  // and only if a site key is configured — otherwise leave the join flow
+  // untouched (the server route degrades the same way when its secret key
+  // is missing, see app/api/join/participant/route.ts).
+  useEffect(() => {
+    if (role !== "participant" || participantBlocked || !TURNSTILE_SITE_KEY) return;
+    let cancelled = false;
+    loadTurnstile().then((ready) => {
+      if (cancelled) return;
+      if (!ready || !window.turnstile || !turnstileRef.current) {
+        setTurnstileUnavailable(true);
+        return;
+      }
+      turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: (token) => setTurnstileToken(token),
+        "error-callback": () => setTurnstileUnavailable(true),
+      });
+    });
+    return () => {
+      cancelled = true;
+      if (turnstileWidgetId.current && window.turnstile) {
+        window.turnstile.remove(turnstileWidgetId.current);
+        turnstileWidgetId.current = null;
+      }
+      setTurnstileToken("");
+    };
+  }, [role, participantBlocked]);
+
   async function handleJoin() {
     const trimmed = nickname.trim();
     if (!trimmed) { setError("닉네임을 입력해주세요"); return; }
     if (trimmed.length < 2) { setError("닉네임은 2자 이상이어야 합니다"); return; }
+    if (role === "participant" && TURNSTILE_SITE_KEY && !turnstileUnavailable && !turnstileToken) {
+      setError("사람인지 확인 후 다시 시도해주세요");
+      return;
+    }
     // Close the mobile keyboard now, in parallel with the network calls below,
     // instead of leaving it to close while /strategy is already navigating in —
     // that race is what left the next (fixed-height) page's scroll offset stuck
@@ -66,18 +106,23 @@ export default function JoinPage() {
     (document.activeElement as HTMLElement | null)?.blur();
     setLoading(true);
     try {
-      await joinGame(trimmed, role);
+      await joinGame(trimmed, role, turnstileToken || undefined);
       router.push("/strategy");
     } catch (e) {
-      // join_game() (Phase 8) rejects a nickname matching the room's
-      // current operator_nickname — surface that specific case instead of
-      // the generic fallback below.
+      // The participant path (app/api/join/participant/route.ts) already
+      // returns a specific, user-facing Korean message — use it directly
+      // when present. join_game() (spectator path) only ever raises
+      // 'nickname reserved' as a case worth calling out specially.
       const message = e instanceof Error ? e.message : "";
       setError(
-        message.includes("nickname reserved")
-          ? "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해주세요."
-          : "입장 중 오류가 발생했습니다. 다시 시도해주세요."
+        role === "participant" && message
+          ? message
+          : message.includes("nickname reserved")
+            ? "사용할 수 없는 닉네임입니다. 다른 닉네임을 입력해주세요."
+            : "입장 중 오류가 발생했습니다. 다시 시도해주세요."
       );
+      if (turnstileWidgetId.current && window.turnstile) window.turnstile.reset(turnstileWidgetId.current);
+      setTurnstileToken("");
       setLoading(false);
     }
   }
@@ -169,6 +214,10 @@ export default function JoinPage() {
           );
         })}
       </div>
+
+      {role === "participant" && !participantBlocked && TURNSTILE_SITE_KEY && (
+        <div className="mb-8 flex justify-center" ref={turnstileRef} />
+      )}
 
       <div className="mt-auto">
         <button

@@ -108,7 +108,7 @@ export { validateDropZones } from "../lib/dropZones";
 
 interface GameContextValue {
   state: GameState;
-  joinGame: (nickname: string, role: Role) => Promise<void>;
+  joinGame: (nickname: string, role: Role, turnstileToken?: string) => Promise<void>;
   leaveGame: () => Promise<void>;
   sendMessage: (message: string) => Promise<void>;
   addLocalMessage: (msg: ChatMessage) => void;
@@ -611,7 +611,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  const joinGame = useCallback(async (nickname: string, role: Role) => {
+  const joinGame = useCallback(async (nickname: string, role: Role, turnstileToken?: string) => {
     // Identity comes from the Supabase Auth session (auth.uid()), never a
     // client-generated id — the bootstrap effect above should already have
     // one ready, but cover the race where joinGame() runs before it resolves.
@@ -624,19 +624,33 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const guestId = session!.user.id;
     const user: CurrentUser = { guestId, nickname, role };
 
-    // Register participant — join_game() validates role/nickname and uses
-    // auth.uid() itself, rejecting role='participant' for an Anonymous Auth
-    // session server-side (not just the /join page's UI gate). It also
-    // atomically flips game_state waiting -> strategy itself, server-side,
-    // when p_role is 'participant' (Phase 6) — a spectator-only first
-    // arrival never advances the phase. This replaces the old client-side
-    // check-then-act UPDATE (unguarded, client-clock timestamp) that used
-    // to live here.
-    const { error: joinError } = await supabase.rpc("join_game", {
-      p_role: role,
-      p_nickname: nickname,
-    });
-    if (joinError) throw joinError;
+    if (role === "participant") {
+      // Participant registration no longer goes through join_game() at
+      // all — join_game() now refuses role='participant' outright. A real
+      // participant slot requires the Turnstile + device-cookie gated
+      // route below, since Postgres itself has no way to check either of
+      // those (see supabase/migrations/20260921100000_anti_multi_account.sql).
+      const res = await fetch("/api/join/participant", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session!.access_token}`,
+        },
+        body: JSON.stringify({ nickname, turnstileToken }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) throw new Error(body.error || "입장 중 오류가 발생했습니다.");
+    } else {
+      // Spectator — unchanged: join_game() validates role/nickname and
+      // uses auth.uid() itself. This replaces the old client-side
+      // check-then-act UPDATE (unguarded, client-clock timestamp) that
+      // used to live here.
+      const { error: joinError } = await supabase.rpc("join_game", {
+        p_role: role,
+        p_nickname: nickname,
+      });
+      if (joinError) throw joinError;
+    }
 
     // A re-join by an already-registered participant is an UPDATE at the
     // DB level (upsert on the guest_id PK), not an INSERT — and the

@@ -6,6 +6,16 @@ import Link from "next/link";
 import HomeButton from "../components/HomeButton";
 import { supabase } from "../lib/supabase";
 
+// Minimum anti-multi-account deterrent (⑧): disposable-email signup is the
+// cheapest way to run several accounts, so new signups go through
+// Kakao/Google only for now. UI-level only — existing email/password
+// *login* is untouched (app/mypage/page.tsx), and this doesn't stop
+// someone from calling supabase.auth.signUp() directly against the API.
+// The real server-side toggle is Supabase Dashboard > Authentication >
+// Providers > Email > "Allow new users to sign up", which only the
+// project owner can flip — see report for exact steps.
+const EMAIL_SIGNUP_ENABLED = false;
+
 /* ── Terms content ──────────────────────────────────────────────────── */
 const TERMS_OF_SERVICE = `제1조 (목적)
 본 약관은 Drop The Bid(이하 "회사")가 제공하는 역경매 서비스(이하 "서비스")의 이용에 관한 조건 및 절차, 회사와 이용자의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.
@@ -541,43 +551,51 @@ export default function SignupPage() {
               구글로 시작하기
             </button>
 
-            <div className="flex items-center gap-3 mb-5">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-xs text-white/30 font-medium">또는 이메일로 가입</span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-            <div className="mb-4">
-              <label className="flex items-center gap-1 text-xs uppercase tracking-wider text-white/55 font-medium mb-1.5">
-                이메일 <span className="text-[#a855f7] normal-case tracking-normal text-xs">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  placeholder="example@email.com"
-                  value={form.email}
-                  onChange={e => { set("email", e.target.value.trim()); setEmailStatus("idle"); }}
-                  autoComplete="email"
-                  className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none transition-colors rounded-xl pr-28 ${
-                    errors.email ? "border-red-500/60 focus:border-red-500/80" : "border-white/12 focus:border-[#a855f7]/60"
-                  }`}
-                />
-                {emailStatus !== "idle" && (
-                  <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
-                    emailStatus === "checking" ? "text-white/40" :
-                    emailStatus === "available" ? "text-green-400" : "text-red-400"
-                  }`}>
-                    {emailStatus === "checking" ? "확인 중..." :
-                     emailStatus === "available" ? "✓ 사용 가능" : "✗ 이미 가입됨"}
-                  </span>
-                )}
-              </div>
-              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
-            </div>
-            <Field label="비밀번호" required type="password" placeholder="8자 이상"
-              value={form.password} onChange={e => set("password", e.target.value)} error={errors.password}
-              hint="영문, 숫자, 특수문자 조합 8자 이상" autoComplete="new-password" />
-            <Field label="비밀번호 확인" required type="password" placeholder="비밀번호 재입력"
-              value={form.passwordConfirm} onChange={e => set("passwordConfirm", e.target.value)} error={errors.passwordConfirm} autoComplete="new-password" />
+            {EMAIL_SIGNUP_ENABLED ? (
+              <>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-xs text-white/30 font-medium">또는 이메일로 가입</span>
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+                <div className="mb-4">
+                  <label className="flex items-center gap-1 text-xs uppercase tracking-wider text-white/55 font-medium mb-1.5">
+                    이메일 <span className="text-[#a855f7] normal-case tracking-normal text-xs">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      placeholder="example@email.com"
+                      value={form.email}
+                      onChange={e => { set("email", e.target.value.trim()); setEmailStatus("idle"); }}
+                      autoComplete="email"
+                      className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none transition-colors rounded-xl pr-28 ${
+                        errors.email ? "border-red-500/60 focus:border-red-500/80" : "border-white/12 focus:border-[#a855f7]/60"
+                      }`}
+                    />
+                    {emailStatus !== "idle" && (
+                      <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
+                        emailStatus === "checking" ? "text-white/40" :
+                        emailStatus === "available" ? "text-green-400" : "text-red-400"
+                      }`}>
+                        {emailStatus === "checking" ? "확인 중..." :
+                         emailStatus === "available" ? "✓ 사용 가능" : "✗ 이미 가입됨"}
+                      </span>
+                    )}
+                  </div>
+                  {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
+                </div>
+                <Field label="비밀번호" required type="password" placeholder="8자 이상"
+                  value={form.password} onChange={e => set("password", e.target.value)} error={errors.password}
+                  hint="영문, 숫자, 특수문자 조합 8자 이상" autoComplete="new-password" />
+                <Field label="비밀번호 확인" required type="password" placeholder="비밀번호 재입력"
+                  value={form.passwordConfirm} onChange={e => set("passwordConfirm", e.target.value)} error={errors.passwordConfirm} autoComplete="new-password" />
+              </>
+            ) : (
+              <p className="text-center text-white/35 text-xs mt-6">
+                현재 신규 가입은 카카오톡/구글로만 가능합니다.
+              </p>
+            )}
 
             <div className="mt-6 mb-5 bg-[#141414] border border-white/10 rounded-2xl p-4">
               <CheckRow checked={agreeAll} onChange={toggleAgreeAll}>
@@ -722,9 +740,15 @@ export default function SignupPage() {
         {/* ── Buttons ── */}
         <div className="mt-6 space-y-2">
           {submitErr && <p className="text-red-400 text-sm text-center">{submitErr}</p>}
-          <button onClick={handleNext} disabled={submitting} className="w-full py-4 text-white font-semibold text-base bid-btn-purple rounded-xl disabled:opacity-50">
-            {submitting ? "처리 중..." : step < 4 ? "다음" : "가입 완료"}
-          </button>
+          {/* Steps 2-4 only ever exist to finish an email/password signup
+              (finishSignup() below) — with that path disabled, step 1 has
+              nothing left to submit into them. Kakao/Google buttons above
+              navigate away immediately regardless of step, unaffected. */}
+          {(EMAIL_SIGNUP_ENABLED || step !== 1) && (
+            <button onClick={handleNext} disabled={submitting} className="w-full py-4 text-white font-semibold text-base bid-btn-purple rounded-xl disabled:opacity-50">
+              {submitting ? "처리 중..." : step < 4 ? "다음" : "가입 완료"}
+            </button>
+          )}
 
           {step === 4 && (
             <button onClick={handleSkipCard} disabled={submitting} className="w-full py-3 text-white/50 text-base border border-white/12 rounded-xl transition-colors hover:border-white/25 disabled:opacity-40">
