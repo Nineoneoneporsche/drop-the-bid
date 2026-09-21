@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { GameProvider } from "./context/GameContext";
+import TouchIndicator from "./components/TouchIndicator";
 
 // Self-hosted variable font — one woff2 covering the whole 400–1000 weight
 // range, so no per-weight files.
@@ -57,6 +58,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko" className={wantedSans.variable}>
 <body className="antialiased bg-gray-950 text-white min-h-screen">
         <GameProvider>{children}</GameProvider>
+        {/* Recording-only touch indicator — inert unless ?demo=1 is in the
+            URL, mounted once here so it covers every page. See
+            app/components/TouchIndicator.tsx to remove entirely later. */}
+        <TouchIndicator />
       </body>
     </html>
   );
