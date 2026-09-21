@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 
 // Recording-only touch indicator for capturing demo footage. Mounted once
 // in app/layout.tsx so it covers every page, not just /strategy. Fully
-// self-contained and inert unless ?demo=1 is in the URL — reads that
-// itself (rather than useSearchParams(), which would force whichever page
-// it's on into a Suspense boundary) so the host layout needs nothing
+// self-contained and inert unless ?demo=1 is in the URL (or was on an
+// earlier page this same tab session — see sessionStorage below) — reads
+// that itself (rather than useSearchParams(), which would force whichever
+// page it's on into a Suspense boundary) so the host layout needs nothing
 // beyond mounting this component unconditionally. Delete this file and
 // its one <TouchIndicator /> call site in app/layout.tsx to remove the
 // feature entirely once recording is done.
@@ -16,13 +17,29 @@ interface Ripple {
   y: number;
 }
 
+const SESSION_KEY = "dtb_demo_indicator";
+
 export default function TouchIndicator() {
   const [enabled, setEnabled] = useState(false);
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const nextId = useRef(0);
 
+  // ?demo=1 only survives the page it's typed on — a real recording run
+  // navigates through several pages (join → strategy → payment, ...),
+  // some of which are full navigations that remount this component fresh.
+  // sessionStorage carries "demo mode is on" across all of them for the
+  // rest of this tab's session; closing the tab clears it on its own, no
+  // explicit off-switch needed for a recording-only feature like this.
   useEffect(() => {
-    setEnabled(new URLSearchParams(window.location.search).get("demo") === "1");
+    const fromUrl = new URLSearchParams(window.location.search).get("demo") === "1";
+    if (fromUrl) {
+      try { sessionStorage.setItem(SESSION_KEY, "1"); } catch { /* private mode etc. — fall through */ }
+      setEnabled(true);
+      return;
+    }
+    let fromSession = false;
+    try { fromSession = sessionStorage.getItem(SESSION_KEY) === "1"; } catch { /* ignore */ }
+    setEnabled(fromSession);
   }, []);
 
   useEffect(() => {
