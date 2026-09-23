@@ -132,7 +132,6 @@ export default function JoinPage() {
       <HomeButton />
 
       <div className="mt-10 mb-12">
-        <p className="text-xs uppercase tracking-[0.14em] text-white/60 font-medium mb-1">Drop The Bid</p>
         <h1 className="text-[22px] font-extrabold text-white leading-tight">입장하기</h1>
         <p className="text-white/70 text-base mt-2">
           {state.config.productName} ·{" "}
