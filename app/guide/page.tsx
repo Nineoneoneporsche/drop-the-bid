@@ -111,14 +111,14 @@ export default function GuidePage() {
             style={{ cursor: "grab" }}
           >
             {SLIDES.map((src, i) => (
-              <div key={src} className="w-full flex-shrink-0 snap-center">
-                <div className="relative w-full" style={{ aspectRatio: IMAGE_ASPECT }}>
+              <div key={src} className="w-full flex-shrink-0 snap-center flex justify-center">
+                <div className="relative w-[80%]" style={{ aspectRatio: IMAGE_ASPECT }}>
                   <Image
                     src={src}
                     alt={`게임방법 설명 ${i + 1}`}
                     fill
                     draggable={false}
-                    sizes="(max-width: 448px) 100vw, 448px"
+                    sizes="(max-width: 448px) 80vw, 358px"
                     style={{ objectFit: "contain" }}
                     priority={i === 0}
                     loading={i === 0 ? undefined : "eager"}
