@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { checkPaymentWindow, PAYMENT_WINDOW_EXPIRED, WINNER_PAYMENT_WINDOW_MINUTES } from "../../../lib/paymentWindow";
+import { missingShippingFields, shippingFromMetadata, SHIPPING_INFO_REQUIRED } from "../../../lib/shipping";
 
 // Sandbox fallback only outside production — a missing env var in an
 // actual production deploy must fail loudly (every payment rejected with a
@@ -69,7 +71,7 @@ export async function POST(req: NextRequest) {
   // "game isn't in a normal claimed state").
   const { data: gameState } = await supabaseAnon
     .from("game_state")
-    .select("phase, winner_id, winner_price")
+    .select("phase, winner_id, winner_price, winner_claimed_at")
     .eq("id", 1)
     .single();
 
@@ -123,7 +125,46 @@ export async function POST(req: NextRequest) {
     // status is 'pending' (an earlier attempt never got a response from
     // Toss) or 'failed' (Toss genuinely rejected it, nothing was charged) —
     // both are safe to retry, fall through to the Toss call below.
-  } else {
+  }
+
+  // Everything from here on is a NEW approval (no paid/reconciliation
+  // record above short-circuited it), so the payment window is
+  // enforced here — after the idempotent replay path, so an already-paid
+  // order re-checked after the window still reports success, and before
+  // payment_attempts/Toss are touched. Both timestamps come from the DB
+  // (winner_claimed_at + server_now()), never the client. A failed clock
+  // read fails closed: no Toss call without a trusted "now".
+  const { data: serverNow, error: serverNowError } = await supabaseAnon.rpc("server_now");
+  if (serverNowError) {
+    console.error("[payment/confirm] server_now() failed — refusing to approve", { orderId, error: serverNowError });
+    return NextResponse.json({ ok: false, error: "결제 확인 중 오류가 발생했습니다" }, { status: 503 });
+  }
+  const windowCheck = checkPaymentWindow(gameState.winner_claimed_at, serverNow as string | null);
+  if (!windowCheck.ok) {
+    console.warn("[payment/confirm] payment window check refused approval", {
+      orderId, userId: user.id, reason: windowCheck.reason, elapsedMs: windowCheck.elapsedMs,
+    });
+    return NextResponse.json(
+      { ok: false, code: PAYMENT_WINDOW_EXPIRED, error: `결제 가능 시간(낙찰 후 ${WINNER_PAYMENT_WINDOW_MINUTES}분)이 지나 결제를 승인할 수 없습니다.` },
+      { status: 403 },
+    );
+  }
+
+  // Shipping info, re-validated server-side for every new approval (the
+  // payment page's own check is UX only). Read from the user object
+  // getUser() just fetched from Supabase Auth — not from anything the
+  // client sent. These exact values are what gets snapshotted onto the
+  // order below, so what was validated is what is stored.
+  const shipping = shippingFromMetadata(user.user_metadata);
+  const missingShipping = missingShippingFields(shipping);
+  if (missingShipping.length > 0) {
+    return NextResponse.json(
+      { ok: false, code: SHIPPING_INFO_REQUIRED, missing: missingShipping, error: "배송지 정보(받는 분, 휴대폰 번호, 주소)를 먼저 등록해주세요." },
+      { status: 422 },
+    );
+  }
+
+  if (!existingAttempt) {
     const { error: insertPendingError } = await supabaseAdmin.from("payment_attempts").insert({
       order_id: orderId,
       user_id: user.id,
@@ -187,6 +228,14 @@ export async function POST(req: NextRequest) {
     amount:       data.totalAmount,
     order_id:     orderId,
     payment_key:  paymentKey,
+    // Shipping snapshot as of this approval — independent of later profile
+    // edits and of account deletion (see the orders_shipping_snapshot
+    // migration).
+    shipping_recipient_name: shipping.recipientName,
+    shipping_phone:          shipping.phone,
+    shipping_postcode:       shipping.postcode,
+    shipping_address:        shipping.address,
+    shipping_address_detail: shipping.addressDetail || null,
   });
 
   if (insertError) {

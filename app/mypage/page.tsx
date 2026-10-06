@@ -6,6 +6,7 @@ import Link from "next/link";
 import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
 import { supabase } from "../lib/supabase";
+import { missingShippingFields, shippingFromMetadata, SHIPPING_FIELD_LABELS } from "../lib/shipping";
 
 function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
 
@@ -18,6 +19,9 @@ interface StoredUser {
   postcode: string;
   address: string;
   addressDetail: string;
+  // Shipping recipient — its own user_metadata key, NOT the profile `name`
+  // (see app/lib/shipping.ts).
+  shippingRecipientName: string;
 }
 
 interface Stats {
@@ -248,7 +252,7 @@ function LoggedOut() {
 
         {/* App info */}
         <div className="mt-8 space-y-1.5">
-          {[["버전", "0.4.0 (MVP Demo)"], ["제작", "Drop The Bid Team"], ["문의", "hello@dtb.kr"]].map(([k, v]) => (
+          {[["버전", "0.4.0"], ["제작", "Drop The Bid Team"], ["문의", "hello@dtb.kr"]].map(([k, v]) => (
             <div key={k} className="flex justify-between">
               <span className="text-xs uppercase tracking-wider text-white/50 font-medium">{k}</span>
               <span className="text-xs text-white/65">{v}</span>
@@ -289,6 +293,7 @@ export default function MyPage() {
           postcode:      meta.postcode      ?? "",
           address:       meta.address       ?? "",
           addressDetail: meta.addressDetail ?? "",
+          shippingRecipientName: meta.shippingRecipientName ?? "",
         });
         // Loaded flips as soon as the profile itself is known — order
         // history / savings stats aren't needed for first paint, so they're
@@ -338,12 +343,13 @@ export default function MyPage() {
   }
 
   const [editingAddr, setEditingAddr] = useState(false);
-  const [addrForm, setAddrForm] = useState({ postcode: "", address: "", addressDetail: "", phone: "" });
+  const [addrForm, setAddrForm] = useState({ shippingRecipientName: "", postcode: "", address: "", addressDetail: "", phone: "" });
   const [addrSaving, setAddrSaving] = useState(false);
   const [addrSaved, setAddrSaved] = useState(false);
 
   function openAddrEdit() {
     setAddrForm({
+      shippingRecipientName: user?.shippingRecipientName ?? "",
       postcode:      user?.postcode      ?? "",
       address:       user?.address       ?? "",
       addressDetail: user?.addressDetail ?? "",
@@ -371,6 +377,7 @@ export default function MyPage() {
     setAddrSaving(true);
     const { error } = await supabase.auth.updateUser({
       data: {
+        shippingRecipientName: addrForm.shippingRecipientName.trim(),
         phone:         addrForm.phone,
         postcode:      addrForm.postcode,
         address:       addrForm.address,
@@ -558,7 +565,7 @@ export default function MyPage() {
             <div className="px-5 pb-4">
               {user.address ? (
                 <>
-                  <p className="text-white/75 text-base font-semibold">{user.name || user.nickname}{user.phone ? ` · ${user.phone}` : ""}</p>
+                  <p className="text-white/75 text-base font-semibold">{user.shippingRecipientName || "받는 분 미등록"}{user.phone ? ` · ${user.phone}` : ""}</p>
                   {user.postcode && <p className="text-white/45 text-xs mt-0.5">({user.postcode})</p>}
                   <p className="text-white/65 text-base mt-1">{user.address}</p>
                   {user.addressDetail && <p className="text-white/65 text-base">{user.addressDetail}</p>}
@@ -569,6 +576,16 @@ export default function MyPage() {
             </div>
           ) : (
             <div className="px-5 pb-5 space-y-3">
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-white/45 font-medium mb-1.5">받는 분</label>
+                <input
+                  value={addrForm.shippingRecipientName}
+                  onChange={e => setAddrForm(f => ({ ...f, shippingRecipientName: e.target.value }))}
+                  placeholder="수취인 이름"
+                  autoComplete="shipping name"
+                  className="w-full bg-white/5 border border-white/12 focus:border-[#a855f7]/60 px-3.5 py-2.5 text-white placeholder-white/20 text-base focus:outline-none rounded-xl transition-colors"
+                />
+              </div>
               <div>
                 <label className="block text-xs uppercase tracking-wider text-white/45 font-medium mb-1.5">휴대폰 번호</label>
                 <input
@@ -624,13 +641,18 @@ export default function MyPage() {
                 </button>
                 <button
                   onClick={saveAddr}
-                  disabled={addrSaving || !addrForm.address}
+                  disabled={addrSaving || missingShippingFields(shippingFromMetadata(addrForm)).length > 0}
                   className="flex-[2] py-2.5 text-base font-semibold text-white rounded-xl disabled:opacity-40 transition-colors"
                   style={{ background: addrSaved ? "#22c55e" : "linear-gradient(180deg,#bf7af0 0%,#a855f7 55%,#8b3fd9 100%)" }}
                 >
                   {addrSaved ? "저장 완료!" : addrSaving ? "저장 중..." : "저장"}
                 </button>
               </div>
+              {missingShippingFields(shippingFromMetadata(addrForm)).length > 0 && (
+                <p className="text-white/45 text-xs">
+                  필수 입력: {missingShippingFields(shippingFromMetadata(addrForm)).map(f => SHIPPING_FIELD_LABELS[f]).join(", ")}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -804,7 +826,7 @@ export default function MyPage() {
 
         {/* App info */}
         <div ref={setRef(8)} className="card-rise mb-6 space-y-1.5" style={{ transitionDelay: "340ms" }}>
-          {[["버전", "0.4.0 (MVP Demo)"], ["제작", "Drop The Bid Team"], ["문의", "hello@dtb.kr"]].map(([k, v]) => (
+          {[["버전", "0.4.0"], ["제작", "Drop The Bid Team"], ["문의", "hello@dtb.kr"]].map(([k, v]) => (
             <div key={k} className="flex justify-between">
               <span className="text-xs uppercase tracking-wider text-white/45 font-medium">{k}</span>
               <span className="text-xs text-white/60">{v}</span>

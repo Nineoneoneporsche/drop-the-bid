@@ -6,6 +6,7 @@ import HomeButton from "../components/HomeButton";
 import { supabase } from "../lib/supabase";
 import { getServerNow } from "../lib/serverClock";
 import { WINNER_PAYMENT_WINDOW_SECONDS } from "../lib/paymentWindow";
+import { missingShippingFields, shippingFromMetadata, SHIPPING_FIELD_LABELS, type ShippingInfo } from "../lib/shipping";
 
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
 // Same reasoning as TOSS_SECRET_KEY in app/api/payment/confirm/route.ts:
@@ -40,7 +41,7 @@ export default function PaymentPage() {
   const [notWinner, setNotWinner]   = useState(false);
   const [PRICE,     setPRICE]       = useState(0);
   const [guestId,   setGuestId]     = useState("");
-  const [profile,   setProfile]     = useState<{ name: string; phone: string; address: string; addressDetail: string; postcode: string } | null>(null);
+  const [profile,   setProfile]     = useState<ShippingInfo | null>(null);
 
   const [timeLeft, setTimeLeft] = useState(WINNER_PAYMENT_WINDOW_SECONDS);
   const [expired,  setExpired]  = useState(false);
@@ -90,14 +91,7 @@ export default function PaymentPage() {
       // Load member profile from Supabase Auth session
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const m = session.user.user_metadata ?? {};
-        setProfile({
-          name:          m.name        ?? "",
-          phone:         m.phone       ?? "",
-          postcode:      m.postcode    ?? "",
-          address:       m.address     ?? "",
-          addressDetail: m.addressDetail ?? "",
-        });
+        setProfile(shippingFromMetadata(session.user.user_metadata));
       }
 
       setVerifying(false);
@@ -123,7 +117,11 @@ export default function PaymentPage() {
     return () => clearInterval(t);
   }, [verifying, notWinner, claimedAtMs]);
 
-  const canPay = agreed && !expired && !paying && PRICE > 0;
+  // UX gate only — /api/payment/confirm re-validates the same rule
+  // server-side before Toss is contacted.
+  const missingShipping = profile ? missingShippingFields(profile) : null;
+  const shippingComplete = missingShipping !== null && missingShipping.length === 0;
+  const canPay = agreed && !expired && !paying && PRICE > 0 && shippingComplete;
 
   async function handlePay() {
     if (!canPay) return;
@@ -286,9 +284,9 @@ export default function PaymentPage() {
             <p className="text-xs uppercase tracking-[0.12em] text-white/60 font-medium">배송지</p>
             <button disabled className="text-xs text-white/45 border border-white/20 px-2.5 py-1 cursor-not-allowed">배송지 변경</button>
           </div>
-          {profile ? (
+          {profile && (profile.address || profile.recipientName) ? (
             <>
-              <p className="text-white/70 text-base font-semibold">{profile.name}{profile.phone ? ` · ${profile.phone}` : ""}</p>
+              <p className="text-white/70 text-base font-semibold">{profile.recipientName || "받는 분 미등록"}{profile.phone ? ` · ${profile.phone}` : ""}</p>
               {profile.postcode && <p className="text-white/50 text-xs mt-0.5">({profile.postcode})</p>}
               {profile.address && <p className="text-white/70 text-base mt-1">{profile.address}</p>}
               {profile.addressDetail && <p className="text-white/70 text-base">{profile.addressDetail}</p>}
@@ -296,6 +294,15 @@ export default function PaymentPage() {
             </>
           ) : (
             <p className="text-white/40 text-sm">배송지 정보가 없습니다. 마이페이지에서 등록해주세요.</p>
+          )}
+          {!shippingComplete && (
+            <div className="mt-3 px-3 py-2.5 bg-red-500/10 border border-red-500/20">
+              <p className="text-red-400 text-xs leading-relaxed">
+                배송지 필수 정보가 없어 결제할 수 없습니다
+                {missingShipping && missingShipping.length > 0 && ` (${missingShipping.map(f => SHIPPING_FIELD_LABELS[f]).join(", ")})`}.
+                {" "}<a href="/mypage" className="underline font-semibold">마이페이지에서 등록하기</a>
+              </p>
+            </div>
           )}
         </div>
 
@@ -335,7 +342,8 @@ export default function PaymentPage() {
             </>
           ) : `${fmt(PRICE)} 결제하기`}
         </button>
-        {!agreed && !expired && <p className="text-center text-white/55 text-xs mt-2">동의 후 결제 가능합니다.</p>}
+        {!agreed && !expired && shippingComplete && <p className="text-center text-white/55 text-xs mt-2">동의 후 결제 가능합니다.</p>}
+        {!expired && !shippingComplete && <p className="text-center text-white/55 text-xs mt-2">배송지 정보를 등록한 후 결제 가능합니다.</p>}
         {expired && <p className="text-center text-red-400 text-xs mt-2">결제 가능 시간이 만료되었습니다.</p>}
       </div>
     </main>

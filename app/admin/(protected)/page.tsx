@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useGame, formatKRW, DEFAULT_CONFIG, validateDropZones, type OperatorMessage } from "../../context/GameContext";
 import { getServerNow } from "../../lib/serverClock";
+import { WINNER_PAYMENT_WINDOW_MINUTES } from "../../lib/paymentWindow";
 
 const PHASE_LABEL: Record<string, string> = {
   home: "대기중 (waiting)",
@@ -123,7 +124,7 @@ function MonitoringPanel() {
       )}
 
       <div className="border-t border-gray-100 pt-3 flex justify-between items-baseline">
-        <span className="text-gray-400 text-sm">결제 정체 (10분 이상 pending)</span>
+        <span className="text-gray-400 text-sm">결제 정체 ({WINNER_PAYMENT_WINDOW_MINUTES}분 이상 pending)</span>
         <span className={`text-sm font-semibold ${paymentStatus && paymentStatus.stalePendingCount > 0 ? "text-red-500" : "text-gray-900"}`}>
           {paymentStatus?.stalePendingCount ?? "—"}건
         </span>

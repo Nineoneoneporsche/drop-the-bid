@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ProductThumb } from "../../components/ProductImage";
 import { supabase } from "../../lib/supabase";
+import { PAYMENT_WINDOW_EXPIRED, WINNER_PAYMENT_WINDOW_MINUTES } from "../../lib/paymentWindow";
 
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
 const RETAIL_PRICE = 899_000;
@@ -38,6 +39,10 @@ function SuccessInner() {
   const [status, setStatus]     = useState<"loading" | "done" | "error">("loading");
   const [payMethod, setPayMethod] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  // Machine-readable `code` from the confirm API (e.g. PAYMENT_WINDOW_EXPIRED)
+  // — terminal refusals hide the retry button, since re-sending the same
+  // request can only be refused again.
+  const [errorCode, setErrorCode] = useState("");
 
   const confirm = useCallback(async () => {
     if (!paymentKey || !orderId || !amount) {
@@ -46,6 +51,7 @@ function SuccessInner() {
       return;
     }
     setStatus("loading");
+    setErrorCode("");
     const { data: { session } } = await supabase.auth.getSession();
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
@@ -63,6 +69,7 @@ function SuccessInner() {
       const json = await res.json();
       if (!res.ok || json?.ok !== true) {
         setErrorMessage(extractErrorMessage(json) ?? "결제 확인에 실패했습니다.");
+        setErrorCode(typeof json?.code === "string" ? json.code : "");
         setStatus("error");
         return;
       }
@@ -88,6 +95,35 @@ function SuccessInner() {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
           </svg>
           <p className="text-white/60 text-sm">결제를 확인하고 있습니다...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (status === "error" && errorCode === PAYMENT_WINDOW_EXPIRED) {
+    // The server refused BEFORE contacting Toss, so this payment was never
+    // approved (no charge is captured) — and no retry can succeed, so no
+    // retry button here.
+    return (
+      <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-red-500/12 border border-red-500/25 flex items-center justify-center mb-5">
+          <svg viewBox="0 0 24 24" className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" />
+          </svg>
+        </div>
+        <p className="text-xs uppercase tracking-[0.18em] font-semibold mb-1 text-red-400">결제 시간 만료</p>
+        <h1 className="text-lg font-extrabold text-white mb-2">결제 가능 시간이 지났습니다</h1>
+        <p className="text-white/55 text-sm leading-relaxed mb-8">
+          낙찰 후 {WINNER_PAYMENT_WINDOW_MINUTES}분 안에 결제가 완료되지 않아 결제가 승인되지 않았습니다.<br />
+          이 결제는 청구되지 않으며, 더 이상 결제할 수 없습니다.
+        </p>
+        <div className="w-full max-w-xs">
+          <Link
+            href="/"
+            className="block w-full py-3.5 text-center text-white/60 font-medium text-base border border-white/15 transition-colors hover:border-white/30"
+          >
+            홈으로 돌아가기
+          </Link>
         </div>
       </main>
     );
