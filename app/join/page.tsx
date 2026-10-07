@@ -6,6 +6,8 @@ import { useGame, type Role, formatKRW } from "../context/GameContext";
 import { supabase } from "../lib/supabase";
 import { loadTurnstile } from "../lib/turnstile";
 import HomeButton from "../components/HomeButton";
+import PendingWinBanner from "../components/PendingWinBanner";
+import { usePendingWin } from "../lib/pendingWin";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -36,6 +38,9 @@ export default function JoinPage() {
   const [turnstileUnavailable, setTurnstileUnavailable] = useState(false);
   const turnstileRef = useRef<HTMLDivElement>(null);
   const turnstileWidgetId = useRef<string | null>(null);
+  // A signed-in, still-unpaid current winner is sent to payment instead of
+  // the participant/spectator entry flow (which would re-open /strategy).
+  const { pending: hasPendingWin } = usePendingWin();
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -125,6 +130,19 @@ export default function JoinPage() {
       setTurnstileToken("");
       setLoading(false);
     }
+  }
+
+  if (hasPendingWin) {
+    return (
+      <main className="min-h-screen bg-[#0f0f0f] flex flex-col px-4 pt-8 pb-12 max-w-md mx-auto">
+        <HomeButton />
+        <div className="mt-10 mb-6">
+          <h1 className="text-[22px] font-extrabold text-white leading-tight">낙찰을 축하합니다</h1>
+          <p className="text-white/70 text-base mt-2">결제 가능 시간 안에 결제를 완료해주세요.</p>
+        </div>
+        <PendingWinBanner />
+      </main>
+    );
   }
 
   return (

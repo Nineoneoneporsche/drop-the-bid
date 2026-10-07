@@ -6,6 +6,7 @@ import HomeButton from "../components/HomeButton";
 import { supabase } from "../lib/supabase";
 import { getServerNow } from "../lib/serverClock";
 import { WINNER_PAYMENT_WINDOW_SECONDS } from "../lib/paymentWindow";
+import { hasOrderForWin } from "../lib/winOrder";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_FIELD_LABELS, type ShippingInfo } from "../lib/shipping";
 
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
@@ -39,6 +40,9 @@ function fmtTime(s: number) {
 export default function PaymentPage() {
   const [verifying, setVerifying]   = useState(true);
   const [notWinner, setNotWinner]   = useState(false);
+  // This win already has an order (UX check only — the DB's one-active-
+  // payment-per-win guard is what actually blocks a second payment).
+  const [alreadyPaid, setAlreadyPaid] = useState(false);
   const [PRICE,     setPRICE]       = useState(0);
   const [guestId,   setGuestId]     = useState("");
   const [profile,   setProfile]     = useState<ShippingInfo | null>(null);
@@ -58,24 +62,26 @@ export default function PaymentPage() {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Verify winner from Supabase — price comes from DB, not URL
+  // Verify winner from Supabase — price comes from DB, not URL. Identity is
+  // the signed-in Supabase Auth user (same identity /api/payment/confirm
+  // verifies server-side), not localStorage's dtb_guest — which leaveGame()
+  // clears and another browser/device never has — so a real winner can
+  // always get back here. This is a display gate only; the confirm API
+  // re-checks auth/winner/amount/phase/window/shipping regardless.
   useEffect(() => {
     async function verify() {
-      let gId = "";
-      try {
-        const stored = localStorage.getItem("dtb_guest");
-        gId = stored ? JSON.parse(stored).guestId : "";
-      } catch { /* empty */ }
+      const { data: { session } } = await supabase.auth.getSession();
+      const gId = session?.user && !session.user.is_anonymous ? session.user.id : "";
 
       if (!gId) { setNotWinner(true); setVerifying(false); return; }
 
       const { data } = await supabase
         .from("game_state")
-        .select("winner_id, winner_price, winner_claimed_at")
+        .select("phase, winner_id, winner_price, winner_claimed_at")
         .eq("id", 1)
         .single();
 
-      if (!data || data.winner_id !== gId || !data.winner_price) {
+      if (!data || data.phase !== "ended" || data.winner_id !== gId || !data.winner_price) {
         setNotWinner(true);
         setVerifying(false);
         return;
@@ -88,11 +94,14 @@ export default function PaymentPage() {
       // always has winner_claimed_at set atomically by claim_winner().
       setClaimedAtMs(data.winner_claimed_at ? new Date(data.winner_claimed_at).getTime() : getServerNow());
 
-      // Load member profile from Supabase Auth session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setProfile(shippingFromMetadata(session.user.user_metadata));
+      if (data.winner_claimed_at && await hasOrderForWin(gId, data.winner_price, data.winner_claimed_at)) {
+        setAlreadyPaid(true);
+        setVerifying(false);
+        return;
       }
+
+      // Shipping info from the same Auth session
+      setProfile(shippingFromMetadata(session!.user.user_metadata));
 
       setVerifying(false);
     }
@@ -168,6 +177,21 @@ export default function PaymentPage() {
           </svg>
           <p className="text-white/60 text-sm">낙찰 정보를 확인하고 있습니다...</p>
         </div>
+      </main>
+    );
+  }
+
+  if (alreadyPaid) {
+    return (
+      <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-[#a855f7]/15 border border-[#a855f7]/30 flex items-center justify-center mb-5">
+          <svg viewBox="0 0 24 24" className="w-8 h-8 text-[#a855f7]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <h1 className="text-lg font-extrabold text-white mb-2">이미 결제가 완료된 낙찰입니다.</h1>
+        <p className="text-white/50 text-sm leading-relaxed mb-8">주문 내역은 마이페이지에서 확인할 수 있습니다.</p>
+        <a href="/mypage" className="block w-full max-w-xs py-3.5 text-center text-white font-semibold text-base rounded-xl bid-btn-purple">주문 내역 보기</a>
       </main>
     );
   }
@@ -300,7 +324,7 @@ export default function PaymentPage() {
               <p className="text-red-400 text-xs leading-relaxed">
                 배송지 필수 정보가 없어 결제할 수 없습니다
                 {missingShipping && missingShipping.length > 0 && ` (${missingShipping.map(f => SHIPPING_FIELD_LABELS[f]).join(", ")})`}.
-                {" "}<a href="/mypage" className="underline font-semibold">마이페이지에서 등록하기</a>
+                {" "}<a href="/mypage?from=payment" className="underline font-semibold">마이페이지에서 등록하기</a>
               </p>
             </div>
           )}

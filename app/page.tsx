@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useGame, formatKRW } from "./context/GameContext";
 import { ProductThumb } from "./components/ProductImage";
 import BottomNav from "./components/BottomNav";
+import PendingWinBanner from "./components/PendingWinBanner";
 
 function fmtCountdown(s: number) {
   const h = Math.floor(s / 3600);
@@ -242,6 +243,7 @@ export default function HomePage() {
         </div>
 
         {/* CTAs */}
+        <PendingWinBanner className="mb-3" />
         <div className="flex flex-col gap-2">
           {auctionLive ? (
             <button

@@ -6,6 +6,34 @@ import Link from "next/link";
 import { ProductThumb } from "../../components/ProductImage";
 import { supabase } from "../../lib/supabase";
 import { PAYMENT_WINDOW_EXPIRED, WINNER_PAYMENT_WINDOW_MINUTES } from "../../lib/paymentWindow";
+import { ALREADY_PAID, PAYMENT_IN_PROGRESS, PAYMENT_NEEDS_REVIEW } from "../../lib/paymentCodes";
+
+// Terminal refusals because this win already has an active payment: the
+// server refused BEFORE contacting Toss for this payment, so it was not
+// approved. Re-sending can only be refused again — no retry button.
+const ACTIVE_PAYMENT_SCREENS: Record<string, { label: string; title: string; body: string; href: string; cta: string }> = {
+  [ALREADY_PAID]: {
+    label: "결제 완료된 낙찰",
+    title: "이미 결제가 완료된 낙찰입니다",
+    body: "이번 결제는 승인되지 않았으며 청구되지 않습니다.\n주문 내역은 마이페이지에서 확인할 수 있습니다.",
+    href: "/mypage",
+    cta: "주문 내역 보기",
+  },
+  [PAYMENT_IN_PROGRESS]: {
+    label: "결제 처리 중",
+    title: "이 낙찰의 결제가 처리 중입니다",
+    body: "중복 결제를 막기 위해 이번 요청은 승인하지 않았습니다.\n잠시 후 마이페이지에서 주문 내역을 확인해주세요.",
+    href: "/mypage",
+    cta: "주문 내역 보기",
+  },
+  [PAYMENT_NEEDS_REVIEW]: {
+    label: "결제 확인 필요",
+    title: "결제 결과 확인이 필요합니다",
+    body: "결제 처리 결과를 확인하고 있습니다. 다시 결제하지 마시고\n고객센터로 문의해주세요.",
+    href: "/mypage",
+    cta: "마이페이지로 이동",
+  },
+};
 
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
 const RETAIL_PRICE = 899_000;
@@ -95,6 +123,30 @@ function SuccessInner() {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
           </svg>
           <p className="text-white/60 text-sm">결제를 확인하고 있습니다...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (status === "error" && ACTIVE_PAYMENT_SCREENS[errorCode]) {
+    const screen = ACTIVE_PAYMENT_SCREENS[errorCode];
+    return (
+      <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-[#a855f7]/15 border border-[#a855f7]/30 flex items-center justify-center mb-5">
+          <svg viewBox="0 0 24 24" className="w-8 h-8 text-[#a855f7]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <p className="text-xs uppercase tracking-[0.18em] font-semibold mb-1 text-[#c084fc]">{screen.label}</p>
+        <h1 className="text-lg font-extrabold text-white mb-2">{screen.title}</h1>
+        <p className="text-white/55 text-sm leading-relaxed mb-8 whitespace-pre-line">{screen.body}</p>
+        <div className="w-full max-w-xs">
+          <Link
+            href={screen.href}
+            className="block w-full py-3.5 text-center text-white/60 font-medium text-base border border-white/15 transition-colors hover:border-white/30"
+          >
+            {screen.cta}
+          </Link>
         </div>
       </main>
     );

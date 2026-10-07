@@ -15,6 +15,7 @@ import { ProductThumb } from "../components/ProductImage";
 import RightActionMenu from "../components/RightActionMenu";
 import HomeButton from "../components/HomeButton";
 import { getServerNow } from "../lib/serverClock";
+import { nextSawLiveAuction, winnerRevealMode } from "../lib/winnerReveal";
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
@@ -440,6 +441,14 @@ export default function StrategyPage() {
     }
   }, [state.currentPrice, state.phase, raised, showAuctionFailed, state.config.floorPrice, bidding]);
 
+  // Whether THIS page instance has seen the auction live before a winner
+  // appeared — see app/lib/winnerReveal.ts. Declared before the trigger
+  // effect so it is updated first within a commit.
+  const sawLiveAuctionRef = useRef(false);
+  useEffect(() => {
+    sawLiveAuctionRef.current = nextSawLiveAuction(sawLiveAuctionRef.current, { isLoaded: state.isLoaded, phase: state.phase });
+  }, [state.isLoaded, state.phase]);
+
   // ── Winner reveal sequence trigger ───────────────────────────────────────
   // Fires off the Realtime-synced state.winner (never the local raiseHand()
   // return value), so the bidder and every other participant run the exact
@@ -448,6 +457,15 @@ export default function StrategyPage() {
   useEffect(() => {
     if (!state.winner || winnerSequenceStartedRef.current) return;
     winnerSequenceStartedRef.current = true;
+
+    // Re-entry into an already-ended auction: go straight to the final
+    // result screen — no blackout/video, no price count-down.
+    if (winnerRevealMode(sawLiveAuctionRef.current) === "result") {
+      revealSequenceFiredRef.current = true;
+      setCountdownPrice(state.winner.price);
+      setWinnerStage("reveal");
+      return;
+    }
 
     // Fade out (or just stop) the game BGM immediately.
     const bgm = audioRef.current;

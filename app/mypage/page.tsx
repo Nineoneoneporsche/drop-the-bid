@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
+import PendingWinBanner from "../components/PendingWinBanner";
 import { supabase } from "../lib/supabase";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_FIELD_LABELS } from "../lib/shipping";
 
@@ -347,6 +348,17 @@ export default function MyPage() {
   const [addrSaving, setAddrSaving] = useState(false);
   const [addrSaved, setAddrSaved] = useState(false);
 
+  // /payment sends members here as /mypage?from=payment when shipping info
+  // is missing. Only that one fixed context is recognised (no arbitrary
+  // return URL): open the address form right away and, once saved, offer a
+  // direct way back to /payment.
+  const [fromPayment, setFromPayment] = useState(false);
+  const [savedForPayment, setSavedForPayment] = useState(false);
+  const autoOpenedAddrRef = useRef(false);
+  useEffect(() => {
+    setFromPayment(new URLSearchParams(window.location.search).get("from") === "payment");
+  }, []);
+
   function openAddrEdit() {
     setAddrForm({
       shippingRecipientName: user?.shippingRecipientName ?? "",
@@ -357,6 +369,13 @@ export default function MyPage() {
     });
     setEditingAddr(true);
   }
+
+  useEffect(() => {
+    if (!fromPayment || !user || autoOpenedAddrRef.current) return;
+    autoOpenedAddrRef.current = true;
+    openAddrEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromPayment, user]);
 
   function searchPostcode() {
     function open() {
@@ -388,6 +407,7 @@ export default function MyPage() {
     if (!error) {
       setUser(u => u ? { ...u, ...addrForm } : u);
       setAddrSaved(true);
+      if (fromPayment) setSavedForPayment(true);
       setTimeout(() => { setAddrSaved(false); setEditingAddr(false); }, 1200);
     }
   }
@@ -495,6 +515,8 @@ export default function MyPage() {
           <h1 className="text-[22px] font-extrabold text-white leading-tight">My Page</h1>
         </div>
 
+        {!savedForPayment && <PendingWinBanner className="mb-5" />}
+
         {/* Profile */}
         <div ref={setRef(2)} className="card-rise flex items-center gap-4 mb-6" style={{ transitionDelay: "100ms" }}>
           <div
@@ -572,6 +594,17 @@ export default function MyPage() {
                 </>
               ) : (
                 <p className="text-white/35 text-sm pb-1">등록된 배송지가 없습니다.</p>
+              )}
+              {savedForPayment && (
+                <div className="mt-4 px-4 py-3.5 rounded-xl border border-[#a855f7]/40 bg-[#a855f7]/10 flex items-center justify-between gap-3">
+                  <p className="text-white text-sm font-bold">배송정보가 저장되었습니다</p>
+                  <Link
+                    href="/payment"
+                    className="flex-shrink-0 px-4 py-2.5 text-sm font-semibold text-white rounded-lg bid-btn-purple"
+                  >
+                    결제 계속하기
+                  </Link>
+                </div>
               )}
             </div>
           ) : (

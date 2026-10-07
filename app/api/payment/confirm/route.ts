@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { checkPaymentWindow, PAYMENT_WINDOW_EXPIRED, WINNER_PAYMENT_WINDOW_MINUTES } from "../../../lib/paymentWindow";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_INFO_REQUIRED } from "../../../lib/shipping";
+import { ACTIVE_ATTEMPT_STATUSES, ALREADY_PAID, PAYMENT_IN_PROGRESS, PAYMENT_NEEDS_REVIEW } from "../../../lib/paymentCodes";
 
 // Sandbox fallback only outside production — a missing env var in an
 // actual production deploy must fail loudly (every payment rejected with a
@@ -35,6 +36,19 @@ function safeTossErrorMessage(data: unknown): string {
   }
   return "결제 확인에 실패했습니다.";
 }
+
+const RESPONSE_ALREADY_PAID = () => NextResponse.json(
+  { ok: false, code: ALREADY_PAID, error: "이미 결제가 완료된 낙찰입니다." },
+  { status: 409 },
+);
+const RESPONSE_IN_PROGRESS = () => NextResponse.json(
+  { ok: false, code: PAYMENT_IN_PROGRESS, error: "이 낙찰의 결제가 이미 처리 중입니다. 잠시 후 주문 내역을 확인해주세요." },
+  { status: 409 },
+);
+const RESPONSE_NEEDS_REVIEW = (status = 409) => NextResponse.json(
+  { ok: false, code: PAYMENT_NEEDS_REVIEW, error: "결제 결과 확인이 필요합니다. 고객센터로 문의해주세요." },
+  { status },
+);
 
 export async function POST(req: NextRequest) {
   if (!TOSS_SECRET_KEY) {
@@ -112,19 +126,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "이미 사용된 주문번호입니다" }, { status: 409 });
     }
 
-    if (existingAttempt.status === "paid" || existingAttempt.status === "reconciliation_required") {
+    if (
+      existingAttempt.status === "paid" ||
+      (existingAttempt.status === "reconciliation_required" && existingAttempt.toss_response)
+    ) {
       // Toss already genuinely confirmed this exact payment — a page
       // refresh, back/forward, or retry never needs (and must never
-      // trigger) a second Toss confirm call for it. 'reconciliation_required'
-      // still reports success to the user here: the charge succeeded, only
-      // our order record needs manual follow-up (that's what the status is
-      // for), and telling the user "failed" would be the actual lie.
+      // trigger) a second Toss confirm call for it. A 'reconciliation_required'
+      // row that carries Toss's success response still reports success:
+      // the charge succeeded, only our order record needs manual follow-up,
+      // and telling the user "failed" would be the actual lie.
       const cached = (existingAttempt.toss_response as Record<string, unknown> | null) ?? { totalAmount: existingAttempt.amount, method: null };
       return NextResponse.json({ ok: true, data: cached });
     }
-    // status is 'pending' (an earlier attempt never got a response from
-    // Toss) or 'failed' (Toss genuinely rejected it, nothing was charged) —
-    // both are safe to retry, fall through to the Toss call below.
+    if (existingAttempt.status === "reconciliation_required") {
+      // No Toss response stored: the Toss call ended in a network
+      // exception/timeout, so whether it was approved is unknown. Neither
+      // success nor failure can be claimed, and Toss must not be called
+      // again — an operator resolves it.
+      return RESPONSE_NEEDS_REVIEW();
+    }
+    if (existingAttempt.status === "pending") {
+      // Another request for this exact order is (or was) mid-flight with
+      // Toss. Never call Toss a second time for it; a pending attempt is
+      // only ever resolved by that request or by an operator (no timeout).
+      return RESPONSE_IN_PROGRESS();
+    }
+    // status is 'failed' (Toss explicitly rejected it, nothing was
+    // charged) — safe to retry; re-reserved below.
   }
 
   // Everything from here on is a NEW approval (no paid/reconciliation
@@ -164,26 +193,68 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // ── Reserve this win, atomically, BEFORE Toss ───────────────────────────
+  // The win is (winner_id, winner_claimed_at). The partial unique index
+  // payment_attempts_one_active_per_win allows at most one pending/paid/
+  // reconciliation_required attempt per win, so of two concurrent requests
+  // for the same win exactly one reservation succeeds; the other gets 23505
+  // here and never reaches Toss. Not a SELECT-then-INSERT check — the DB
+  // decides. (winner_claimed_at is non-null: the window check above refuses
+  // a null one.)
+  const winClaimedAt = gameState.winner_claimed_at as string;
+  let reserveError: { code?: string; message?: string } | null = null;
   if (!existingAttempt) {
-    const { error: insertPendingError } = await supabaseAdmin.from("payment_attempts").insert({
+    const { error } = await supabaseAdmin.from("payment_attempts").insert({
       order_id: orderId,
       user_id: user.id,
       winner_id: gameState.winner_id,
+      win_claimed_at: winClaimedAt,
       amount,
       payment_key: paymentKey,
       status: "pending",
     });
-    if (insertPendingError) {
-      console.error("[payment/confirm] failed to create pending payment_attempts row", { orderId, error: insertPendingError });
-      return NextResponse.json({ ok: false, error: "결제 확인 중 오류가 발생했습니다" }, { status: 500 });
-    }
+    reserveError = error;
+  } else {
+    // Our own 'failed' row back to 'pending' — conditional on it still
+    // being 'failed', so a concurrent retry of the same order can't both
+    // flip it; the unique index still applies to the updated row.
+    const { data: flipped, error } = await supabaseAdmin.from("payment_attempts")
+      .update({ status: "pending", win_claimed_at: winClaimedAt, error_detail: null, updated_at: new Date().toISOString() })
+      .eq("order_id", orderId)
+      .eq("status", "failed")
+      .select("order_id");
+    reserveError = error;
+    if (!error && (!flipped || flipped.length === 0)) return RESPONSE_IN_PROGRESS();
   }
 
-  // Confirm payment with Toss — only reached once identity/winner/amount
-  // have all passed and order_id isn't a stale/mismatched reuse. Network
-  // failures and non-JSON error bodies are caught here so they come back as
-  // a clean { ok: false } instead of crashing into a bare 500 — the client
-  // must never read a crashed request as success.
+  if (reserveError) {
+    if (reserveError.code === "23505") {
+      // This win already has an active attempt (or a concurrent request for
+      // this same order_id just inserted it) — report which, never call Toss.
+      const { data: active } = await supabaseAdmin.from("payment_attempts")
+        .select("status")
+        .eq("winner_id", gameState.winner_id)
+        .eq("win_claimed_at", winClaimedAt)
+        .in("status", [...ACTIVE_ATTEMPT_STATUSES])
+        .limit(1)
+        .maybeSingle();
+      console.warn("[payment/confirm] win already has an active payment attempt — refusing new approval", {
+        orderId, userId: user.id, activeStatus: active?.status ?? null,
+      });
+      if (active?.status === "paid") return RESPONSE_ALREADY_PAID();
+      if (active?.status === "reconciliation_required") return RESPONSE_NEEDS_REVIEW();
+      return RESPONSE_IN_PROGRESS();
+    }
+    console.error("[payment/confirm] failed to reserve payment_attempts row", { orderId, error: reserveError });
+    return NextResponse.json({ ok: false, error: "결제 확인 중 오류가 발생했습니다" }, { status: 500 });
+  }
+
+  // Confirm payment with Toss — only reached once identity/winner/amount/
+  // window/shipping have passed and this request holds the win's
+  // reservation. An explicit Toss rejection (non-2xx with a readable body)
+  // is 'failed'; anything that leaves the outcome unknown is caught below
+  // as reconciliation_required — the client must never read a crashed
+  // request as success.
   let data: Record<string, unknown>;
   try {
     const encoded = Buffer.from(`${TOSS_SECRET_KEY}:`).toString("base64");
@@ -204,11 +275,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: safeTossErrorMessage(data) }, { status: res.status });
     }
   } catch (e) {
-    console.error("[payment/confirm] Toss confirm request failed", { orderId, paymentKey: maskPaymentKey(paymentKey), error: e });
+    // Network exception / timeout / unreadable body: Toss may or may not
+    // have approved it. NOT 'failed' — that would release the win for a
+    // second payment. reconciliation_required keeps the win locked until an
+    // operator checks Toss.
+    console.error("[payment/confirm] Toss confirm outcome unknown — reconciliation_required", { orderId, paymentKey: maskPaymentKey(paymentKey), error: e });
     await supabaseAdmin.from("payment_attempts")
-      .update({ status: "failed", error_detail: String(e), updated_at: new Date().toISOString() })
+      .update({ status: "reconciliation_required", error_detail: String(e), updated_at: new Date().toISOString() })
       .eq("order_id", orderId);
-    return NextResponse.json({ ok: false, error: "결제 확인 중 오류가 발생했습니다" }, { status: 502 });
+    return RESPONSE_NEEDS_REVIEW(502);
   }
 
   // Toss has now genuinely confirmed the payment (money moved, or would in
