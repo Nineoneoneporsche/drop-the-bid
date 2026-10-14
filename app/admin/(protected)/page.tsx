@@ -289,6 +289,8 @@ export default function AdminPage() {
     fetch("/api/admin/reset-game", { method: "POST" })
       .then(async (res) => {
         const data = await res.json();
+        // A refused reset (409) carries an operator-facing reason from
+        // admin_reset_game()'s payable-win guard — shown as-is.
         if (!data.ok) alert(data.error || "리셋에 실패했습니다");
       })
       .catch(() => alert("리셋에 실패했습니다"));
