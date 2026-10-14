@@ -550,7 +550,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(t);
   }, [phase, strategyStartedAt]);
 
-  // Heartbeat: update last_seen every 30s
+  // Heartbeat: update last_seen every 30s. A participant also renews its
+  // one-session-per-account lease (touch_participant_session(): the DB only
+  // extends it for the session that holds this round's slot).
   useEffect(() => {
     if (!currentUser) return;
     const ping = () => {
@@ -559,6 +561,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         .update({ last_seen: new Date().toISOString() })
         .eq("guest_id", currentUser.guestId)
         .then(() => {});
+      if (currentUser.role === "participant") {
+        supabase.rpc("touch_participant_session").then(() => {});
+      }
     };
     ping();
     const t = setInterval(ping, 30_000);
@@ -686,7 +691,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const leaveGame = useCallback(async () => {
     const guestId = userRef.current?.guestId;
     if (guestId) {
-      await supabase.from("participants").delete().eq("guest_id", guestId);
+      // Only the row this client joined as: a spectator on another device of
+      // the same account must not delete that account's participant row.
+      await supabase.from("participants").delete().eq("guest_id", guestId).eq("role", userRef.current!.role);
     }
     setCurrentUser(null);
     localStorage.removeItem("dtb_guest");

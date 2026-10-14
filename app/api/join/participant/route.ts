@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getSupabaseAdmin } from "../../../lib/adminAuth";
+import { sessionIdFromVerifiedToken } from "../../../lib/jwtSession";
 
 const DEVICE_COOKIE = "dtb_device";
 const DEVICE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
@@ -14,6 +15,18 @@ const ERROR_MESSAGES: Record<string, string> = {
   "participant role requires a signed-in account": "참여자로 입장하려면 로그인이 필요합니다.",
   "nickname reserved": "사용할 수 없는 닉네임입니다.",
   "invalid nickname": "닉네임은 2~20자로 입력해주세요.",
+};
+
+// Join refusals that aren't retryable as-is: 409 with a stable code.
+const CONFLICT_CODES: Record<string, { code: string; error: string }> = {
+  "account active on another session": {
+    code: "ACCOUNT_ACTIVE_ELSEWHERE",
+    error: "이 계정은 다른 기기에서 현재 경매에 참여 중입니다.",
+  },
+  "participant join closed": {
+    code: "PARTICIPANT_JOIN_CLOSED",
+    error: "지금은 참여자로 입장할 수 없습니다. 관전자로 입장해주세요.",
+  },
 };
 
 async function verifyTurnstile(token: string | undefined, ip: string | null): Promise<boolean> {
@@ -65,6 +78,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "로그인이 필요합니다." }, { status: 401 });
   }
   const uid = userData.user.id;
+  // The sign-in session this participant slot is bound to — taken from the
+  // token Supabase Auth just accepted, never from the request body.
+  const sessionId = sessionIdFromVerifiedToken(token, uid);
+  if (!sessionId) {
+    return NextResponse.json(
+      { ok: false, code: "AUTH_SESSION_INVALID", error: "로그인 정보를 확인할 수 없습니다. 다시 로그인해주세요." },
+      { status: 401 },
+    );
+  }
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const turnstileOk = await verifyTurnstile(body.turnstileToken, ip);
@@ -96,9 +118,14 @@ export async function POST(req: NextRequest) {
     p_uid: uid,
     p_nickname: nickname,
     p_device_hash: deviceHash,
+    p_session_id: sessionId,
   });
 
   if (joinError) {
+    const conflict = CONFLICT_CODES[joinError.message];
+    if (conflict) {
+      return NextResponse.json({ ok: false, ...conflict }, { status: 409 });
+    }
     const friendly = ERROR_MESSAGES[joinError.message] ?? "입장 중 오류가 발생했습니다. 다시 시도해주세요.";
     return NextResponse.json({ ok: false, error: friendly }, { status: 400 });
   }

@@ -59,9 +59,12 @@ export default function JoinPage() {
     ? new Date(state.config.gameStartTime).getTime() <= now
     : false;
   const auctionLive = state.phase === "game";
+  const auctionEnded = state.phase === "ended";
   // Participant role requires a real (non-Anonymous-Auth) session — enforced
   // server-side by join_game() too, this just avoids a round-trip failure.
-  const participantBlocked = auctionLive || countdownExpired || isAnonymous;
+  // Participant joins are open only in waiting/strategy — the same rule
+  // join_game_participant() enforces in the DB.
+  const participantBlocked = auctionLive || auctionEnded || countdownExpired || isAnonymous;
 
   useEffect(() => {
     if (participantBlocked) setRole("spectator");
@@ -221,6 +224,8 @@ export default function JoinPage() {
                   {disabled
                     ? (auctionLive
                         ? "경매가 진행 중입니다. 관전으로만 입장 가능합니다."
+                        : auctionEnded
+                          ? "경매가 종료되어 참여자로 입장할 수 없습니다."
                         : countdownExpired
                           ? "경매가 시작되어 참여자로 입장할 수 없습니다."
                           : "참여자로 입장하려면 로그인이 필요합니다.")
