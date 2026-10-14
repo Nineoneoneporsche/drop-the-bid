@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { checkPaymentWindow, PAYMENT_WINDOW_EXPIRED, WINNER_PAYMENT_WINDOW_MINUTES } from "../../../lib/paymentWindow";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_INFO_REQUIRED } from "../../../lib/shipping";
 import { ACTIVE_ATTEMPT_STATUSES, ALREADY_PAID, PAYMENT_IN_PROGRESS, PAYMENT_NEEDS_REVIEW } from "../../../lib/paymentCodes";
+import { AUTH_REQUIRED, AUTH_SESSION_INVALID } from "../../../lib/confirmWithAuthRecovery";
 
 // Sandbox fallback only outside production — a missing env var in an
 // actual production deploy must fail loudly (every payment rejected with a
@@ -70,13 +71,25 @@ export async function POST(req: NextRequest) {
   // request to Auth to check the token, it does not just decode/trust it.
   // Every check below (and every record written) uses this verified user,
   // never a client-supplied id.
+  //
+  // Both 401s carry a `code` so the client can tell them apart:
+  // AUTH_SESSION_INVALID is the one case app/lib/confirmWithAuthRecovery.ts
+  // refreshes the session and retries once — safe because this is the first
+  // check, so nothing (payment_attempts, reservation, Toss) has happened yet.
+  // The log carries only Supabase's error status/code/name — never the
+  // access/refresh token, paymentKey or orderId.
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) {
-    return NextResponse.json({ ok: false, error: "인증이 필요합니다" }, { status: 401 });
+    return NextResponse.json({ ok: false, code: AUTH_REQUIRED, error: "인증이 필요합니다" }, { status: 401 });
   }
   const { data: { user }, error: userError } = await supabaseAnon.auth.getUser(token);
   if (userError || !user) {
-    return NextResponse.json({ ok: false, error: "유효하지 않은 인증 정보입니다" }, { status: 401 });
+    console.warn("[payment/confirm] auth rejected", {
+      status: (userError as { status?: number } | null)?.status ?? null,
+      code: (userError as { code?: string } | null)?.code ?? null,
+      name: userError?.name ?? null,
+    });
+    return NextResponse.json({ ok: false, code: AUTH_SESSION_INVALID, error: "유효하지 않은 인증 정보입니다" }, { status: 401 });
   }
 
   // Winner + amount: both must match the current DB state before Toss is

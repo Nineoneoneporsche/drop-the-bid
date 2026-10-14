@@ -86,7 +86,7 @@ vi.mock("@supabase/supabase-js", () => {
       getUser: async (token: string) =>
         token === "good-token" && db.user
           ? { data: { user: db.user }, error: null }
-          : { data: { user: null }, error: { message: "bad token" } },
+          : { data: { user: null }, error: { message: "Session from session_id claim in JWT does not exist", status: 403, code: "session_not_found", name: "AuthApiError" } },
     },
     from: (table: string) => new Query(table),
     rpc: async (fn: string) => {
@@ -522,5 +522,67 @@ describe("one active payment per win (atomic, DB-enforced)", () => {
     const second = await POST(req("DTB-2", "pk_test_second_payment"));
     expect(await second.json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
     expect(tossFetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("auth failure codes, safe logging, and retry safety", () => {
+  it("no token -> 401 AUTH_REQUIRED, nothing touched", async () => {
+    const res = await POST(new NextRequest("http://localhost/api/payment/confirm", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ paymentKey: "pk_test_123456789", orderId: "DTB-1", amount: PRICE }),
+    }));
+    expect(res.status).toBe(401);
+    expect(await res.json()).toMatchObject({ ok: false, code: "AUTH_REQUIRED" });
+    expect(db.attempts).toHaveLength(0);
+    expect(tossFetch).not.toHaveBeenCalled();
+  });
+
+  it("rejected token -> 401 AUTH_SESSION_INVALID; logs only status/code/name; nothing touched", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const res = await POST(confirmRequest({ paymentKey: "pk_secret_payment_key", orderId: "DTB-SECRET-ORDER", amount: PRICE }, "stale-access-token-xyz"));
+    expect(res.status).toBe(401);
+    expect(await res.json()).toMatchObject({ ok: false, code: "AUTH_SESSION_INVALID", error: "유효하지 않은 인증 정보입니다" });
+    expect(db.attempts).toHaveLength(0);
+    expect(db.orders).toHaveLength(0);
+    expect(db.rpcCalls).toBe(0);
+    expect(tossFetch).not.toHaveBeenCalled();
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][1]).toEqual({ status: 403, code: "session_not_found", name: "AuthApiError" });
+    const logged = JSON.stringify(warn.mock.calls);
+    for (const secret of ["stale-access-token-xyz", "pk_secret_payment_key", "DTB-SECRET-ORDER"]) {
+      expect(logged).not.toContain(secret);
+    }
+    warn.mockRestore();
+  });
+
+  it("retry after AUTH_SESSION_INVALID with a fresh token -> exactly one attempt, one order, one Toss call", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const body = { paymentKey: "pk_test_123456789", orderId: "DTB-1", amount: PRICE };
+    expect((await POST(confirmRequest(body, "stale-token"))).status).toBe(401);
+    const ok = await POST(confirmRequest(body, "good-token"));
+    expect(ok.status).toBe(200);
+    expect(db.attempts).toHaveLength(1);
+    expect(db.attempts[0]).toMatchObject({ order_id: "DTB-1", status: "paid" });
+    expect(db.orders).toHaveLength(1);
+    expect(tossFetch).toHaveBeenCalledTimes(1);
+    vi.mocked(console.warn).mockRestore();
+  });
+
+  it("retry racing a second tab's payment for the same win -> still at most one Toss call", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    tossFetch.mockImplementation(() => new Promise((resolve) => setTimeout(() =>
+      resolve(new Response(JSON.stringify({ totalAmount: PRICE, method: "카드" }), { status: 200 })), 20)));
+    const retried = { paymentKey: "pk_test_123456789", orderId: "DTB-1", amount: PRICE };
+    expect((await POST(confirmRequest(retried, "stale-token"))).status).toBe(401);
+    const [a, b] = await Promise.all([
+      POST(confirmRequest(retried, "good-token")),
+      POST(confirmRequest({ paymentKey: "pk_test_other_tab", orderId: "DTB-2", amount: PRICE }, "good-token")),
+    ]);
+    const bodies = [await a.json(), await b.json()];
+    expect(tossFetch).toHaveBeenCalledTimes(1);
+    expect(bodies.filter((x) => x.ok === true)).toHaveLength(1);
+    expect(db.orders).toHaveLength(1);
+    vi.mocked(console.warn).mockRestore();
   });
 });

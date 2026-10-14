@@ -6,6 +6,7 @@ import Link from "next/link";
 import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
 import PendingWinBanner from "../components/PendingWinBanner";
+import { clearPendingConfirm, readPendingConfirm, resumeConfirmUrl, type PendingConfirm } from "../lib/pendingConfirm";
 import { supabase } from "../lib/supabase";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_FIELD_LABELS } from "../lib/shipping";
 
@@ -355,6 +356,24 @@ export default function MyPage() {
   const [fromPayment, setFromPayment] = useState(false);
   const [savedForPayment, setSavedForPayment] = useState(false);
   const autoOpenedAddrRef = useRef(false);
+
+  // A payment confirmation that stopped for re-login (see
+  // app/lib/pendingConfirm.ts). Only offered once signed in, only resumed
+  // by the user pressing the button, and removed the moment it's used.
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  useEffect(() => {
+    if (user) setPendingConfirm(readPendingConfirm());
+  }, [user]);
+  function resumePendingConfirm() {
+    const p = pendingConfirm;
+    clearPendingConfirm();
+    setPendingConfirm(null);
+    if (p) router.push(resumeConfirmUrl(p));
+  }
+  function dismissPendingConfirm() {
+    clearPendingConfirm();
+    setPendingConfirm(null);
+  }
   useEffect(() => {
     setFromPayment(new URLSearchParams(window.location.search).get("from") === "payment");
   }, []);
@@ -514,6 +533,24 @@ export default function MyPage() {
         <div ref={setRef(1)} className="card-rise mb-6" style={{ transitionDelay: "50ms" }}>
           <h1 className="text-[22px] font-extrabold text-white leading-tight">My Page</h1>
         </div>
+
+        {pendingConfirm && (
+          <div className="mb-5 w-full px-4 py-3.5 rounded-xl border border-[#a855f7]/40 bg-[#a855f7]/10">
+            <p className="text-white text-sm font-bold">진행 중이던 결제 확인이 있습니다</p>
+            <p className="text-white/60 text-xs mt-0.5 leading-relaxed">로그인이 만료되어 멈췄던 결제를 이어서 확인할 수 있습니다.</p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={resumePendingConfirm}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white rounded-lg bid-btn-purple"
+              >
+                결제 확인 계속하기
+              </button>
+              <button onClick={dismissPendingConfirm} className="px-3 py-2.5 text-xs text-white/50 border border-white/15 rounded-lg">
+                닫기
+              </button>
+            </div>
+          </div>
+        )}
 
         {!savedForPayment && <PendingWinBanner className="mb-5" />}
 

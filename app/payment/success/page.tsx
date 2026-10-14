@@ -7,6 +7,35 @@ import { ProductThumb } from "../../components/ProductImage";
 import { supabase } from "../../lib/supabase";
 import { PAYMENT_WINDOW_EXPIRED, WINNER_PAYMENT_WINDOW_MINUTES } from "../../lib/paymentWindow";
 import { ALREADY_PAID, PAYMENT_IN_PROGRESS, PAYMENT_NEEDS_REVIEW } from "../../lib/paymentCodes";
+import { confirmWithAuthRecovery, type AuthRecoveryDeps, type SessionCheck } from "../../lib/confirmWithAuthRecovery";
+import { savePendingConfirm } from "../../lib/pendingConfirm";
+
+// Supabase-backed implementations for confirmWithAuthRecovery(). Only
+// non-anonymous sessions count: GameProvider can silently create an
+// anonymous session once a real one is gone, and that can never pay.
+const authDeps: AuthRecoveryDeps = {
+  getAccessToken: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session && !session.user?.is_anonymous ? session.access_token : null;
+  },
+  verifySession: async (): Promise<SessionCheck> => {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data.user) return data.user.is_anonymous ? "invalid" : "ok";
+    // Couldn't reach Auth: don't conclude the session is dead.
+    if (error?.name === "AuthRetryableFetchError") return "unknown";
+    return "invalid";
+  },
+  refreshSession: async () => {
+    const { data, error } = await supabase.auth.refreshSession();
+    return !error && data.session && !data.session.user?.is_anonymous ? data.session.access_token : null;
+  },
+  postConfirm: async (body, accessToken) => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+    const res = await fetch("/api/payment/confirm", { method: "POST", headers, body: JSON.stringify(body) });
+    return { status: res.status, json: await res.json() };
+  },
+};
 
 // Terminal refusals because this win already has an active payment: the
 // server refused BEFORE contacting Toss for this payment, so it was not
@@ -64,7 +93,7 @@ function SuccessInner() {
   const orderId    = params.get("orderId")    ?? "";
   const amount     = parseInt(params.get("amount") ?? "0", 10);
 
-  const [status, setStatus]     = useState<"loading" | "done" | "error">("loading");
+  const [status, setStatus]     = useState<"loading" | "done" | "error" | "relogin">("loading");
   const [payMethod, setPayMethod] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   // Machine-readable `code` from the confirm API (e.g. PAYMENT_WINDOW_EXPIRED)
@@ -80,33 +109,30 @@ function SuccessInner() {
     }
     setStatus("loading");
     setErrorCode("");
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
-
-    try {
-      const res = await fetch("/api/payment/confirm", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ paymentKey, orderId, amount }),
-      });
-      // A non-2xx or a body that isn't { ok: true } is a real failure —
-      // never show the completion screen for either. res.json() itself can
-      // throw on a malformed body, which the catch below also treats as
-      // failure, not success.
-      const json = await res.json();
-      if (!res.ok || json?.ok !== true) {
-        setErrorMessage(extractErrorMessage(json) ?? "결제 확인에 실패했습니다.");
-        setErrorCode(typeof json?.code === "string" ? json.code : "");
-        setStatus("error");
-        return;
-      }
-      setPayMethod(json.data?.method ?? "카드");
-      setStatus("done");
-    } catch {
+    // Same three values on every send (see confirmWithAuthRecovery: one
+    // session-refresh retry for AUTH_SESSION_INVALID only, nothing else).
+    const body = { paymentKey, orderId, amount } as const;
+    const outcome = await confirmWithAuthRecovery(body, authDeps);
+    if (outcome.kind === "relogin") {
+      setStatus("relogin");
+      return;
+    }
+    if (outcome.kind === "network_error") {
       setErrorMessage("네트워크 오류로 결제 확인에 실패했습니다.");
       setStatus("error");
+      return;
     }
+    // A non-2xx or a body that isn't { ok: true } is a real failure — never
+    // show the completion screen for either.
+    const json = outcome.json as { ok?: unknown; code?: unknown; data?: { method?: string } } | null;
+    if (outcome.status < 200 || outcome.status >= 300 || json?.ok !== true) {
+      setErrorMessage(extractErrorMessage(json) ?? "결제 확인에 실패했습니다.");
+      setErrorCode(typeof json?.code === "string" ? json.code : "");
+      setStatus("error");
+      return;
+    }
+    setPayMethod(json.data?.method ?? "카드");
+    setStatus("done");
   }, [paymentKey, orderId, amount]);
 
   useEffect(() => {
@@ -123,6 +149,42 @@ function SuccessInner() {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
           </svg>
           <p className="text-white/60 text-sm">결제를 확인하고 있습니다...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (status === "relogin") {
+    // The session can't be recovered here. Keep this exact confirmation
+    // (same paymentKey/orderId/amount) so it can be resumed by hand from
+    // My Page after signing in again; drop the dead local session first so
+    // My Page shows the login form instead of the stale "logged-in" view.
+    const goRelogin = async () => {
+      savePendingConfirm({ paymentKey, orderId, amount });
+      try { await supabase.auth.signOut({ scope: "local" }); } catch { /* already gone */ }
+      window.location.href = "/mypage";
+    };
+    return (
+      <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-[#a855f7]/15 border border-[#a855f7]/30 flex items-center justify-center mb-5">
+          <svg viewBox="0 0 24 24" className="w-8 h-8 text-[#a855f7]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          </svg>
+        </div>
+        <p className="text-xs uppercase tracking-[0.18em] font-semibold mb-1 text-[#c084fc]">로그인 필요</p>
+        <h1 className="text-lg font-extrabold text-white mb-2">로그인이 만료되었습니다</h1>
+        <p className="text-white/55 text-sm leading-relaxed mb-8">
+          다시 로그인 후 결제를 계속해주세요.<br />
+          아직 결제가 승인되지 않았으며 청구되지 않았습니다.
+        </p>
+        <div className="w-full max-w-xs">
+          <button
+            onClick={goRelogin}
+            className="block w-full py-3.5 text-white font-semibold text-base text-center transition-opacity active:opacity-80"
+            style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
+          >
+            다시 로그인
+          </button>
         </div>
       </main>
     );
