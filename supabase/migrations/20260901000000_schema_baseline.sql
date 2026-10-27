@@ -14,7 +14,9 @@
 --
 -- DO NOT `supabase db push` to Production until its migration history has
 -- been reconciled (a separate task). With an empty history the CLI would try
--- to replay the whole chain onto the live database.
+-- to replay the whole chain onto the live database. Likewise, do not
+-- `supabase link` the CLI to Production and do not run `supabase migration
+-- repair` against it; reconciling Production's history is its own task.
 --
 -- Deliberately not here:
 --   * Table privileges. Production's came from the project's default ACL at

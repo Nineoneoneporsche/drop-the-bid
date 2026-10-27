@@ -130,6 +130,13 @@ const functionExecute = (db: PGlite) =>
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' order by 1`);
 
+const columnGrants = (db: PGlite) =>
+  rows<{ t: string; col: string; grantee: string; priv: string }>(db, `
+    select c.relname t, a.attname col, pg_get_userbyid(x.grantee) grantee, x.privilege_type priv
+    from pg_attribute a join pg_class c on c.oid = a.attrelid join pg_namespace n on n.oid = c.relnamespace
+    cross join lateral aclexplode(a.attacl) x
+    where n.nspname = 'public' and a.attacl is not null order by 1, 2, 3`);
+
 const bodyMd5 = async (db: PGlite, name: string) =>
   (await rows<{ h: string }>(db, `
     select md5(regexp_replace(p.prosrc, '\\s+', '', 'g')) h
@@ -217,11 +224,7 @@ for (const env of ["pre1030", "post1030"] as const) {
     });
 
     it("keeps exactly the participants.last_seen column UPDATE grant", async () => {
-      const c = await rows<{ t: string; col: string; grantee: string; priv: string }>(db, `
-        select c.relname t, a.attname col, pg_get_userbyid(x.grantee) grantee, x.privilege_type priv
-        from pg_attribute a join pg_class c on c.oid = a.attrelid join pg_namespace n on n.oid = c.relnamespace
-        cross join lateral aclexplode(a.attacl) x
-        where n.nspname = 'public' and a.attacl is not null order by 1, 2, 3`);
+      const c = await columnGrants(db);
       expect(c).toEqual([
         { t: "participants", col: "last_seen", grantee: "anon", priv: "UPDATE" },
         { t: "participants", col: "last_seen", grantee: "authenticated", priv: "UPDATE" },
@@ -270,10 +273,14 @@ for (const env of ["pre1030", "post1030"] as const) {
     });
 
     it("the cleanup and grants migrations are no-ops when re-run (as on Production)", async () => {
-      const before = [await tableGrants(db), await functionExecute(db)];
-      expect(await run(db, read("20261027100000_drop_orphan_calc_drop_price.sql"))).toBe("ok");
-      expect(await run(db, read("20261027110000_explicit_data_api_grants.sql"))).toBe("ok");
-      expect([await tableGrants(db), await functionExecute(db)]).toEqual(before);
+      const state = async () => [await tableGrants(db), await columnGrants(db), await functionExecute(db)];
+      const before = await state();
+      for (const f of ["20261027100000_drop_orphan_calc_drop_price.sql", "20261027110000_explicit_data_api_grants.sql"]) {
+        for (let i = 0; i < 2; i++) {
+          expect(await run(db, read(f))).toBe("ok");
+          expect(await state()).toEqual(before);
+        }
+      }
     });
   });
 }
