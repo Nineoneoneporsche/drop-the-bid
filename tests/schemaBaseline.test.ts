@@ -5,7 +5,10 @@
 //               anon/authenticated/service_role on creation) — like Production
 //   - post1030: no default grants, like a project created after 2026-10-30
 // and checks that both end in Production's current schema. The expected
-// values below come from Production's catalog snapshot (inv_00, 2026-10-26).
+// values below come from Production's catalog snapshot (inv_00, 2026-10-26),
+// plus what 20261028150000_auction_wins.sql (M1, not yet applied to
+// Production) adds: auction_wins, its grants/policy, and the new
+// claim_winner() body.
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
@@ -36,6 +39,7 @@ const ALL = "DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE";
 const READ = "MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE";
 const TABLE_GRANTS: Record<string, Record<string, string>> = {
   account_round_guard: { service_role: ALL },
+  auction_wins: { service_role: "SELECT" },
   admin_login_attempts: { service_role: ALL },
   admin_sessions: { service_role: ALL },
   chat_messages: { anon: READ, authenticated: READ, service_role: ALL },
@@ -71,6 +75,7 @@ const FUNCTION_EXECUTE: Record<string, string[]> = {
 
 // name | cmd | roles | using | with check
 const POLICIES: Record<string, string[]> = {
+  auction_wins: ["auction_wins_select_own|r|authenticated|(winner_id = ( SELECT auth.uid() AS uid))|"],
   chat_messages: [
     "chat_messages_select_all|r|anon,authenticated|true|",
     "delete chat|d|public|true|",
@@ -144,11 +149,13 @@ const bodyMd5 = async (db: PGlite, name: string) =>
     where n.nspname = 'public' and p.proname = '${name}'`)).map((r) => r.h);
 
 describe("migration chain order", () => {
-  it("starts with the schema baseline and ends with the explicit grants", () => {
+  it("starts with the schema baseline; the explicit grants are followed only by auction_wins (31 files)", () => {
+    expect(FILES).toHaveLength(31);
     expect(FILES[0]).toBe("20260901000000_schema_baseline.sql");
     expect(FILES[1]).toBe("20260902120000_drop_zones.sql");
-    expect(FILES.at(-2)).toBe("20261027100000_drop_orphan_calc_drop_price.sql");
-    expect(FILES.at(-1)).toBe("20261027110000_explicit_data_api_grants.sql");
+    expect(FILES.at(-3)).toBe("20261027100000_drop_orphan_calc_drop_price.sql");
+    expect(FILES.at(-2)).toBe("20261027110000_explicit_data_api_grants.sql");
+    expect(FILES.at(-1)).toBe("20261028150000_auction_wins.sql");
   });
 
   it("the baseline grants nothing (privileges live in the explicit grants migration)", () => {
@@ -191,7 +198,7 @@ for (const env of ["pre1030", "post1030"] as const) {
       expect(failures).toEqual([]);
     });
 
-    it("has Production's 12 public tables, all with RLS", async () => {
+    it("has Production's 12 public tables plus auction_wins, all with RLS", async () => {
       const t = await rows<{ relname: string; rls: boolean }>(db, `
         select c.relname, c.relrowsecurity rls from pg_class c join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm', 'S') order by 1`);
@@ -217,15 +224,21 @@ for (const env of ["pre1030", "post1030"] as const) {
       expect(await bodyMd5(db, "admin_reset_game")).toEqual(["aa6bedbe02fd7b8563a87a0aca2f7a42"]);
     });
 
+    it("carries the M1 claim_winner body (writes auction_wins)", async () => {
+      expect(await bodyMd5(db, "claim_winner")).toEqual(["3b84dfd5ca929a55d5c093209693d225"]);
+    });
+
     it("has Production's table grants (no PUBLIC grants)", async () => {
       const g: Record<string, Record<string, string>> = {};
       for (const r of await tableGrants(db)) (g[r.t] ??= {})[r.grantee] = r.privs;
       expect(g).toEqual(TABLE_GRANTS);
     });
 
-    it("keeps exactly the participants.last_seen column UPDATE grant", async () => {
+    it("keeps exactly the participants.last_seen column UPDATE grant, plus auction_wins' 8 column SELECTs", async () => {
       const c = await columnGrants(db);
       expect(c).toEqual([
+        ...["claimed_at", "id", "payment_deadline", "product_name", "round_key", "start_price", "winner_nickname", "winning_price"]
+          .map((col) => ({ t: "auction_wins", col, grantee: "authenticated", priv: "SELECT" })),
         { t: "participants", col: "last_seen", grantee: "anon", priv: "UPDATE" },
         { t: "participants", col: "last_seen", grantee: "authenticated", priv: "UPDATE" },
       ]);
