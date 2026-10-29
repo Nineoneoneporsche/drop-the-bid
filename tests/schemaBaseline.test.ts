@@ -6,9 +6,10 @@
 //   - post1030: no default grants, like a project created after 2026-10-30
 // and checks that both end in Production's current schema. The expected
 // values below come from Production's catalog snapshot (inv_00, 2026-10-26),
-// plus what 20261028150000_auction_wins.sql (M1, not yet applied to
-// Production) adds: auction_wins, its grants/policy, and the new
-// claim_winner() body.
+// plus what 20261028150000_auction_wins.sql (M1, applied to Production)
+// adds — auction_wins, its grants/policy, the new claim_winner() body — and
+// the admin_reset_game() body of 20261029100000_reset_game_uses_auction_wins.sql
+// (M2, not yet applied to Production).
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
@@ -149,13 +150,14 @@ const bodyMd5 = async (db: PGlite, name: string) =>
     where n.nspname = 'public' and p.proname = '${name}'`)).map((r) => r.h);
 
 describe("migration chain order", () => {
-  it("starts with the schema baseline; the explicit grants are followed only by auction_wins (31 files)", () => {
-    expect(FILES).toHaveLength(31);
+  it("starts with the schema baseline; the explicit grants are followed only by auction_wins and M2 (32 files)", () => {
+    expect(FILES).toHaveLength(32);
     expect(FILES[0]).toBe("20260901000000_schema_baseline.sql");
     expect(FILES[1]).toBe("20260902120000_drop_zones.sql");
-    expect(FILES.at(-3)).toBe("20261027100000_drop_orphan_calc_drop_price.sql");
-    expect(FILES.at(-2)).toBe("20261027110000_explicit_data_api_grants.sql");
-    expect(FILES.at(-1)).toBe("20261028150000_auction_wins.sql");
+    expect(FILES.at(-4)).toBe("20261027100000_drop_orphan_calc_drop_price.sql");
+    expect(FILES.at(-3)).toBe("20261027110000_explicit_data_api_grants.sql");
+    expect(FILES.at(-2)).toBe("20261028150000_auction_wins.sql");
+    expect(FILES.at(-1)).toBe("20261029100000_reset_game_uses_auction_wins.sql");
   });
 
   it("the baseline grants nothing (privileges live in the explicit grants migration)", () => {
@@ -219,9 +221,9 @@ for (const env of ["pre1030", "post1030"] as const) {
       expect(sigs.filter((s) => s.startsWith("join_game_participant("))).toEqual(["join_game_participant(uuid,text,text,uuid)"]);
     });
 
-    it("carries Production's send_chat_message and admin_reset_game bodies", async () => {
+    it("carries Production's send_chat_message body and the M2 admin_reset_game body", async () => {
       expect(await bodyMd5(db, "send_chat_message")).toEqual(["ed95a0d396f5808cf920e464256057ea"]);
-      expect(await bodyMd5(db, "admin_reset_game")).toEqual(["aa6bedbe02fd7b8563a87a0aca2f7a42"]);
+      expect(await bodyMd5(db, "admin_reset_game")).toEqual(["e74405580db4c4694302f25e9d9d1e37"]);
     });
 
     it("carries the M1 claim_winner body (writes auction_wins)", async () => {

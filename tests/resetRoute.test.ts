@@ -54,6 +54,22 @@ describe("reset-game route", () => {
     expect(await res.json()).toMatchObject({ code: "RESET_BLOCKED_PAYMENT_NEEDS_REVIEW", error: expect.stringContaining("reconciliation_required") });
   });
 
+  it("win_record_missing (M2) -> 409 ledger text, no deadline", async () => {
+    state.rpcError = { code: "P0001", message: "reset_blocked:win_record_missing", details: null };
+    const res = await POST(req());
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({
+      ok: false, code: "RESET_BLOCKED_WIN_RECORD_MISSING", paymentDeadline: null, error: expect.stringContaining("낙찰 원장"),
+    });
+  });
+
+  it("win_record_mismatch (M2) -> 409 ledger text", async () => {
+    state.rpcError = { code: "P0001", message: "reset_blocked:win_record_mismatch", details: null };
+    const res = await POST(req());
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: "RESET_BLOCKED_WIN_RECORD_MISMATCH", error: expect.stringContaining("원장 불일치") });
+  });
+
   it("other DB errors stay 500", async () => {
     state.rpcError = { message: "connection lost" };
     const res = await POST(req());
