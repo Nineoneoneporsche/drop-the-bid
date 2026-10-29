@@ -13,7 +13,11 @@ export async function DELETE(req: NextRequest) {
   const { data: { user }, error } = await supabaseAnon.auth.getUser(token);
   if (error || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Delete user from Supabase Auth — cascades to profiles and orders via FK
+  // Delete user from Supabase Auth. profiles, participant_verifications and
+  // account_round_guard rows go with it (FK ON DELETE CASCADE). orders
+  // survive: orders.user_id is ON DELETE SET NULL and orders.winner_id
+  // keeps the historical winner (no FK). auction_wins and payment_attempts
+  // have no FK to auth.users and keep their rows.
   const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
   if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 });
 

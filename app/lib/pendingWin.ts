@@ -3,27 +3,34 @@
 // "Does the signed-in user have a won-but-unpaid auction they can still pay
 // for?" — drives the "결제 계속하기" recovery CTA on home, My Page and /join.
 // UX only: /api/payment/confirm re-checks everything server-side (auth
-// user, winner_id, amount, phase, payment window, shipping) no matter what
-// this says.
+// user, and the win's winner_id / amount / payment_deadline from
+// auction_wins, shipping) no matter what this says.
 //
 // Pending when ALL hold:
 //   1. a non-anonymous Supabase Auth session whose user.id === winner id
 //   2. game_state.phase === "ended"
-//   3. winner_claimed_at is set and the payment window hasn't elapsed
-//      (WINNER_PAYMENT_WINDOW_SECONDS, measured on the server-synced clock)
-//   4. no order of the user's for this win (same rule as the admin
-//      payment-status route: amount = winner_price, created_at >=
-//      winner_claimed_at; RLS limits the query to the user's own rows)
+//   3. the payment deadline hasn't passed (server-synced clock):
+//      - win recorded in auction_wins (every win since M1): that row's
+//        payment_deadline
+//      - legacy win (no row): winner_claimed_at + WINNER_PAYMENT_WINDOW_SECONDS
+//   4. no order of the user's for this win:
+//      - auction_wins win: an order with orders.win_id = that win's id (or,
+//        for a win paid through the pre-deploy code, the legacy match on
+//        that win's own price / claimed_at)
+//      - legacy win: the old heuristic (no win_id, amount = winner_price,
+//        created_at >= winner_claimed_at)
+//      RLS limits both queries to the user's own rows.
 //
-// The orders lookup runs once per (user, win) and again only when the page
-// regains focus/visibility; the countdown is a local 1s timer.
+// The win + orders lookups run once per (user, win) and again only when
+// the page regains focus/visibility; the countdown is a local 1s timer.
 
 import { useCallback, useEffect, useState } from "react";
 import { useGame } from "../context/GameContext";
 import { supabase } from "./supabase";
 import { getServerNow } from "./serverClock";
-import { isMyEndedWin, isPendingWin, paymentSecondsLeft } from "./pendingWinRule";
-import { hasOrderForWin } from "./winOrder";
+import { isMyEndedWin, isPendingWin, pendingSecondsLeft } from "./pendingWinRule";
+import { hasLegacyOrderForWin, hasOrderForAuctionWin } from "./winOrder";
+import { fetchMyCurrentWin, type WinLookupClient } from "./auctionWin";
 
 export type PendingWin = {
   pending: boolean;
@@ -52,9 +59,18 @@ export function usePendingWin(): PendingWin {
   const claimedAt = myEndedWin ? winner!.claimedAt! : null;
   const price = myEndedWin ? winner!.price : null;
 
+  // This round's auction_wins row; undefined = not looked up yet, null =
+  // none (or the lookup failed) => legacy rule.
+  const [win, setWin] = useState<{ id: string; deadlineMs: number } | null | undefined>(undefined);
+
   const checkOrder = useCallback(async () => {
     if (claimedAt == null || price == null || !userId) return;
-    const found = await hasOrderForWin(userId, price, claimedAt);
+    const current = await fetchMyCurrentWin(supabase as unknown as WinLookupClient);
+    const recorded = current.status === "ok" ? current.win : null;
+    setWin(recorded ? { id: recorded.id, deadlineMs: new Date(recorded.payment_deadline).getTime() } : null);
+    const found = recorded
+      ? await hasOrderForAuctionWin(userId, recorded)
+      : await hasLegacyOrderForWin(userId, price, claimedAt);
     // A failed lookup can't prove "already paid", so it leaves the CTA
     // available — the server/DB still refuses a duplicate payment.
     setHasOrder(found ?? false);
@@ -62,6 +78,7 @@ export function usePendingWin(): PendingWin {
 
   useEffect(() => {
     setHasOrder(null);
+    setWin(undefined);
     if (claimedAt == null) return;
     void checkOrder();
     const onFocus = () => { void checkOrder(); };
@@ -75,17 +92,17 @@ export function usePendingWin(): PendingWin {
   }, [claimedAt, checkOrder]);
 
   useEffect(() => {
-    if (claimedAt == null) { setRemaining(0); return; }
-    const tick = () => setRemaining(paymentSecondsLeft(claimedAt, getServerNow()));
+    if (claimedAt == null || win === undefined) { setRemaining(0); return; }
+    const tick = () => setRemaining(pendingSecondsLeft({ winner: { id: "", claimedAt }, win, nowMs: getServerNow() }));
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [claimedAt]);
+  }, [claimedAt, win]);
 
   return {
     // remaining is the local 1s timer's value, so the CTA disappears on the
     // tick the window closes.
-    pending: isPendingWin({ userId, phase: state.phase, winner, hasOrder, nowMs: getServerNow() }) && remaining > 0,
+    pending: win !== undefined && isPendingWin({ userId, phase: state.phase, winner, win, hasOrder, nowMs: getServerNow() }) && remaining > 0,
     remainingSeconds: remaining,
   };
 }

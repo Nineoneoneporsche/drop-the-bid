@@ -17,7 +17,10 @@
 export const AUTH_REQUIRED = "AUTH_REQUIRED";
 export const AUTH_SESSION_INVALID = "AUTH_SESSION_INVALID";
 
-export type ConfirmBody = Readonly<{ paymentKey: string; orderId: string; amount: number }>;
+// winId (auction_wins.id) is sent by every confirmation started since M1;
+// optional only for a legacy replay of a pre-M1 order. The server never
+// trusts it — it re-reads the win's winner_id and price from auction_wins.
+export type ConfirmBody = Readonly<{ paymentKey: string; orderId: string; amount: number; winId?: string }>;
 
 // "ok" = Supabase Auth confirmed a signed-in (non-anonymous) user;
 // "invalid" = it rejected the session or it's anonymous / absent;

@@ -22,6 +22,7 @@ function fmtElapsed(seconds: number): string {
 
 type PaymentStatus = {
   paymentComplete: boolean | null;
+  paymentState: "paid" | "pending" | "reconciliation_required" | "unpaid" | null;
   stalePendingCount: number;
   reconciliationRequiredCount: number;
 };
@@ -117,7 +118,11 @@ function MonitoringPanel() {
           <div className="flex justify-between items-baseline">
             <span className="text-gray-400 text-sm">결제 상태</span>
             <span className={`text-sm font-semibold ${paymentStatus?.paymentComplete ? "text-green-600" : "text-red-500"}`}>
-              {paymentStatus == null ? "확인 중..." : paymentStatus.paymentComplete ? "결제 완료" : "결제 미완료"}
+              {paymentStatus == null ? "확인 중..."
+                : paymentStatus.paymentComplete ? "결제 완료"
+                : paymentStatus.paymentState === "reconciliation_required" ? "결제 확인 필요"
+                : paymentStatus.paymentState === "pending" ? "결제 처리 중"
+                : "결제 미완료"}
             </span>
           </div>
         </>

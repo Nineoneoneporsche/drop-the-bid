@@ -9,6 +9,7 @@ import { PAYMENT_WINDOW_EXPIRED, WINNER_PAYMENT_WINDOW_MINUTES } from "../../lib
 import { ALREADY_PAID, PAYMENT_IN_PROGRESS, PAYMENT_NEEDS_REVIEW } from "../../lib/paymentCodes";
 import { confirmWithAuthRecovery, type AuthRecoveryDeps, type SessionCheck } from "../../lib/confirmWithAuthRecovery";
 import { savePendingConfirm } from "../../lib/pendingConfirm";
+import { isWinId } from "../../lib/auctionWin";
 
 // Supabase-backed implementations for confirmWithAuthRecovery(). Only
 // non-anonymous sessions count: GameProvider can silently create an
@@ -64,6 +65,8 @@ const ACTIVE_PAYMENT_SCREENS: Record<string, { label: string; title: string; bod
   },
 };
 
+// Display fallback only — the order's product_name is written server-side
+// from auction_wins; Toss's response echoes it back as orderName.
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
 const RETAIL_PRICE = 899_000;
 function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
@@ -92,9 +95,16 @@ function SuccessInner() {
   const paymentKey = params.get("paymentKey") ?? "";
   const orderId    = params.get("orderId")    ?? "";
   const amount     = parseInt(params.get("amount") ?? "0", 10);
+  // auction_wins.id, put on successUrl by /payment (and by a resumed
+  // pending confirmation). Absent only on a pre-M1 success URL; present but
+  // malformed is refused outright. The server re-verifies the win anyway.
+  const rawWinId   = params.get("winId");
+  const winId      = rawWinId != null && isWinId(rawWinId) ? rawWinId : undefined;
+  const winIdBad   = rawWinId != null && winId === undefined;
 
   const [status, setStatus]     = useState<"loading" | "done" | "error" | "relogin">("loading");
   const [payMethod, setPayMethod] = useState("");
+  const [productName, setProductName] = useState(PRODUCT_NAME);
   const [errorMessage, setErrorMessage] = useState("");
   // Machine-readable `code` from the confirm API (e.g. PAYMENT_WINDOW_EXPIRED)
   // — terminal refusals hide the retry button, since re-sending the same
@@ -102,16 +112,16 @@ function SuccessInner() {
   const [errorCode, setErrorCode] = useState("");
 
   const confirm = useCallback(async () => {
-    if (!paymentKey || !orderId || !amount) {
+    if (!paymentKey || !orderId || !amount || winIdBad) {
       setErrorMessage("잘못된 결제 접근입니다.");
       setStatus("error");
       return;
     }
     setStatus("loading");
     setErrorCode("");
-    // Same three values on every send (see confirmWithAuthRecovery: one
+    // Same values on every send (see confirmWithAuthRecovery: one
     // session-refresh retry for AUTH_SESSION_INVALID only, nothing else).
-    const body = { paymentKey, orderId, amount } as const;
+    const body = { paymentKey, orderId, amount, ...(winId ? { winId } : {}) } as const;
     const outcome = await confirmWithAuthRecovery(body, authDeps);
     if (outcome.kind === "relogin") {
       setStatus("relogin");
@@ -124,7 +134,7 @@ function SuccessInner() {
     }
     // A non-2xx or a body that isn't { ok: true } is a real failure — never
     // show the completion screen for either.
-    const json = outcome.json as { ok?: unknown; code?: unknown; data?: { method?: string } } | null;
+    const json = outcome.json as { ok?: unknown; code?: unknown; data?: { method?: string; orderName?: unknown } } | null;
     if (outcome.status < 200 || outcome.status >= 300 || json?.ok !== true) {
       setErrorMessage(extractErrorMessage(json) ?? "결제 확인에 실패했습니다.");
       setErrorCode(typeof json?.code === "string" ? json.code : "");
@@ -132,13 +142,14 @@ function SuccessInner() {
       return;
     }
     setPayMethod(json.data?.method ?? "카드");
+    if (typeof json.data?.orderName === "string" && json.data.orderName) setProductName(json.data.orderName);
     setStatus("done");
-  }, [paymentKey, orderId, amount]);
+  }, [paymentKey, orderId, amount, winId, winIdBad]);
 
   useEffect(() => {
     confirm();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentKey, orderId, amount]);
+  }, [paymentKey, orderId, amount, winId]);
 
   if (status === "loading") {
     return (
@@ -156,11 +167,11 @@ function SuccessInner() {
 
   if (status === "relogin") {
     // The session can't be recovered here. Keep this exact confirmation
-    // (same paymentKey/orderId/amount) so it can be resumed by hand from
+    // (same paymentKey/orderId/amount/winId) so it can be resumed by hand from
     // My Page after signing in again; drop the dead local session first so
     // My Page shows the login form instead of the stale "logged-in" view.
     const goRelogin = async () => {
-      savePendingConfirm({ paymentKey, orderId, amount });
+      savePendingConfirm({ paymentKey, orderId, amount, ...(winId ? { winId } : {}) });
       try { await supabase.auth.signOut({ scope: "local" }); } catch { /* already gone */ }
       window.location.href = "/mypage";
     };
@@ -296,9 +307,9 @@ function SuccessInner() {
           <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium">주문 정보</p>
         </div>
         <div className="px-4 py-4 flex gap-4 items-center border-b border-white/10">
-          <ProductThumb alt={PRODUCT_NAME} size={64} rounded="rounded-sm" />
+          <ProductThumb alt={productName} size={64} rounded="rounded-sm" />
           <div>
-            <p className="text-white/80 text-base font-semibold leading-snug">{PRODUCT_NAME}</p>
+            <p className="text-white/80 text-base font-semibold leading-snug">{productName}</p>
             <p className="text-[#c084fc] font-extrabold text-xl tabular-nums mt-1">{fmt(amount)}</p>
             <p className="text-white/45 text-xs mt-0.5 line-through">정가 {fmt(RETAIL_PRICE)}</p>
           </div>

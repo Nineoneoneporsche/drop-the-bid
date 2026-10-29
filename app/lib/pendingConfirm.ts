@@ -2,24 +2,29 @@
 // in again, so they can resume THE SAME confirmation (same paymentKey /
 // orderId / amount) by pressing "결제 확인 계속하기" on My Page after logging
 // in. Nothing resumes automatically and nothing redirects on its own.
+// Every confirmation started since M1 carries its winId (auction_wins.id)
+// and keeps it here too; winId is optional only so an entry saved by the
+// pre-M1 code still parses (the server then refuses it as a new approval).
 //
 // Stored in sessionStorage (this tab only). Read values are validated; a
 // malformed or expired entry is deleted and ignored; the entry is deleted as
 // soon as it's used. The resume target is always /payment/success, built
-// here from the three stored values — never a stored or arbitrary URL. The
-// server still runs every check (auth, winner, amount, phase, payment
-// window, shipping, one-active-payment-per-win) on the resumed request.
+// here from the stored values — never a stored or arbitrary URL. The
+// server still runs every check (auth, the win's winner/amount/deadline
+// from auction_wins, shipping, one-active-payment-per-win) on the resumed
+// request — a stored winId is never trusted on its own.
 //
 // RESUME_TTL_MS is only a conservative cap for showing the resume button:
 // it is the win's payment window (WINNER_PAYMENT_WINDOW_SECONDS), past which
 // the server refuses anyway. It is NOT a claim about how long Toss keeps a
 // paymentKey confirmable — Toss's own response decides that.
 import { WINNER_PAYMENT_WINDOW_SECONDS } from "./paymentWindow";
+import { isWinId } from "./auctionWin";
 
 export const PENDING_CONFIRM_KEY = "dtb_pending_confirm";
 export const RESUME_TTL_MS = WINNER_PAYMENT_WINDOW_SECONDS * 1000;
 
-export type PendingConfirm = { paymentKey: string; orderId: string; amount: number; savedAt: number };
+export type PendingConfirm = { paymentKey: string; orderId: string; amount: number; winId?: string; savedAt: number };
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
@@ -41,17 +46,22 @@ function isValid(p: unknown, now: number): p is PendingConfirm {
     typeof v.paymentKey === "string" && PAYMENT_KEY_RE.test(v.paymentKey) &&
     typeof v.orderId === "string" && ORDER_ID_RE.test(v.orderId) &&
     typeof v.amount === "number" && Number.isInteger(v.amount) && v.amount > 0 && v.amount < 1_000_000_000 &&
+    (v.winId === undefined || isWinId(v.winId)) &&
     typeof v.savedAt === "number" && Number.isFinite(v.savedAt) &&
     v.savedAt <= now && now - v.savedAt <= RESUME_TTL_MS
   );
 }
 
 export function savePendingConfirm(
-  body: { paymentKey: string; orderId: string; amount: number },
+  body: { paymentKey: string; orderId: string; amount: number; winId?: string },
   now: number = Date.now(),
   storage: StorageLike | null = defaultStorage(),
 ): boolean {
-  const entry: PendingConfirm = { paymentKey: body.paymentKey, orderId: body.orderId, amount: body.amount, savedAt: now };
+  const entry: PendingConfirm = {
+    paymentKey: body.paymentKey, orderId: body.orderId, amount: body.amount,
+    ...(body.winId !== undefined ? { winId: body.winId } : {}),
+    savedAt: now,
+  };
   if (!storage || !isValid(entry, now)) return false;
   try {
     storage.setItem(PENDING_CONFIRM_KEY, JSON.stringify(entry));
@@ -90,8 +100,9 @@ export function clearPendingConfirm(storage: StorageLike | null = defaultStorage
   }
 }
 
-// Fixed internal path + the three values, URL-encoded.
-export function resumeConfirmUrl(p: Pick<PendingConfirm, "paymentKey" | "orderId" | "amount">): string {
+// Fixed internal path + the stored values, URL-encoded.
+export function resumeConfirmUrl(p: Pick<PendingConfirm, "paymentKey" | "orderId" | "amount" | "winId">): string {
   const q = new URLSearchParams({ paymentKey: p.paymentKey, orderId: p.orderId, amount: String(p.amount) });
+  if (p.winId !== undefined) q.set("winId", p.winId);
   return `/payment/success?${q.toString()}`;
 }

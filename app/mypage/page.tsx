@@ -8,6 +8,7 @@ import HomeButton from "../components/HomeButton";
 import PendingWinBanner from "../components/PendingWinBanner";
 import { clearPendingConfirm, readPendingConfirm, resumeConfirmUrl, type PendingConfirm } from "../lib/pendingConfirm";
 import { supabase } from "../lib/supabase";
+import { buildOrderStats, type DisplayOrder, type OrderRow, type WinRow } from "../lib/orderStats";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_FIELD_LABELS } from "../lib/shipping";
 
 function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
@@ -31,11 +32,7 @@ interface Stats {
   savings: number;
 }
 
-interface Order {
-  product_name: string;
-  amount: number;
-  created_at: string;
-}
+type Order = DisplayOrder;
 
 
 const MENU = [
@@ -275,7 +272,6 @@ export default function MyPage() {
   const [loaded, setLoaded] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats>({ wins: 0, savings: 0 });
-  const [startPrice, setStartPrice] = useState(899_000);
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
@@ -302,22 +298,34 @@ export default function MyPage() {
         // fetched separately below rather than held on the critical path.
         setLoaded(true);
 
+        // Orders with win_id are shown from their auction_wins row (that
+        // round's product / start price — app/lib/orderStats.ts); legacy
+        // orders fall back to the current game_state.start_price. The
+        // auction_wins select names its columns: authenticated has
+        // column-level SELECT only (no select("*")).
         Promise.all([
           supabase
             .from("orders")
-            .select("product_name, amount, created_at")
+            .select("product_name, amount, created_at, win_id")
             .eq("user_id", session.user.id)
             .order("created_at", { ascending: false })
             .limit(20),
           supabase.from("game_state").select("start_price").eq("id", 1).single(),
-        ]).then(([{ data: orderData }, { data: gsData }]) => {
-          if (orderData) {
-            setOrders(orderData);
-            const sp = gsData?.start_price ?? 899_000;
-            const savings = orderData.reduce((sum, o) => sum + Math.max(0, sp - o.amount), 0);
-            setStats({ wins: orderData.length, savings });
-            setStartPrice(sp);
+        ]).then(async ([{ data: orderData }, { data: gsData }]) => {
+          if (!orderData) return;
+          const rows = orderData as OrderRow[];
+          const winIds = [...new Set(rows.map((o) => o.win_id).filter((id): id is string => !!id))];
+          let wins: WinRow[] = [];
+          if (winIds.length > 0) {
+            const { data: winData } = await supabase
+              .from("auction_wins")
+              .select("id, product_name, start_price, winning_price")
+              .in("id", winIds);
+            wins = (winData ?? []) as WinRow[];
           }
+          const built = buildOrderStats(rows, wins, gsData?.start_price ?? 899_000);
+          setOrders(built.orders);
+          setStats({ wins: built.wins, savings: built.savings });
         });
       } else {
         setLoaded(true);
@@ -851,8 +859,8 @@ export default function MyPage() {
         {(() => {
           const achievements = [
             { icon: "emoji_events",          label: "첫 낙찰",    unlocked: stats.wins >= 1,                                                hint: "첫 낙찰 달성 시" },
-            { icon: "bolt",                  label: "반응왕",      unlocked: orders.some(o => o.amount / startPrice >= 0.85),               hint: "시작가 85% 이상에서 낙찰 시" },
-            { icon: "fitness_center",        label: "버티기 고수", unlocked: orders.some(o => o.amount / startPrice <= 0.70),               hint: "시작가 70% 이하에서 낙찰 시" },
+            { icon: "bolt",                  label: "반응왕",      unlocked: orders.some(o => o.amount / o.start_price >= 0.85),               hint: "시작가 85% 이상에서 낙찰 시" },
+            { icon: "fitness_center",        label: "버티기 고수", unlocked: orders.some(o => o.amount / o.start_price <= 0.70),               hint: "시작가 70% 이하에서 낙찰 시" },
             { icon: "gps_fixed",             label: "연습왕",      unlocked: false,                                                         hint: "모의훈련 5회 완료 시" },
             { icon: "workspace_premium",     label: "레전드",      unlocked: stats.wins >= 3,                                               hint: "낙찰 3회 달성 시" },
             { icon: "local_fire_department", label: "연속 참가",   unlocked: false,                                                         hint: "3일 연속 참가 시" },

@@ -5,11 +5,11 @@ import { ProductThumb } from "../components/ProductImage";
 import HomeButton from "../components/HomeButton";
 import { supabase } from "../lib/supabase";
 import { getServerNow } from "../lib/serverClock";
-import { WINNER_PAYMENT_WINDOW_SECONDS } from "../lib/paymentWindow";
-import { hasOrderForWin } from "../lib/winOrder";
+import { secondsUntilDeadline, WINNER_PAYMENT_WINDOW_SECONDS } from "../lib/paymentWindow";
+import { hasOrderForAuctionWin } from "../lib/winOrder";
+import { fetchMyCurrentWin, type ClientAuctionWin, type WinLookupClient } from "../lib/auctionWin";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_FIELD_LABELS, type ShippingInfo } from "../lib/shipping";
 
-const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
 // Same reasoning as TOSS_SECRET_KEY in app/api/payment/confirm/route.ts:
 // sandbox fallback only outside production, so a missing env var in an
 // actual production build fails clearly (see the check in handlePay()
@@ -43,7 +43,11 @@ export default function PaymentPage() {
   // This win already has an order (UX check only — the DB's one-active-
   // payment-per-win guard is what actually blocks a second payment).
   const [alreadyPaid, setAlreadyPaid] = useState(false);
-  const [PRICE,     setPRICE]       = useState(0);
+  // This round's auction_wins row (M1): winId, price, product name and
+  // payment deadline all come from it — never from game_state or the URL.
+  const [win,       setWin]         = useState<ClientAuctionWin | null>(null);
+  const PRICE = win?.winning_price ?? 0;
+  const PRODUCT_NAME = win?.product_name ?? "";
   const [guestId,   setGuestId]     = useState("");
   const [profile,   setProfile]     = useState<ShippingInfo | null>(null);
 
@@ -54,20 +58,22 @@ export default function PaymentPage() {
   const [paying,   setPaying]   = useState(false);
   const [error,    setError]    = useState("");
 
-  // Server-anchored — populated from game_state.winner_claimed_at (Phase
-  // 8), never a client-side "when this page happened to load" timestamp.
-  // This is what makes the countdown below survive a page refresh instead
-  // of resetting back to the full window every time.
-  const [claimedAtMs, setClaimedAtMs] = useState<number | null>(null);
+  // Server-anchored — auction_wins.payment_deadline (written by
+  // claim_winner()), never a client-side "when this page happened to load"
+  // timestamp. This is what makes the countdown below survive a page
+  // refresh instead of resetting back to the full window every time.
+  const [deadlineMs, setDeadlineMs] = useState<number | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Verify winner from Supabase — price comes from DB, not URL. Identity is
-  // the signed-in Supabase Auth user (same identity /api/payment/confirm
-  // verifies server-side), not localStorage's dtb_guest — which leaveGame()
-  // clears and another browser/device never has — so a real winner can
-  // always get back here. This is a display gate only; the confirm API
-  // re-checks auth/winner/amount/phase/window/shipping regardless.
+  // Verify winner from Supabase — the win comes from auction_wins, not the
+  // URL: the current round's row (game_state.round_key), which RLS returns
+  // only to its winner. Identity is the signed-in Supabase Auth user (same
+  // identity /api/payment/confirm verifies server-side), not localStorage's
+  // dtb_guest — which leaveGame() clears and another browser/device never
+  // has — so a real winner can always get back here. This is a display
+  // gate only; the confirm API re-reads the win (winner_id, price,
+  // deadline) from auction_wins and re-checks shipping regardless.
   useEffect(() => {
     async function verify() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -75,26 +81,18 @@ export default function PaymentPage() {
 
       if (!gId) { setNotWinner(true); setVerifying(false); return; }
 
-      const { data } = await supabase
-        .from("game_state")
-        .select("phase, winner_id, winner_price, winner_claimed_at")
-        .eq("id", 1)
-        .single();
-
-      if (!data || data.phase !== "ended" || data.winner_id !== gId || !data.winner_price) {
+      const current = await fetchMyCurrentWin(supabase as unknown as WinLookupClient);
+      if (current.status !== "ok" || !(current.win.winning_price > 0)) {
         setNotWinner(true);
         setVerifying(false);
         return;
       }
 
       setGuestId(gId);
-      setPRICE(data.winner_price);
-      // Fallback to "now" only covers a win claimed before this column
-      // existed and never since reset — every win after this migration
-      // always has winner_claimed_at set atomically by claim_winner().
-      setClaimedAtMs(data.winner_claimed_at ? new Date(data.winner_claimed_at).getTime() : getServerNow());
+      setWin(current.win);
+      setDeadlineMs(new Date(current.win.payment_deadline).getTime());
 
-      if (data.winner_claimed_at && await hasOrderForWin(gId, data.winner_price, data.winner_claimed_at)) {
+      if (await hasOrderForAuctionWin(gId, current.win)) {
         setAlreadyPaid(true);
         setVerifying(false);
         return;
@@ -109,9 +107,9 @@ export default function PaymentPage() {
   }, []);
 
   useEffect(() => {
-    if (verifying || notWinner || claimedAtMs == null) return;
+    if (verifying || notWinner || deadlineMs == null) return;
     const tick = () => {
-      const remaining = WINNER_PAYMENT_WINDOW_SECONDS - Math.floor((getServerNow() - claimedAtMs) / 1000);
+      const remaining = secondsUntilDeadline(deadlineMs, getServerNow());
       if (remaining <= 0) {
         setTimeLeft(0);
         setExpired(true);
@@ -124,16 +122,16 @@ export default function PaymentPage() {
     const t = setInterval(tick, 1000);
     timerRef.current = t;
     return () => clearInterval(t);
-  }, [verifying, notWinner, claimedAtMs]);
+  }, [verifying, notWinner, deadlineMs]);
 
   // UX gate only — /api/payment/confirm re-validates the same rule
   // server-side before Toss is contacted.
   const missingShipping = profile ? missingShippingFields(profile) : null;
   const shippingComplete = missingShipping !== null && missingShipping.length === 0;
-  const canPay = agreed && !expired && !paying && PRICE > 0 && shippingComplete;
+  const canPay = agreed && !expired && !paying && !!win && PRICE > 0 && shippingComplete;
 
   async function handlePay() {
-    if (!canPay) return;
+    if (!canPay || !win) return;
     setError("");
     setPaying(true);
 
@@ -156,8 +154,10 @@ export default function PaymentPage() {
         method: "CARD",
         amount: { currency: "KRW", value: PRICE },
         orderId,
-        orderName: PRODUCT_NAME,
-        successUrl: `${window.location.origin}/payment/success`,
+        orderName: win.product_name,
+        // winId rides along to /payment/success (Toss appends paymentKey/
+        // orderId/amount to this URL) and is sent with the confirm request.
+        successUrl: `${window.location.origin}/payment/success?winId=${encodeURIComponent(win.id)}`,
         failUrl:    `${window.location.origin}/payment/fail`,
       });
     } catch (e: unknown) {
