@@ -6,10 +6,11 @@ import Image from "next/image";
 import { useGame, formatKRW, DEFAULT_CONFIG, validateDropZones, type OperatorMessage } from "../../context/GameContext";
 import { getServerNow } from "../../lib/serverClock";
 import { WINNER_PAYMENT_WINDOW_MINUTES } from "../../lib/paymentWindow";
+import { MAX_JOIN_LEAD_MINUTES, MIN_JOIN_LEAD_MINUTES, isValidJoinLeadMinutes, joinOpensAtMs } from "../../lib/auctionSchedule";
 
 const PHASE_LABEL: Record<string, string> = {
   home: "대기중 (waiting)",
-  strategy: "전략 회의중",
+  strategy: "참가자 입장 · 시작 대기",
   game: "경매 진행중",
   ended: "종료 (낙찰됨)",
 };
@@ -154,6 +155,16 @@ function toLocalInput(iso: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// "YYYY-MM-DD HH:mm" in KST, whatever this browser's time zone is.
+function fmtKst(ms: number): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(new Date(ms)).map((x) => [x.type, x.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
+}
+
 export default function AdminPage() {
   const { state } = useGame();
   const router = useRouter();
@@ -166,9 +177,9 @@ export default function AdminPage() {
     productName: state.config.productName,
     startPrice: state.config.startPrice.toString(),
     dropAmount: state.config.dropAmount.toString(),
-    strategyDuration: state.config.strategyDuration.toString(),
+    joinLeadMinutes: state.config.joinLeadMinutes.toString(),
     floorPrice: state.config.floorPrice.toString(),
-    gameStartTime: state.config.gameStartTime ?? "",
+    gameStartTime: state.config.gameStartTime ? toLocalInput(state.config.gameStartTime) : "",
     fastDropPrice: toFormNum(state.config.fastDropPrice),
     fastDropAmount: toFormNum(state.config.fastDropAmount),
     finalDropPrice: toFormNum(state.config.finalDropPrice),
@@ -189,7 +200,7 @@ export default function AdminPage() {
       productName: state.config.productName,
       startPrice: state.config.startPrice.toString(),
       dropAmount: state.config.dropAmount.toString(),
-      strategyDuration: state.config.strategyDuration.toString(),
+      joinLeadMinutes: state.config.joinLeadMinutes.toString(),
       floorPrice: state.config.floorPrice.toString(),
       gameStartTime: state.config.gameStartTime ? toLocalInput(state.config.gameStartTime) : "",
       fastDropPrice: toFormNum(state.config.fastDropPrice),
@@ -221,7 +232,7 @@ export default function AdminPage() {
   function handleSave() {
     const startPrice = parseInt(form.startPrice, 10);
     const dropAmount = parseInt(form.dropAmount, 10);
-    const strategyDuration = parseInt(form.strategyDuration, 10);
+    const joinLeadMinutes = Number(form.joinLeadMinutes);
     const floorPrice = parseInt(form.floorPrice, 10);
 
     // parseFloat, not parseInt — these allow sub-second values like 0.5.
@@ -231,7 +242,9 @@ export default function AdminPage() {
 
     if (!startPrice || startPrice <= 0) return alert("시작가를 올바르게 입력해주세요");
     if (!dropAmount || dropAmount <= 0) return alert("하락 금액을 올바르게 입력해주세요");
-    if (!strategyDuration || strategyDuration <= 0) return alert("전략 시간을 올바르게 입력해주세요");
+    if (!isValidJoinLeadMinutes(joinLeadMinutes)) {
+      return alert(`참가 가능 시작은 경매 시작 ${MIN_JOIN_LEAD_MINUTES}~${MAX_JOIN_LEAD_MINUTES}분 전 사이의 정수로 입력해주세요`);
+    }
     if (isNaN(floorPrice) || floorPrice < 0) return alert("목표 하한가를 올바르게 입력해주세요");
     if (!dropIntervalSeconds || dropIntervalSeconds <= 0) return alert("NORMAL 하락 주기를 올바르게 입력해주세요");
     if (!fastDropIntervalSeconds || fastDropIntervalSeconds <= 0) return alert("FAST DROP 하락 주기를 올바르게 입력해주세요");
@@ -252,6 +265,12 @@ export default function AdminPage() {
       }
     }
 
+    // The schedule (T, N) is sent only when it actually changed: the form
+    // shows T to the minute, so re-sending an unchanged T would round it, and
+    // the server refuses any schedule change once participants are in.
+    const currentStartInput = state.config.gameStartTime ? toLocalInput(state.config.gameStartTime) : "";
+    const scheduleChanged = form.gameStartTime !== currentStartInput || joinLeadMinutes !== state.config.joinLeadMinutes;
+
     // Server-side (service-role, admin-session-gated) write — see
     // app/api/admin/update-config/route.ts. Re-validates everything here
     // again (whitelisted fields + validateDropZones) so a raw REST call
@@ -263,9 +282,10 @@ export default function AdminPage() {
         productName: form.productName.trim() || DEFAULT_CONFIG.productName,
         startPrice,
         dropAmount,
-        strategyDuration,
         floorPrice,
-        gameStartTime: form.gameStartTime ? new Date(form.gameStartTime).toISOString() : null,
+        ...(scheduleChanged
+          ? { gameStartTime: form.gameStartTime ? new Date(form.gameStartTime).toISOString() : null, joinLeadMinutes }
+          : {}),
         fastDropPrice,
         fastDropAmount,
         finalDropPrice,
@@ -332,17 +352,19 @@ export default function AdminPage() {
   }
 
   function handleForceStart() {
-    if (!confirm("전략 회의를 건너뛰고 지금 바로 경매를 시작할까요?")) return;
+    if (!confirm("예약 시작 시각을 기다리지 않고 지금 바로 경매를 시작할까요?\n(경매 시작 시각이 지금으로 바뀝니다)")) return;
     // Server-side (service-role, admin-session-gated), no time gate — see
     // app/api/admin/force-start-game/route.ts and admin_force_start_game()
-    // in supabase/migrations/20260910150000_game_transition_security.sql.
+    // in supabase/migrations/20261030100000_scheduled_start_join_window.sql:
+    // pre-game with at least one participant only; sets the scheduled start
+    // and game_started_at to the same instant.
     // Replaces the old public "바로시작" button that used to live on
     // /strategy with zero gating at all.
     fetch("/api/admin/force-start-game", { method: "POST" })
       .then(async (res) => {
         const data = await res.json();
         if (!data.ok) alert(data.error || "시작에 실패했습니다");
-        else if (!data.started) alert("지금은 전략 회의 단계가 아니라 시작할 수 없습니다");
+        else if (!data.started) alert("시작할 수 없습니다. 참가자가 없거나 이미 진행/종료된 경매입니다");
       })
       .catch(() => alert("시작에 실패했습니다"));
   }
@@ -362,7 +384,16 @@ export default function AdminPage() {
 
   const sp = parseInt(form.startPrice, 10);
   const da = parseInt(form.dropAmount, 10);
-  const sd = parseInt(form.strategyDuration, 10);
+  const leadPreview = Number(form.joinLeadMinutes);
+  const startPreviewMs = form.gameStartTime ? new Date(form.gameStartTime).getTime() : NaN;
+  const joinOpensPreview =
+    Number.isFinite(startPreviewMs) && isValidJoinLeadMinutes(leadPreview) ? fmtKst(joinOpensAtMs(startPreviewMs, leadPreview)) : null;
+  // UX only — the server refuses these changes outside phase 'waiting'
+  // anyway (update-config's conditional UPDATE, admin_update_schedule). The
+  // first participant join (waiting -> strategy) freezes the round's terms
+  // until a reset. Operator nickname / messages stay editable throughout.
+  const roundLocked = state.phase !== "home";
+  const scheduleLocked = roundLocked;
   const fp = parseInt(form.floorPrice, 10);
   const gameDuration = sp > 0 && da > 0 ? Math.floor(sp / da) : null;
   const barDuration = sp > 0 && fp >= 0 && da > 0 && sp > fp ? Math.floor((sp - fp) / da) : null;
@@ -407,13 +438,19 @@ export default function AdminPage() {
 
         {/* Form */}
         <div className="space-y-5">
+          {roundLocked && (
+            <p className="text-amber-700 text-xs font-semibold bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              참가자가 입장한 후에는 경매 조건을 변경할 수 없습니다. 변경하려면 경매를 리셋해주세요.
+            </p>
+          )}
           <Field label="상품명">
             <input
               type="text"
               value={form.productName}
               onChange={(e) => set("productName", e.target.value)}
               placeholder={DEFAULT_CONFIG.productName}
-              className={INPUT}
+              disabled={roundLocked}
+              className={INPUT + (roundLocked ? " opacity-50" : "")}
             />
           </Field>
 
@@ -425,7 +462,8 @@ export default function AdminPage() {
               type="number"
               value={form.startPrice}
               onChange={(e) => set("startPrice", e.target.value)}
-              className={INPUT + " font-mono"}
+              disabled={roundLocked}
+              className={INPUT + " font-mono" + (roundLocked ? " opacity-50" : "")}
               min={1}
             />
           </Field>
@@ -442,7 +480,8 @@ export default function AdminPage() {
               type="number"
               value={form.floorPrice}
               onChange={(e) => set("floorPrice", e.target.value)}
-              className={INPUT + " font-mono"}
+              disabled={roundLocked}
+              className={INPUT + " font-mono" + (roundLocked ? " opacity-50" : "")}
               min={0}
             />
           </Field>
@@ -459,7 +498,8 @@ export default function AdminPage() {
               type="number"
               value={form.dropAmount}
               onChange={(e) => set("dropAmount", e.target.value)}
-              className={INPUT + " font-mono"}
+              disabled={roundLocked}
+              className={INPUT + " font-mono" + (roundLocked ? " opacity-50" : "")}
               min={1}
             />
           </Field>
@@ -472,7 +512,8 @@ export default function AdminPage() {
               type="number"
               value={form.dropIntervalSeconds}
               onChange={(e) => set("dropIntervalSeconds", e.target.value)}
-              className={INPUT + " font-mono"}
+              disabled={roundLocked}
+              className={INPUT + " font-mono" + (roundLocked ? " opacity-50" : "")}
               min={0.1}
               step={0.1}
             />
@@ -493,7 +534,8 @@ export default function AdminPage() {
               value={form.fastDropPrice}
               onChange={(e) => set("fastDropPrice", e.target.value)}
               placeholder="예: 700000"
-              className={INPUT + " font-mono"}
+              disabled={roundLocked}
+              className={INPUT + " font-mono" + (roundLocked ? " opacity-50" : "")}
               min={0}
             />
           </Field>
@@ -504,7 +546,8 @@ export default function AdminPage() {
               value={form.fastDropAmount}
               onChange={(e) => set("fastDropAmount", e.target.value)}
               placeholder="예: 2000"
-              className={INPUT + " font-mono"}
+              disabled={roundLocked}
+              className={INPUT + " font-mono" + (roundLocked ? " opacity-50" : "")}
               min={0}
             />
           </Field>
@@ -514,7 +557,8 @@ export default function AdminPage() {
               type="number"
               value={form.fastDropIntervalSeconds}
               onChange={(e) => set("fastDropIntervalSeconds", e.target.value)}
-              className={INPUT + " font-mono"}
+              disabled={roundLocked}
+              className={INPUT + " font-mono" + (roundLocked ? " opacity-50" : "")}
               min={0.1}
               step={0.1}
             />
@@ -526,7 +570,8 @@ export default function AdminPage() {
               value={form.finalDropPrice}
               onChange={(e) => set("finalDropPrice", e.target.value)}
               placeholder="예: 600000"
-              className={INPUT + " font-mono"}
+              disabled={roundLocked}
+              className={INPUT + " font-mono" + (roundLocked ? " opacity-50" : "")}
               min={0}
             />
           </Field>
@@ -537,7 +582,8 @@ export default function AdminPage() {
               value={form.finalDropAmount}
               onChange={(e) => set("finalDropAmount", e.target.value)}
               placeholder="예: 3000"
-              className={INPUT + " font-mono"}
+              disabled={roundLocked}
+              className={INPUT + " font-mono" + (roundLocked ? " opacity-50" : "")}
               min={0}
             />
           </Field>
@@ -547,7 +593,8 @@ export default function AdminPage() {
               type="number"
               value={form.finalDropIntervalSeconds}
               onChange={(e) => set("finalDropIntervalSeconds", e.target.value)}
-              className={INPUT + " font-mono"}
+              disabled={roundLocked}
+              className={INPUT + " font-mono" + (roundLocked ? " opacity-50" : "")}
               min={0.1}
               step={0.1}
             />
@@ -626,32 +673,42 @@ export default function AdminPage() {
           </div>
 
           <Field
-            label="전략 회의 시간 (초)"
-            hint={
-              !isNaN(sd) && sd > 0
-                ? `${Math.floor(sd / 60)}분 ${sd % 60}초`
-                : undefined
-            }
-          >
-            <input
-              type="number"
-              value={form.strategyDuration}
-              onChange={(e) => set("strategyDuration", e.target.value)}
-              className={INPUT + " font-mono"}
-              min={10}
-            />
-          </Field>
-
-          <Field
             label="경매 시작 예정 시간"
-            hint="비워두면 홈 화면에 '지금 참여 가능' 표시"
+            hint={
+              scheduleLocked
+                ? "참가자가 입장한 뒤에는 바꿀 수 없어요 (리셋 후 변경)"
+                : form.gameStartTime
+                ? `${fmtKst(startPreviewMs)} (KST) · 이 시각에 가격 하락이 시작됩니다`
+                : "비워두면 예정된 경매가 없어 참가할 수 없어요"
+            }
           >
             <input
               type="datetime-local"
               value={form.gameStartTime}
               onChange={(e) => set("gameStartTime", e.target.value)}
-              className={INPUT}
+              disabled={scheduleLocked}
+              className={INPUT + (scheduleLocked ? " opacity-50" : "")}
             />
+          </Field>
+
+          <Field
+            label="참가 가능 시작"
+            hint={joinOpensPreview ? `참가 가능 시작 시각: ${joinOpensPreview} (KST)` : `${MIN_JOIN_LEAD_MINUTES}~${MAX_JOIN_LEAD_MINUTES}분`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-sm flex-shrink-0">경매 시작</span>
+              <input
+                type="number"
+                value={form.joinLeadMinutes}
+                onChange={(e) => set("joinLeadMinutes", e.target.value)}
+                disabled={scheduleLocked}
+                className={INPUT + " font-mono w-24 text-center" + (scheduleLocked ? " opacity-50" : "")}
+                min={MIN_JOIN_LEAD_MINUTES}
+                max={MAX_JOIN_LEAD_MINUTES}
+                step={1}
+              />
+              <span className="text-gray-500 text-sm flex-shrink-0">분 전</span>
+            </div>
           </Field>
         </div>
 
@@ -680,7 +737,7 @@ export default function AdminPage() {
               onClick={handleForceStart}
               className="w-full bg-white border-2 border-gray-200 hover:border-orange-300 hover:text-orange-500 text-gray-500 font-semibold py-4 rounded-2xl text-base transition-all active:scale-[0.98]"
             >
-              바로 시작 (전략 회의 건너뛰기)
+              바로 시작 (예약 시각 기다리지 않기)
             </button>
           )}
 
@@ -738,7 +795,7 @@ export default function AdminPage() {
                     ["FINAL DROP ZONE", `${formatKRW(state.config.finalDropPrice)} 이하 · ${formatKRW(state.config.finalDropAmount)}/초 · ${state.config.finalDropIntervalSeconds}초마다`],
                   ]
                 : []),
-              ["전략 시간", `${state.config.strategyDuration}초`],
+              ["참가 오픈", `경매 시작 ${state.config.joinLeadMinutes}분 전`],
               [
                 "운영자 메시지",
                 `${state.config.operatorMessages.filter((m) => m.message.trim()).length}개 등록됨 · 닉네임 "${state.config.operatorNickname}"`,

@@ -7,6 +7,8 @@ import { useGame, formatKRW } from "./context/GameContext";
 import { ProductThumb } from "./components/ProductImage";
 import BottomNav from "./components/BottomNav";
 import PendingWinBanner from "./components/PendingWinBanner";
+import { getServerNow } from "./lib/serverClock";
+import { homeCta, parseScheduledStart, scheduleStatus, secondsUntil, showLive } from "./lib/auctionSchedule";
 
 function fmtCountdown(s: number) {
   const h = Math.floor(s / 3600);
@@ -19,33 +21,24 @@ export default function HomePage() {
   const { state } = useGame();
   const router = useRouter();
 
-  const { participantCount, spectatorCount, phase, strategyStartedAt } = state;
-  const gameStartTime = state.config.gameStartTime;
-  const auctionLive = phase === "game";
-  const strategizing = phase === "strategy";
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [strategyLeft, setStrategyLeft] = useState<number | null>(null);
-
+  const { participantCount, spectatorCount, phase } = state;
+  // Server-synced clock (app/lib/serverClock.ts), never raw Date.now(): the
+  // countdown and the join button match what the DB will decide. The DB
+  // still makes the actual call (join_game_participant / start_game).
+  const [nowMs, setNowMs] = useState(() => getServerNow());
   useEffect(() => {
-    if (!gameStartTime) {
-      setCountdown(null);
-      return;
-    }
-    const target = new Date(gameStartTime).getTime();
-    const update = () => setCountdown(Math.max(0, Math.floor((target - Date.now()) / 1000)));
-    update();
-    const t = setInterval(update, 1000);
+    const t = setInterval(() => setNowMs(getServerNow()), 500);
     return () => clearInterval(t);
-  }, [gameStartTime]);
+  }, []);
 
-  useEffect(() => {
-    if (!strategizing || !strategyStartedAt) { setStrategyLeft(null); return; }
-    const dur = state.config.strategyDuration;
-    const update = () => setStrategyLeft(Math.max(0, dur - Math.floor((Date.now() - strategyStartedAt) / 1000)));
-    update();
-    const t = setInterval(update, 1000);
-    return () => clearInterval(t);
-  }, [strategizing, strategyStartedAt, state.config.strategyDuration]);
+  const scheduledStartMs = parseScheduledStart(state.config.gameStartTime);
+  const leadMinutes = state.config.joinLeadMinutes;
+  const status = scheduleStatus({ phase, scheduledStartMs, leadMinutes, nowMs, participantCount });
+  const cta = homeCta(status, { scheduledStartMs, leadMinutes, nowMs });
+  const auctionLive = status === "game";
+  const counting = status === "beforeJoinWindow" || status === "joinOpen";
+  const countdown = counting && scheduledStartMs != null ? secondsUntil(scheduledStartMs, nowMs) : null;
+  const statusColor = auctionLive ? "#ff2d2d" : status === "starting" ? "#e8ff00" : counting ? "#a855f7" : "rgba(255,255,255,0.6)";
 
   const start = state.config.startPrice;
 
@@ -81,10 +74,12 @@ export default function HomePage() {
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-10">
           <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-extrabold px-2 py-1 uppercase tracking-[0.18em]">
-              <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-              LIVE
-            </span>
+            {showLive(phase) && (
+              <span className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-extrabold px-2 py-1 uppercase tracking-[0.18em]">
+                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                LIVE
+              </span>
+            )}
             <span
               className="text-white text-xs tabular-nums font-medium"
               style={{ textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}
@@ -186,33 +181,39 @@ export default function HomePage() {
               <p
                 className="font-extrabold tabular-nums leading-none"
                 style={{
-                  fontSize: auctionLive || strategizing ? "1.1rem" : countdown === null ? "1.1rem" : "1.65rem",
-                  color: auctionLive ? "#ff2d2d" : strategizing ? "#e8ff00" : "#f5f3ff",
-                  textShadow: auctionLive || strategizing
+                  fontSize: countdown === null ? "1.1rem" : "1.65rem",
+                  color: auctionLive ? "#ff2d2d" : status === "starting" ? "#e8ff00" : "#f5f3ff",
+                  textShadow: countdown === null
                     ? "none"
                     : "0 0 6px rgba(255,255,255,0.7), 0 0 14px #c084fc, 0 0 28px #a855f7",
                 }}
               >
-                {auctionLive
+                {countdown !== null
+                  ? fmtCountdown(countdown)
+                  : auctionLive
                   ? "경매 진행 중"
-                  : strategizing
-                  ? strategyLeft !== null ? `${strategyLeft}초 후 시작` : "곧 시작"
-                  : countdown === null
-                  ? "지금 참여가능"
-                  : countdown === 0
-                  ? "참여 마감"
-                  : fmtCountdown(countdown)}
+                  : status === "starting"
+                  ? "곧 시작"
+                  : status === "missedNoParticipants"
+                  ? "시작 안 됨"
+                  : status === "ended"
+                  ? "경매 종료"
+                  : "예정 없음"}
               </p>
-              <p className="text-xs mt-1" style={{ color: auctionLive ? "#ff2d2d" : strategizing ? "#e8ff00" : "#a855f7" }}>
-                {auctionLive
+              <p className="text-xs mt-1" style={{ color: statusColor }}>
+                {status === "joinOpen"
+                  ? "지금 참가 가능"
+                  : status === "beforeJoinWindow"
+                  ? "경매 시작까지"
+                  : auctionLive
                   ? "관전만 가능합니다"
-                  : strategizing
-                  ? "전략 시간 진행 중"
-                  : countdown === null
-                  ? "바로 시작하세요!"
-                  : countdown === 0
-                  ? "관전만 가능합니다"
-                  : "곧 시작됩니다"}
+                  : status === "starting"
+                  ? "경매가 곧 시작됩니다"
+                  : status === "missedNoParticipants"
+                  ? "참가자가 없어 시작되지 않았습니다"
+                  : status === "ended"
+                  ? "다음 경매를 기다려주세요"
+                  : "예정된 경매가 없습니다"}
               </p>
             </div>
 
@@ -245,7 +246,7 @@ export default function HomePage() {
         {/* CTAs */}
         <PendingWinBanner className="mb-3" />
         <div className="flex flex-col gap-2">
-          {auctionLive ? (
+          {cta.kind === "watch" ? (
             <button
               onClick={() => router.push("/join")}
               className="w-full font-extrabold text-base text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1"
@@ -256,20 +257,32 @@ export default function HomePage() {
                 boxShadow: "0 4px 24px rgba(239,68,68,0.15)",
               }}
             >
-              <span className="flex items-center gap-2"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>visibility</span>관전하기</span>
+              <span className="flex items-center gap-2"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>visibility</span>{cta.label}</span>
               <span className="text-xs font-medium text-white/50 tracking-normal">
-                경매가 진행 중입니다 · 관전만 가능합니다
+                {cta.sub}
               </span>
             </button>
-          ) : (
+          ) : cta.kind === "join" ? (
             <button
               onClick={() => router.push("/join")}
               className="w-full font-extrabold text-base text-white tracking-wide transition-all active:scale-[0.98] active:opacity-90 flex flex-col items-center py-4 gap-1 bid-btn-purple-plain rounded-[10px] relative overflow-hidden"
             >
               <div className="bid-shimmer absolute inset-y-0 w-[40%]" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)" }} />
-              <span className="flex items-center gap-2"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>local_fire_department</span>경매 참여하기</span>
-              <span className="text-xs font-medium text-white/60 tracking-normal">
-                경매에 참여하고 낙찰 기회를 잡으세요!
+              <span className="flex items-center gap-2"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>local_fire_department</span>{cta.label}</span>
+              <span className="text-xs font-medium text-white/60 tracking-normal tabular-nums">
+                {cta.sub}
+              </span>
+            </button>
+          ) : (
+            <button
+              disabled
+              aria-disabled="true"
+              className="w-full font-extrabold text-base text-white/60 tracking-wide flex flex-col items-center py-4 gap-1 rounded-[10px] cursor-not-allowed"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
+            >
+              <span className="flex items-center gap-2 tabular-nums"><span className="material-symbols-outlined" style={{fontSize:"20px"}}>schedule</span>{cta.label}</span>
+              <span className="text-xs font-medium text-white/45 tracking-normal">
+                {cta.sub}
               </span>
             </button>
           )}

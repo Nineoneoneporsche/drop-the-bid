@@ -15,11 +15,8 @@ import { ProductThumb } from "../components/ProductImage";
 import RightActionMenu from "../components/RightActionMenu";
 import HomeButton from "../components/HomeButton";
 import { getServerNow } from "../lib/serverClock";
+import { formatCountdown, joinWindowRemaining, parseScheduledStart, secondsUntil, showLive } from "../lib/auctionSchedule";
 import { nextSawLiveAuction, winnerRevealMode } from "../lib/winnerReveal";
-
-function pad(n: number) {
-  return n.toString().padStart(2, "0");
-}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -172,7 +169,11 @@ export default function StrategyPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Strategy phase
-  const [timeLeft, setTimeLeft] = useState(state.config.strategyDuration);
+  // Seconds left until the scheduled start T — the same absolute instant
+  // for every participant, however early or late they joined.
+  const startAtMs = parseScheduledStart(state.config.gameStartTime);
+  const [timeLeft, setTimeLeft] = useState(() => (startAtMs == null ? 0 : secondsUntil(startAtMs, getServerNow())));
+  const [windowLeft, setWindowLeft] = useState(1);
   const scheduleRef = useRef<Array<{ atSecond: number; nickname: string; message: string }>>([]);
   const firedLoungeRef = useRef(new Set<number>());
 
@@ -307,14 +308,20 @@ export default function StrategyPage() {
   }, []);
 
   // ── Strategy countdown ───────────────────────────────────────────────────
-  // Uses the same server-adjusted clock as the live price (app/lib/serverClock.ts)
-  // so the two never drift apart from each other, or from what other clients see.
+  // Counts down to the scheduled start T (not to a fixed strategy length
+  // from this user's entry), on the same server-adjusted clock as the live
+  // price (app/lib/serverClock.ts) so the two never drift apart from each
+  // other, or from what other clients see. The scripted lounge chatter is
+  // paced from when this page was opened.
+  const mountedAtRef = useRef(getServerNow());
   useEffect(() => {
-    if (state.phase !== "strategy" || !state.strategyStartedAt) return;
+    if (state.phase !== "strategy" || startAtMs == null) return;
+    const lead = state.config.joinLeadMinutes;
     const update = () => {
-      const elapsed = Math.floor((getServerNow() - state.strategyStartedAt!) / 1000);
-      const remaining = Math.max(0, state.config.strategyDuration - elapsed);
-      setTimeLeft(remaining);
+      const now = getServerNow();
+      const elapsed = Math.floor((now - mountedAtRef.current) / 1000);
+      setTimeLeft(secondsUntil(startAtMs, now));
+      setWindowLeft(joinWindowRemaining(startAtMs, lead, now));
       scheduleRef.current.forEach((item, idx) => {
         if (elapsed >= item.atSecond && !firedLoungeRef.current.has(idx)) {
           firedLoungeRef.current.add(idx);
@@ -331,7 +338,7 @@ export default function StrategyPage() {
     update();
     const t = setInterval(update, 500);
     return () => clearInterval(t);
-  }, [state.phase, state.strategyStartedAt, state.config.strategyDuration, addLocalMessage]);
+  }, [state.phase, startAtMs, state.config.joinLeadMinutes, addLocalMessage]);
 
   // ── Game tick flash + rapid chat ─────────────────────────────────────────
   useEffect(() => {
@@ -923,10 +930,12 @@ export default function StrategyPage() {
             </svg>
           </button>
           <div className="w-px h-3.5 bg-white/15 flex-shrink-0" />
-          <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-red-500">
-            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-            LIVE
-          </span>
+          {showLive(state.phase) && (
+            <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-red-500">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+              LIVE
+            </span>
+          )}
           <div className="ml-auto flex items-center gap-2 text-xs text-white/40 tabular-nums">
             {isStrategy ? null : (
               <>
@@ -1047,7 +1056,7 @@ export default function StrategyPage() {
             <div
               className="h-full transition-all duration-1000 rounded-full"
               style={{
-                width: isStrategy ? `${(timeLeft / state.config.strategyDuration) * 100}%` : `${barPct}%`,
+                width: isStrategy ? `${windowLeft * 100}%` : `${barPct}%`,
                 background: isStrategy
                   ? (isUrgent ? "#ef4444" : "#a855f7")
                   : isCritical ? "#ef4444"
@@ -1107,9 +1116,11 @@ export default function StrategyPage() {
                         : "0 0 6px rgba(255,255,255,0.9), 0 0 14px #c084fc, 0 0 28px #a855f7",
                     }}
                   >
-                    {pad(Math.floor(timeLeft / 60))}:{pad(timeLeft % 60)}
+                    {formatCountdown(timeLeft)}
                   </span>
-                  <span className="text-[11px] text-white/38 font-medium mt-2">⏳ 경기 준비 중</span>
+                  <span className="text-[11px] text-white/38 font-medium mt-2">
+                    {timeLeft > 0 ? "⏳ 경매 시작까지" : "⏳ 곧 시작합니다"}
+                  </span>
                 </>
               ) : (
                 <>

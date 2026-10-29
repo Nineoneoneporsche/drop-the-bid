@@ -27,6 +27,11 @@ const CONFLICT_CODES: Record<string, { code: string; error: string }> = {
     code: "PARTICIPANT_JOIN_CLOSED",
     error: "지금은 참여자로 입장할 수 없습니다. 관전자로 입장해주세요.",
   },
+  // Before T - N (or no T scheduled): the window hasn't opened yet.
+  participant_join_not_open: {
+    code: "PARTICIPANT_JOIN_NOT_OPEN",
+    error: "아직 참가 가능 시간이 아닙니다. 참가 오픈 시각 이후에 다시 시도해주세요.",
+  },
 };
 
 async function verifyTurnstile(token: string | undefined, ip: string | null): Promise<boolean> {

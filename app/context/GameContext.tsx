@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { getServerNow, startClockSync } from "../lib/serverClock";
+import { DEFAULT_JOIN_LEAD_MINUTES, parseScheduledStart } from "../lib/auctionSchedule";
 
 export type Role = "participant" | "spectator";
 export type Phase = "home" | "strategy" | "game" | "ended";
@@ -32,8 +33,11 @@ export interface GameConfig {
   startPrice: number;
   dropAmount: number;       // NORMAL zone, ₩/sec
   floorPrice: number;       // maps to DB minimum_price — absolute floor for every zone
-  strategyDuration: number;
+  // T (scheduled_start_at): the auction's only time axis — the price runs
+  // from it (game_started_at = T) and participant joins open joinLeadMinutes
+  // (N, participant_join_lead_minutes) before it. See app/lib/auctionSchedule.ts.
   gameStartTime: string | null;
+  joinLeadMinutes: number;
   // Drop zones are optional: both fast fields null = legacy single-rate
   // behavior. final fields are only meaningful once fast is set.
   fastDropPrice: number | null;   // FAST DROP ZONE threshold — price at which FAST rate kicks in
@@ -86,8 +90,8 @@ export const DEFAULT_CONFIG: GameConfig = {
   startPrice: 899_000,
   dropAmount: 1_000,
   floorPrice: 550_000,
-  strategyDuration: 60,
   gameStartTime: null,
+  joinLeadMinutes: DEFAULT_JOIN_LEAD_MINUTES,
   fastDropPrice: null,
   fastDropAmount: null,
   finalDropPrice: null,
@@ -127,7 +131,7 @@ type DbRow = {
   start_price: number;
   drop_amount: number;
   minimum_price: number;
-  strategy_duration: number;
+  participant_join_lead_minutes: number | null;
   winner_id: string | null;
   winner_nickname: string | null;
   winner_price: number | null;
@@ -152,8 +156,8 @@ function rowToConfig(row: DbRow): GameConfig {
     startPrice:       row.start_price       ?? DEFAULT_CONFIG.startPrice,
     dropAmount:       row.drop_amount       ?? DEFAULT_CONFIG.dropAmount,
     floorPrice:       row.minimum_price     ?? DEFAULT_CONFIG.floorPrice,
-    strategyDuration: row.strategy_duration ?? DEFAULT_CONFIG.strategyDuration,
     gameStartTime: row.scheduled_start_at ?? null,
+    joinLeadMinutes: row.participant_join_lead_minutes ?? DEFAULT_CONFIG.joinLeadMinutes,
     fastDropPrice:  row.fast_drop_price  ?? null,
     fastDropAmount: row.fast_drop_amount ?? null,
     finalDropPrice:  row.final_drop_price  ?? null,
@@ -529,26 +533,37 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => { if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; } };
   }, [phase, gameStartedAt]);
 
-  // Auto-transition: strategy → game when countdown ends. Every connected
-  // client runs this same check independently, so more than one can hit the
-  // "time's up" condition around the same moment — start_game() (see
-  // supabase/migrations/20260910090000_server_clock_sync.sql) is a single
-  // atomic `update ... where phase = 'strategy'`, the same race guard the
-  // old client-side `.eq("phase","strategy")` had, just now inside the RPC
-  // and stamping game_started_at with the server's own now() instead of
-  // whichever caller's clock happened to win.
+  // Auto-transition: strategy → game at the scheduled start T. Every
+  // connected client runs this same check independently, so more than one
+  // can call around the same moment — start_game() (see
+  // supabase/migrations/20261030100000_scheduled_start_join_window.sql) is a
+  // single atomic `update ... where phase = 'strategy'` that only succeeds
+  // once the DB's own now() >= T and a participant is in, and stamps
+  // game_started_at = T itself: a late call never shifts the price's time
+  // axis. Fires the moment T is reached (timeout to T on the server-synced
+  // clock), then retries every few seconds while still in strategy — a
+  // refusal (clock skew, no participant) is normal, not an error.
+  const startAtMs = parseScheduledStart(config.gameStartTime);
   useEffect(() => {
-    if (phase !== "strategy" || !strategyStartedAt) return;
-    const check = () => {
-      const elapsed = Math.floor((getServerNow() - strategyStartedAt) / 1000);
-      if (elapsed >= configRef.current.strategyDuration) {
-        supabase.rpc("start_game").then(() => {});
+    if (phase !== "strategy" || startAtMs == null) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const RETRY_MS = 3000;
+    const tick = () => {
+      if (stopped) return;
+      const wait = startAtMs - getServerNow();
+      if (wait > 0) {
+        timer = setTimeout(tick, Math.min(wait, 1000));
+        return;
       }
+      supabase.rpc("start_game").then(({ data }) => {
+        if (data === true) void fetchGameStateSnapshot();
+      });
+      timer = setTimeout(tick, RETRY_MS);
     };
-    check();
-    const t = setInterval(check, 1000);
-    return () => clearInterval(t);
-  }, [phase, strategyStartedAt]);
+    tick();
+    return () => { stopped = true; if (timer) clearTimeout(timer); };
+  }, [phase, startAtMs, fetchGameStateSnapshot]);
 
   // Heartbeat: update last_seen every 30s. A participant also renews its
   // one-session-per-account lease (touch_participant_session(): the DB only

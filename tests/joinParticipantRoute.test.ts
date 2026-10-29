@@ -75,6 +75,15 @@ describe("join participant route", () => {
     });
   });
 
+  it("before the join window (T - N) or with no T -> 409 PARTICIPANT_JOIN_NOT_OPEN", async () => {
+    state.rpcError = { message: "participant_join_not_open" };
+    const res = await POST(req(token({ sub: UID, session_id: SESSION })));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({
+      ok: false, code: "PARTICIPANT_JOIN_NOT_OPEN", error: "아직 참가 가능 시간이 아닙니다. 참가 오픈 시각 이후에 다시 시도해주세요.",
+    });
+  });
+
   it("join outside waiting/strategy -> 409 PARTICIPANT_JOIN_CLOSED", async () => {
     state.rpcError = { message: "participant join closed" };
     const res = await POST(req(token({ sub: UID, session_id: SESSION })));

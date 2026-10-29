@@ -149,10 +149,10 @@ for (const env of ["pre1030", "post1030"] as const) {
       if (r !== "ok") throw new Error(`M1: ${r}`);
     }, 180_000);
 
-    it("sits after the 30 pre-M1 migrations; only M2 follows it", () => {
+    it("sits after the 30 pre-M1 migrations; only M2 and M3 follow it", () => {
       expect(BEFORE_M1).toHaveLength(30);
       expect(BEFORE_M1.at(-1)).toBe("20261027110000_explicit_data_api_grants.sql");
-      expect(FILES.filter((f) => f > M1_FILE)).toEqual(["20261029100000_reset_game_uses_auction_wins.sql"]);
+      expect(FILES.filter((f) => f > M1_FILE)).toEqual(["20261029100000_reset_game_uses_auction_wins.sql", "20261030100000_scheduled_start_join_window.sql"]);
     });
 
     it("the base is Production's claim_winner; M1 replaces it with the expected body", async () => {

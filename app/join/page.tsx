@@ -8,6 +8,8 @@ import { loadTurnstile } from "../lib/turnstile";
 import HomeButton from "../components/HomeButton";
 import PendingWinBanner from "../components/PendingWinBanner";
 import { usePendingWin } from "../lib/pendingWin";
+import { getServerNow } from "../lib/serverClock";
+import { canJoinAsParticipant, parseScheduledStart, scheduleStatus } from "../lib/auctionSchedule";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -32,7 +34,7 @@ export default function JoinPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [memberNickname, setMemberNickname] = useState<string | null>(null);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => getServerNow());
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileUnavailable, setTurnstileUnavailable] = useState(false);
@@ -43,7 +45,7 @@ export default function JoinPage() {
   const { pending: hasPendingWin } = usePendingWin();
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const t = setInterval(() => setNow(getServerNow()), 500);
     return () => clearInterval(t);
   }, []);
 
@@ -55,16 +57,19 @@ export default function JoinPage() {
     });
   }, []);
 
-  const countdownExpired = state.config.gameStartTime
-    ? new Date(state.config.gameStartTime).getTime() <= now
-    : false;
-  const auctionLive = state.phase === "game";
-  const auctionEnded = state.phase === "ended";
-  // Participant role requires a real (non-Anonymous-Auth) session — enforced
-  // server-side by join_game() too, this just avoids a round-trip failure.
-  // Participant joins are open only in waiting/strategy — the same rule
-  // join_game_participant() enforces in the DB.
-  const participantBlocked = auctionLive || auctionEnded || countdownExpired || isAnonymous;
+  // Participant joins are open only from T - N until T (scheduled start,
+  // join lead minutes), on the server-synced clock — the same window
+  // join_game_participant() enforces with the DB's own now(), which stays
+  // the final word (a join racing the boundary gets its 409 from there).
+  // Participant role also requires a real (non-Anonymous-Auth) session.
+  const status = scheduleStatus({
+    phase: state.phase,
+    scheduledStartMs: parseScheduledStart(state.config.gameStartTime),
+    leadMinutes: state.config.joinLeadMinutes,
+    nowMs: now,
+    participantCount: state.participantCount,
+  });
+  const participantBlocked = !canJoinAsParticipant(status) || isAnonymous;
 
   useEffect(() => {
     if (participantBlocked) setRole("spectator");
@@ -222,12 +227,16 @@ export default function JoinPage() {
                 <p className={`font-semibold text-lg ${sel ? "text-white" : "text-white/60"}`}>{label}</p>
                 <p className="text-white/55 text-sm mt-1 leading-snug">
                   {disabled
-                    ? (auctionLive
+                    ? (status === "game"
                         ? "경매가 진행 중입니다. 관전으로만 입장 가능합니다."
-                        : auctionEnded
+                        : status === "ended"
                           ? "경매가 종료되어 참여자로 입장할 수 없습니다."
-                        : countdownExpired
-                          ? "경매가 시작되어 참여자로 입장할 수 없습니다."
+                        : status === "starting" || status === "missedNoParticipants"
+                          ? "참가 접수가 마감되어 참여자로 입장할 수 없습니다."
+                        : status === "beforeJoinWindow"
+                          ? `경매 시작 ${state.config.joinLeadMinutes}분 전부터 참여자로 입장할 수 있습니다.`
+                        : status === "noSchedule"
+                          ? "예정된 경매가 없어 참여자로 입장할 수 없습니다."
                           : "참여자로 입장하려면 로그인이 필요합니다.")
                     : desc}
                 </p>
