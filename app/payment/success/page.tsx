@@ -6,7 +6,9 @@ import Link from "next/link";
 import { ProductThumb } from "../../components/ProductImage";
 import { supabase } from "../../lib/supabase";
 import { PAYMENT_WINDOW_EXPIRED, WINNER_PAYMENT_WINDOW_MINUTES } from "../../lib/paymentWindow";
-import { ALREADY_PAID, PAYMENT_IN_PROGRESS, PAYMENT_NEEDS_REVIEW } from "../../lib/paymentCodes";
+import {
+  ALREADY_PAID, PAYMENT_AUTH_EXPIRED, PAYMENT_CONFIG_ERROR, PAYMENT_DECLINED, PAYMENT_IN_PROGRESS, PAYMENT_NEEDS_REVIEW,
+} from "../../lib/paymentCodes";
 import { confirmWithAuthRecovery, type AuthRecoveryDeps, type SessionCheck } from "../../lib/confirmWithAuthRecovery";
 import { savePendingConfirm } from "../../lib/pendingConfirm";
 import { isWinId } from "../../lib/auctionWin";
@@ -38,9 +40,11 @@ const authDeps: AuthRecoveryDeps = {
   },
 };
 
-// Terminal refusals because this win already has an active payment: the
-// server refused BEFORE contacting Toss for this payment, so it was not
-// approved. Re-sending can only be refused again — no retry button.
+// Terminal answers: re-sending this same confirmation can only get the same
+// answer, so no retry button. ALREADY_PAID / PROCESSING: refused before Toss
+// was contacted for this payment. DECLINED / AUTH_EXPIRED: Toss provably did
+// not approve it (not charged) — a new payment from the payment page can.
+// NEEDS_REVIEW: the outcome isn't settled — never "failed", never retried.
 const ACTIVE_PAYMENT_SCREENS: Record<string, { label: string; title: string; body: string; href: string; cta: string }> = {
   [ALREADY_PAID]: {
     label: "결제 완료된 낙찰",
@@ -58,10 +62,31 @@ const ACTIVE_PAYMENT_SCREENS: Record<string, { label: string; title: string; bod
   },
   [PAYMENT_NEEDS_REVIEW]: {
     label: "결제 확인 필요",
-    title: "결제 결과 확인이 필요합니다",
-    body: "결제 처리 결과를 확인하고 있습니다. 다시 결제하지 마시고\n고객센터로 문의해주세요.",
+    title: "결제 결과를 확인 중입니다",
+    body: "다시 결제하지 마세요.\n잠시 후 마이페이지에서 주문 내역을 확인하거나 고객센터로 문의해주세요.",
     href: "/mypage",
     cta: "마이페이지로 이동",
+  },
+  [PAYMENT_DECLINED]: {
+    label: "결제 미승인",
+    title: "결제가 승인되지 않았습니다",
+    body: "이번 결제는 청구되지 않았습니다.\n결제 페이지에서 다른 결제수단으로 다시 결제할 수 있습니다.",
+    href: "/payment",
+    cta: "결제 페이지로 돌아가기",
+  },
+  [PAYMENT_AUTH_EXPIRED]: {
+    label: "결제 인증 만료",
+    title: "결제 인증 시간이 만료되었습니다",
+    body: "이번 결제는 승인되지 않았으며 청구되지 않았습니다.\n결제 페이지에서 다시 결제해주세요.",
+    href: "/payment",
+    cta: "결제 페이지로 돌아가기",
+  },
+  [PAYMENT_CONFIG_ERROR]: {
+    label: "결제 시스템 오류",
+    title: "지금은 결제를 진행할 수 없습니다",
+    body: "결제 시스템 설정 오류로 결제가 승인되지 않았습니다(청구 없음).\n운영자에게 문의해주세요.",
+    href: "/",
+    cta: "홈으로 돌아가기",
   },
 };
 
@@ -77,17 +102,12 @@ function getTodayPlus(days: number) {
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
-// The confirm API's `error` is either one of our own plain-string messages
-// (auth/winner/amount checks) or Toss's error object (has a `message`
-// field) — pull a displayable string out of either shape.
+// The confirm API's `error` is always one of our own messages (Toss's text
+// never reaches the browser); anything else shows the generic one.
 function extractErrorMessage(json: unknown): string | null {
   if (!json || typeof json !== "object") return null;
   const err = (json as { error?: unknown }).error;
-  if (typeof err === "string") return err;
-  if (err && typeof err === "object" && typeof (err as { message?: unknown }).message === "string") {
-    return (err as { message: string }).message;
-  }
-  return null;
+  return typeof err === "string" ? err : null;
 }
 
 function SuccessInner() {
@@ -128,7 +148,10 @@ function SuccessInner() {
       return;
     }
     if (outcome.kind === "network_error") {
-      setErrorMessage("네트워크 오류로 결제 확인에 실패했습니다.");
+      // The request may or may not have reached the server: the outcome is
+      // unknown, not "failed". Checking again re-sends the same orderId,
+      // which the server answers from the attempt — never a second charge.
+      setErrorMessage("결제 결과를 확인하지 못했습니다. 다시 결제하지 마시고 아래 버튼으로 결과를 다시 확인해주세요.");
       setStatus("error");
       return;
     }
@@ -262,8 +285,8 @@ function SuccessInner() {
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </div>
-        <p className="text-xs uppercase tracking-[0.18em] font-semibold mb-1 text-red-400">결제 확인 실패</p>
-        <h1 className="text-lg font-extrabold text-white mb-2">결제를 완료하지 못했습니다</h1>
+        <p className="text-xs uppercase tracking-[0.18em] font-semibold mb-1 text-red-400">결제 확인 미완료</p>
+        <h1 className="text-lg font-extrabold text-white mb-2">결제 확인을 완료하지 못했습니다</h1>
         <p className="text-white/55 text-sm leading-relaxed mb-8">{errorMessage || "결제 확인 중 문제가 발생했습니다."}</p>
         <div className="w-full max-w-xs space-y-3">
           <button
@@ -271,7 +294,7 @@ function SuccessInner() {
             className="block w-full py-3.5 text-white font-semibold text-base text-center transition-opacity active:opacity-80"
             style={{ background: "linear-gradient(180deg, #bf7af0 0%, #a855f7 55%, #8b3fd9 100%)" }}
           >
-            다시 시도
+            결제 결과 다시 확인
           </button>
           <Link
             href="/payment"

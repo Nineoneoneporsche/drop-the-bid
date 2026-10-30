@@ -9,26 +9,22 @@ import { secondsUntilDeadline, WINNER_PAYMENT_WINDOW_SECONDS } from "../lib/paym
 import { hasOrderForAuctionWin } from "../lib/winOrder";
 import { fetchMyCurrentWin, type ClientAuctionWin, type WinLookupClient } from "../lib/auctionWin";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_FIELD_LABELS, type ShippingInfo } from "../lib/shipping";
+import { checkTossClientKey } from "../lib/tossEnv";
 
-// Same reasoning as TOSS_SECRET_KEY in app/api/payment/confirm/route.ts:
-// sandbox fallback only outside production, so a missing env var in an
-// actual production build fails clearly (see the check in handlePay()
-// below) instead of quietly loading Toss's test widget for real users.
-// NEXT_PUBLIC_* values are inlined at build time, so this evaluates once
-// per build, not per request — `next dev`/local `next build && next start`
-// still get the sandbox key with no setup.
-const TOSS_CLIENT_KEY: string | undefined =
-  process.env.NODE_ENV === "production"
-    ? process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
-    : (process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? "test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq");
+// No built-in key (M4-A): without a well-formed NEXT_PUBLIC_TOSS_CLIENT_KEY
+// the Toss SDK is never started (see handlePay()). NEXT_PUBLIC_* values are
+// inlined at build time, so this is decided once per build. When the build
+// exposes NEXT_PUBLIC_VERCEL_ENV the key's mode must match it too (live in
+// production, test elsewhere); either way /api/payment/confirm re-checks
+// both keys against VERCEL_ENV and approves nothing on a mismatch. The key
+// itself is never shown or logged.
+const TOSS_CLIENT = checkTossClientKey(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY, process.env.NEXT_PUBLIC_VERCEL_ENV);
 
-type PayMethod = { id: string; label: string; bg?: string; letter?: string; dark?: boolean };
-const METHODS: PayMethod[] = [
-  { id: "card",  label: "신용/체크카드" },
-  { id: "kakao", label: "카카오페이",  bg: "#FEE500", letter: "K", dark: true  },
-  { id: "naver", label: "네이버페이",  bg: "#03C75A", letter: "N", dark: false },
-  { id: "toss",  label: "토스페이",    bg: "#0064FF", letter: "T", dark: false },
-];
+// Launch policy: one option — Toss's CARD 통합결제창, where the buyer
+// picks a card or an easy-pay inside Toss's window. No per-provider buttons
+// (requestPayment always sends method "CARD"), no transfer / virtual
+// account.
+const PAY_METHOD_LABEL = "카드·간편결제";
 
 function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
 function fmtTime(s: number) {
@@ -53,7 +49,6 @@ export default function PaymentPage() {
 
   const [timeLeft, setTimeLeft] = useState(WINNER_PAYMENT_WINDOW_SECONDS);
   const [expired,  setExpired]  = useState(false);
-  const [method,   setMethod]   = useState("card");
   const [agreed,   setAgreed]   = useState(false);
   const [paying,   setPaying]   = useState(false);
   const [error,    setError]    = useState("");
@@ -135,15 +130,15 @@ export default function PaymentPage() {
     setError("");
     setPaying(true);
 
-    if (!TOSS_CLIENT_KEY) {
+    if (!TOSS_CLIENT.ok) {
       setPaying(false);
-      setError("결제 시스템이 설정되지 않았습니다. 운영자에게 문의해주세요.");
+      setError("결제 시스템 설정 오류로 결제를 진행할 수 없습니다. 운영자에게 문의해주세요.");
       return;
     }
 
     try {
       const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
-      const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
+      const tossPayments = await loadTossPayments(TOSS_CLIENT.clientKey);
 
       const customerKey = guestId || crypto.randomUUID();
 
@@ -162,8 +157,12 @@ export default function PaymentPage() {
       });
     } catch (e: unknown) {
       setPaying(false);
-      const msg = e instanceof Error ? e.message : "결제 중 오류가 발생했습니다.";
-      if (!msg.includes("취소")) setError(msg);
+      // Closing the window is not an error. Anything else gets our own
+      // text — the SDK's raw message is never shown.
+      const code = e && typeof e === "object" ? (e as { code?: unknown }).code : undefined;
+      const msg = e instanceof Error ? e.message : "";
+      if (code === "USER_CANCEL" || code === "PAY_PROCESS_CANCELED" || msg.includes("취소")) return;
+      setError("결제창을 열지 못했습니다. 잠시 후 다시 시도해주세요.");
     }
   }
 
@@ -272,33 +271,15 @@ export default function PaymentPage() {
         <div className="px-4 py-5 border-b border-white/15">
           <p className="text-xs uppercase tracking-[0.12em] text-white/60 font-medium mb-4">결제 수단</p>
           <div className="space-y-2">
-            {METHODS.map((m) => {
-              const sel = method === m.id;
-              return (
-                <button key={m.id} onClick={() => setMethod(m.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 text-left border transition-colors ${
-                    sel ? "border-[#a855f7] bg-[#a855f7]/10" : "border-white/15 bg-white/5 hover:border-white/20"
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-sm flex items-center justify-center flex-shrink-0"
-                    style={{ background: m.id === "card" ? "rgba(255,255,255,0.1)" : m.bg }}
-                  >
-                    {m.id === "card" ? (
-                      <svg viewBox="0 0 24 24" className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
-                      </svg>
-                    ) : (
-                      <span className="text-xs font-extrabold" style={{ color: m.dark ? "#000" : "#fff" }}>{m.letter}</span>
-                    )}
-                  </div>
-                  <span className={`flex-1 text-base font-semibold ${sel ? "text-white" : "text-white/70"}`}>{m.label}</span>
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${sel ? "border-[#a855f7]" : "border-white/35"}`}>
-                    {sel && <div className="w-2 h-2 rounded-full bg-[#a855f7]" />}
-                  </div>
-                </button>
-              );
-            })}
-            <p className="text-white/35 text-xs pt-1">결제 수단 선택 후 토스페이먼츠 창에서 최종 확인합니다.</p>
+            <div className="w-full flex items-center gap-3 px-4 py-3.5 text-left border border-[#a855f7] bg-[#a855f7]/10">
+              <div className="w-8 h-8 rounded-sm flex items-center justify-center flex-shrink-0" style={{ background: "rgba(255,255,255,0.1)" }}>
+                <svg viewBox="0 0 24 24" className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
+                </svg>
+              </div>
+              <span className="flex-1 text-base font-semibold text-white">{PAY_METHOD_LABEL}</span>
+            </div>
+            <p className="text-white/35 text-xs pt-1">토스페이먼츠 결제창에서 카드 또는 간편결제를 선택해 결제합니다.</p>
           </div>
         </div>
 

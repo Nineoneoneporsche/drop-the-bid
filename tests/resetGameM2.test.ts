@@ -167,12 +167,12 @@ for (const env of ["pre1030", "post1030"] as const) {
       if (r !== "ok") throw new Error(`M2: ${r}`);
     }, 180_000);
 
-    it("20. fresh replay: M2 is the 32nd migration (M3 follows), replaces the pre-M2 body", async () => {
+    it("20. fresh replay: M2 is the 32nd migration (M3 and M4-A follow), replaces the pre-M2 body", async () => {
       expect(BEFORE_M2).toHaveLength(31);
       expect(BEFORE_M2.at(-1)).toBe("20261028150000_auction_wins.sql");
-      expect(FILES).toHaveLength(33);
-      expect(FILES.at(-2)).toBe(M2_FILE);
-      expect(FILES.at(-1)).toBe("20261030100000_scheduled_start_join_window.sql");
+      expect(FILES).toHaveLength(34);
+      expect(FILES.at(-3)).toBe(M2_FILE);
+      expect(FILES.slice(-2)).toEqual(["20261030100000_scheduled_start_join_window.sql", "20261030200000_payment_confirm_safety.sql"]);
       expect(await bodyMd5(base)).toBe(PRE_M2_MD5);
       expect(await bodyMd5(m2)).toBe(M2_MD5);
       expect(M2).not.toMatch(/^\s*(begin|commit)\s*;/im);

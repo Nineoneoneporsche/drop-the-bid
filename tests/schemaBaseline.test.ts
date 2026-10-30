@@ -9,7 +9,9 @@
 // plus what 20261028150000_auction_wins.sql (M1, applied to Production)
 // adds — auction_wins, its grants/policy, the new claim_winner() body — and
 // the admin_reset_game() body of 20261029100000_reset_game_uses_auction_wins.sql
-// (M2, not yet applied to Production).
+// (M2), M3's timing functions, and M4-A (20261030200000, not yet applied to
+// Production): its two payment RPCs, the payment_attempts guard trigger and
+// the narrowed orders privileges.
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
@@ -46,7 +48,8 @@ const TABLE_GRANTS: Record<string, Record<string, string>> = {
   chat_messages: { anon: READ, authenticated: READ, service_role: ALL },
   device_round_guard: { anon: ALL, authenticated: ALL, service_role: ALL },
   game_state: { anon: READ, authenticated: READ, service_role: ALL },
-  orders: { anon: `DELETE,${READ},UPDATE`, authenticated: `DELETE,${READ},UPDATE`, service_role: ALL },
+  // M4-A: no table-level client privilege; authenticated reads 6 columns.
+  orders: { service_role: ALL },
   participant_verifications: { anon: ALL, authenticated: ALL, service_role: ALL },
   participants: { anon: `DELETE,${READ}`, authenticated: `DELETE,${READ}`, service_role: ALL },
   payment_attempts: { service_role: ALL },
@@ -66,6 +69,9 @@ const FUNCTION_EXECUTE: Record<string, string[]> = {
   "cleanup_stale_participants()": ALL_ROLES,
   "join_game(text,text)": ALL_ROLES,
   "join_game_participant(uuid,text,text,uuid)": ["service_role"],
+  "payment_attempts_guard_transition()": [],
+  "payment_finalize_paid(text,jsonb,text,timestamp with time zone)": ["service_role"],
+  "payment_reserve_attempt(text,uuid,uuid,integer,text,text,text,text,text,text)": ["service_role"],
   "pause_game(text)": ["service_role"],
   "resume_game()": ["service_role"],
   "send_chat_message(text)": ALL_ROLES,
@@ -151,15 +157,16 @@ const bodyMd5 = async (db: PGlite, name: string) =>
     where n.nspname = 'public' and p.proname = '${name}'`)).map((r) => r.h);
 
 describe("migration chain order", () => {
-  it("starts with the schema baseline; the explicit grants are followed only by auction_wins, M2 and M3 (33 files)", () => {
-    expect(FILES).toHaveLength(33);
+  it("starts with the schema baseline; the explicit grants are followed only by auction_wins, M2, M3 and M4-A (34 files)", () => {
+    expect(FILES).toHaveLength(34);
     expect(FILES[0]).toBe("20260901000000_schema_baseline.sql");
     expect(FILES[1]).toBe("20260902120000_drop_zones.sql");
-    expect(FILES.at(-5)).toBe("20261027100000_drop_orphan_calc_drop_price.sql");
-    expect(FILES.at(-4)).toBe("20261027110000_explicit_data_api_grants.sql");
-    expect(FILES.at(-3)).toBe("20261028150000_auction_wins.sql");
-    expect(FILES.at(-2)).toBe("20261029100000_reset_game_uses_auction_wins.sql");
-    expect(FILES.at(-1)).toBe("20261030100000_scheduled_start_join_window.sql");
+    expect(FILES.at(-6)).toBe("20261027100000_drop_orphan_calc_drop_price.sql");
+    expect(FILES.at(-5)).toBe("20261027110000_explicit_data_api_grants.sql");
+    expect(FILES.at(-4)).toBe("20261028150000_auction_wins.sql");
+    expect(FILES.at(-3)).toBe("20261029100000_reset_game_uses_auction_wins.sql");
+    expect(FILES.at(-2)).toBe("20261030100000_scheduled_start_join_window.sql");
+    expect(FILES.at(-1)).toBe("20261030200000_payment_confirm_safety.sql");
   });
 
   it("the baseline grants nothing (privileges live in the explicit grants migration)", () => {
@@ -181,6 +188,7 @@ describe("migration chain order", () => {
 for (const env of ["pre1030", "post1030"] as const) {
   describe(`fresh replay (${env})`, () => {
     let db: PGlite;
+    let beforeM4: PGlite; // the chain up to M3 == Production before M4-A
     const failures: string[] = [];
     let ordersInsertPoliciesBefore1017 = -1;
 
@@ -193,6 +201,7 @@ for (const env of ["pre1030", "post1030"] as const) {
           ordersInsertPoliciesBefore1017 = (await rows<{ n: number }>(db,
             "select count(*)::int n from pg_policies where schemaname = 'public' and tablename = 'orders' and cmd = 'INSERT'"))[0].n;
         }
+        if (f === "20261030200000_payment_confirm_safety.sql") beforeM4 = (await db.clone()) as PGlite;
         const r = await run(db, read(f));
         if (r !== "ok") failures.push(`${f}: ${r}`);
       }
@@ -210,7 +219,7 @@ for (const env of ["pre1030", "post1030"] as const) {
       expect(t.every((r) => r.rls)).toBe(true);
     });
 
-    it("has Production's 16 functions plus M3's admin_update_schedule, with Production's EXECUTE grantees", async () => {
+    it("has Production's 16 functions plus M3's admin_update_schedule and M4-A's three, with their EXECUTE grantees", async () => {
       const f = Object.fromEntries((await functionExecute(db)).map((r) => [r.sig, [...r.grantees].sort()]));
       expect(f).toEqual(FUNCTION_EXECUTE);
     });
@@ -234,6 +243,9 @@ for (const env of ["pre1030", "post1030"] as const) {
       expect(await bodyMd5(db, "start_game")).toEqual(["8f8cba95b88422c9c717bb804faa6da9"]);
       expect(await bodyMd5(db, "admin_force_start_game")).toEqual(["0251520809f95fa35f1c010dd6deeade"]);
       expect(await bodyMd5(db, "admin_update_schedule")).toEqual(["fadb9870e7de7dbd0a6ce3591cfd73b0"]);
+      expect(await bodyMd5(db, "payment_reserve_attempt")).toEqual(["3b0840ae43dd5807a074816a8ca03fdf"]);
+      expect(await bodyMd5(db, "payment_finalize_paid")).toEqual(["e4d02c5b0c445e83965b585bc4ff6a12"]);
+      expect(await bodyMd5(db, "payment_attempts_guard_transition")).toEqual(["3b910dd20de5c3e8f61398caf1d8b28e"]);
     });
 
     it("has Production's table grants (no PUBLIC grants)", async () => {
@@ -242,11 +254,13 @@ for (const env of ["pre1030", "post1030"] as const) {
       expect(g).toEqual(TABLE_GRANTS);
     });
 
-    it("keeps exactly the participants.last_seen column UPDATE grant, plus auction_wins' 8 column SELECTs", async () => {
+    it("keeps exactly the participants.last_seen column UPDATE grant, plus auction_wins' 8 and orders' 6 column SELECTs", async () => {
       const c = await columnGrants(db);
       expect(c).toEqual([
         ...["claimed_at", "id", "payment_deadline", "product_name", "round_key", "start_price", "winner_nickname", "winning_price"]
           .map((col) => ({ t: "auction_wins", col, grantee: "authenticated", priv: "SELECT" })),
+        ...["amount", "created_at", "order_id", "product_name", "user_id", "win_id"]
+          .map((col) => ({ t: "orders", col, grantee: "authenticated", priv: "SELECT" })),
         { t: "participants", col: "last_seen", grantee: "anon", priv: "UPDATE" },
         { t: "participants", col: "last_seen", grantee: "authenticated", priv: "UPDATE" },
       ]);
@@ -293,15 +307,23 @@ for (const env of ["pre1030", "post1030"] as const) {
       expect(await tableGrants(db)).toEqual(before);
     });
 
-    it("the cleanup and grants migrations are no-ops when re-run (as on Production)", async () => {
-      const state = async () => [await tableGrants(db), await columnGrants(db), await functionExecute(db)];
+    it("the cleanup and grants migrations are no-ops when re-run (as on Production, before M4-A)", async () => {
+      const state = async () => [await tableGrants(beforeM4), await columnGrants(beforeM4), await functionExecute(beforeM4)];
       const before = await state();
       for (const f of ["20261027100000_drop_orphan_calc_drop_price.sql", "20261027110000_explicit_data_api_grants.sql"]) {
         for (let i = 0; i < 2; i++) {
-          expect(await run(db, read(f))).toBe("ok");
+          expect(await run(beforeM4, read(f))).toBe("ok");
           expect(await state()).toEqual(before);
         }
       }
+    });
+
+    it("after M4-A, re-running the explicit grants file would re-widen orders — it is a replay-only file, never re-run on Production", async () => {
+      const copy = (await db.clone()) as PGlite;
+      expect(await run(copy, read("20261027110000_explicit_data_api_grants.sql"))).toBe("ok");
+      const g = Object.fromEntries((await tableGrants(copy)).filter((r) => r.t === "orders").map((r) => [r.grantee, r.privs]));
+      expect(g.authenticated).toBe(`DELETE,${READ},UPDATE`);
+      expect(read("20261027110000_explicit_data_api_grants.sql")).toContain("NOT APPLIED TO PRODUCTION");
     });
   });
 }
