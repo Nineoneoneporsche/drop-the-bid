@@ -7,6 +7,7 @@ import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { failScreenFor } from "../app/lib/paymentFail";
 import { PAYMENT_MESSAGES } from "../app/lib/paymentCodes";
+import { REVIEW_STILL_UNKNOWN, reviewResult } from "../app/lib/paymentReview";
 
 const h = vi.hoisted(() => ({ search: "" }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(h.search) }));
@@ -100,5 +101,29 @@ describe("success page: only our texts", () => {
                         "PAYMENT_ALREADY_PAID", "PAYMENT_SYSTEM_UNAVAILABLE", "PAYMENT_CONFIG_ERROR"]) {
       expect(PAYMENT_MESSAGES[code], code).toMatch(/[가-힣]/);
     }
+  });
+});
+
+describe("/mypage: 결제 상태 확인 (reconciliation_required)", () => {
+  const list = src("components/PaymentReviewList.tsx");
+  const mypage = src("mypage/page.tsx");
+  it("MyPage shows the list (status text + button)", () => {
+    expect(mypage).toMatch(/<PaymentReviewList className="mb-5" onPaid=/);
+    expect(list).toContain("결제 상태 확인 필요");
+    expect(list).toContain('"결제 상태 확인"');
+  });
+  it("the button never opens a payment window or starts a new payment: it POSTs only the order id to /api/payment/recheck", () => {
+    expect(list).not.toMatch(/loadTossPayments|tosspayments|href=|\/payment["'`?]|router\.push|confirm/);
+    expect(list).toMatch(/fetch\("\/api\/payment\/recheck", \{\s*method: "POST"/);
+    expect(list).toMatch(/body: JSON\.stringify\(\{ orderId \}\)/);
+    expect(list).not.toMatch(/paymentKey|idempotency/i);
+  });
+  it("result texts: paid / failed / anything else -> '아직 결제 상태를 확인할 수 없습니다'", () => {
+    expect(reviewResult({ ok: true, status: "paid" })).toMatchObject({ tone: "done", settled: true });
+    expect(reviewResult({ ok: true, status: "failed" })).toMatchObject({ tone: "failed", settled: true, text: expect.stringContaining("청구되지 않았습니다") });
+    for (const r of [{ ok: true, status: "reconciliation_required" }, { ok: true, status: "pending" }, { ok: false, status: "paid" }, { ok: false }, null]) {
+      expect(reviewResult(r)).toEqual({ tone: "pending", text: REVIEW_STILL_UNKNOWN, settled: false });
+    }
+    expect(REVIEW_STILL_UNKNOWN).toMatch(/^아직 결제 상태를 확인할 수 없습니다/);
   });
 });

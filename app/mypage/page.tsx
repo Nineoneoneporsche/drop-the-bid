@@ -6,6 +6,7 @@ import Link from "next/link";
 import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
 import PendingWinBanner from "../components/PendingWinBanner";
+import PaymentReviewList from "../components/PaymentReviewList";
 import { clearPendingConfirm, readPendingConfirm, resumeConfirmUrl, type PendingConfirm } from "../lib/pendingConfirm";
 import { supabase } from "../lib/supabase";
 import { buildOrderStats, type DisplayOrder, type OrderRow, type WinRow } from "../lib/orderStats";
@@ -274,6 +275,41 @@ export default function MyPage() {
   const [stats, setStats] = useState<Stats>({ wins: 0, savings: 0 });
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
 
+  // Orders with win_id are shown from their auction_wins row (that round's
+  // product / start price — app/lib/orderStats.ts); legacy orders fall back
+  // to the current game_state.start_price. The auction_wins select names
+  // its columns: authenticated has column-level SELECT only (no select("*")).
+  // Also re-run after "결제 상태 확인" completes a payment.
+  async function loadOrders(userId: string) {
+    const [{ data: orderData }, { data: gsData }] = await Promise.all([
+      supabase
+        .from("orders")
+        .select("product_name, amount, created_at, win_id")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabase.from("game_state").select("start_price").eq("id", 1).single(),
+    ]);
+    if (!orderData) return;
+    const rows = orderData as OrderRow[];
+    const winIds = [...new Set(rows.map((o) => o.win_id).filter((id): id is string => !!id))];
+    let wins: WinRow[] = [];
+    if (winIds.length > 0) {
+      const { data: winData } = await supabase
+        .from("auction_wins")
+        .select("id, product_name, start_price, winning_price")
+        .in("id", winIds);
+      wins = (winData ?? []) as WinRow[];
+    }
+    const built = buildOrderStats(rows, wins, gsData?.start_price ?? 899_000);
+    setOrders(built.orders);
+    setStats({ wins: built.wins, savings: built.savings });
+  }
+  async function reloadOrders() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user && !session.user.is_anonymous) await loadOrders(session.user.id);
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       // Anonymous Auth sessions (app-wide identity bootstrap, see
@@ -298,35 +334,7 @@ export default function MyPage() {
         // fetched separately below rather than held on the critical path.
         setLoaded(true);
 
-        // Orders with win_id are shown from their auction_wins row (that
-        // round's product / start price — app/lib/orderStats.ts); legacy
-        // orders fall back to the current game_state.start_price. The
-        // auction_wins select names its columns: authenticated has
-        // column-level SELECT only (no select("*")).
-        Promise.all([
-          supabase
-            .from("orders")
-            .select("product_name, amount, created_at, win_id")
-            .eq("user_id", session.user.id)
-            .order("created_at", { ascending: false })
-            .limit(20),
-          supabase.from("game_state").select("start_price").eq("id", 1).single(),
-        ]).then(async ([{ data: orderData }, { data: gsData }]) => {
-          if (!orderData) return;
-          const rows = orderData as OrderRow[];
-          const winIds = [...new Set(rows.map((o) => o.win_id).filter((id): id is string => !!id))];
-          let wins: WinRow[] = [];
-          if (winIds.length > 0) {
-            const { data: winData } = await supabase
-              .from("auction_wins")
-              .select("id, product_name, start_price, winning_price")
-              .in("id", winIds);
-            wins = (winData ?? []) as WinRow[];
-          }
-          const built = buildOrderStats(rows, wins, gsData?.start_price ?? 899_000);
-          setOrders(built.orders);
-          setStats({ wins: built.wins, savings: built.savings });
-        });
+        void loadOrders(session.user.id);
       } else {
         setLoaded(true);
       }
@@ -561,6 +569,9 @@ export default function MyPage() {
         )}
 
         {!savedForPayment && <PendingWinBanner className="mb-5" />}
+
+        {/* Payments whose outcome is not settled yet (reconciliation_required) */}
+        <PaymentReviewList className="mb-5" onPaid={() => { void reloadOrders(); }} />
 
         {/* Profile */}
         <div ref={setRef(2)} className="card-rise flex items-center gap-4 mb-6" style={{ transitionDelay: "100ms" }}>

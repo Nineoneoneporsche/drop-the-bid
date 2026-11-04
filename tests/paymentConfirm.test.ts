@@ -171,6 +171,7 @@ vi.mock("@supabase/supabase-js", () => {
     in(col: string, vals: unknown[]) { this.filters.push((r) => vals.includes(r[col])); return this; }
     is(col: string, val: unknown) { this.filters.push((r) => (r[col] ?? null) === val); return this; }
     limit() { return this; }
+    order() { return this; }
     async single() { const r = this.rows(); return { data: r[0] ?? null, error: r[0] ? null : { message: "no rows" } }; }
     async maybeSingle() { return { data: this.rows()[0] ?? null, error: null }; }
     async insert() {
@@ -275,6 +276,7 @@ const confirmCalls = () => tossCalls.filter((c) => c.url.endsWith("/v1/payments/
 const lookupCalls = () => tossCalls.filter((c) => c.method === "GET");
 
 const { POST } = await import("../app/api/payment/confirm/route");
+const recheckRoute = await import("../app/api/payment/recheck/route");
 
 const WINNER_ID = "user-winner";
 const PRICE = 412_000;
@@ -1724,5 +1726,189 @@ describe("re-check of a reconciliation_required attempt (lookup first, never a c
     expect(logged).not.toContain(OLD.paymentKey);
     expect(logged).not.toContain(KEY);
     expect(logged).not.toContain(KEYS.testSecret);
+  });
+});
+
+describe("/api/payment/recheck (\"결제 상태 확인\" on /mypage)", () => {
+  const KEY = "confirm-22222222-3333-4444-8555-666666666666";
+  const ORDER = "DTB-1793776241021-EAXXS";
+  const PKEY = "pk_test_review_payment_0001";
+  const CHECKED = "2026-11-04T07:11:18.426Z";
+  const LOOKUP_URL = `https://api.tosspayments.com/v1/payments/${PKEY}`;
+  const reviewRow = (extra: Row = {}): Row => ({
+    order_id: ORDER, user_id: WINNER_ID, winner_id: WINNER_ID, win_id: WIN_ID, win_claimed_at: CLAIMED, amount: PRICE,
+    payment_key: PKEY, status: "reconciliation_required", toss_idempotency_key: KEY,
+    toss_response: { code: "API_KEY_ACCESS_DENIED", httpStatus: 403 }, toss_status: null, approved_at: null,
+    error_detail: "confirm_http_403:API_KEY_ACCESS_DENIED|lookup_http_403:API_KEY_ACCESS_DENIED", last_checked_at: CHECKED,
+    created_at: "2026-11-04T07:10:00.000Z",
+    shipping_recipient_name: "홍길동", shipping_phone: "010-1234-5678", shipping_postcode: "06236",
+    shipping_address: "서울 강남구 테헤란로 152", shipping_address_detail: "12층", ...extra,
+  });
+  const att = () => db.attempts.find((a) => a.order_id === ORDER)!;
+  const tossSays = (extra: Row = {}) => (key: string) => json(tossPayment({ paymentKey: key, orderId: ORDER, amount: PRICE }, extra));
+  const post = (body: unknown, token = "good-token") => recheckRoute.POST(new NextRequest("http://localhost/api/payment/recheck", {
+    method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(body),
+  }));
+  const list = (token = "good-token") => recheckRoute.GET(new NextRequest("http://localhost/api/payment/recheck", {
+    headers: { authorization: `Bearer ${token}` },
+  }));
+  const checkedNow = () => expect(Date.parse(att().last_checked_at as string)).toBeGreaterThan(Date.parse(CHECKED));
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    db.attempts = [reviewRow()];
+    toss.confirm = () => { throw new Error("confirm must never be called by /api/payment/recheck"); };
+  });
+
+  it("GET lists only the user's own reconciliation_required attempts — no paymentKey, no Toss data, no Toss call", async () => {
+    db.attempts.push(
+      reviewRow({ order_id: "DTB-PAID", status: "paid" }),
+      reviewRow({ order_id: "DTB-FAILED", status: "failed" }),
+      reviewRow({ order_id: "DTB-OTHER-USER", user_id: "user-other", winner_id: "user-other" }),
+    );
+    const res = await list();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({ ok: true, items: [{ orderId: ORDER, productName: WIN_PRODUCT, amount: PRICE, createdAt: "2026-11-04T07:10:00.000Z", lastCheckedAt: CHECKED }] });
+    const text = JSON.stringify(body);
+    for (const leak of [PKEY, KEY, "API_KEY_ACCESS_DENIED", "toss"]) expect(text).not.toContain(leak);
+    expect(tossFetch).not.toHaveBeenCalled();
+  });
+
+  it("GET / POST require a valid session (401), nothing read or called", async () => {
+    expect((await list("stale-token")).status).toBe(401);
+    expect((await post({ orderId: ORDER }, "stale-token")).status).toBe(401);
+    db.user = { id: WINNER_ID, is_anonymous: true, user_metadata: {} };
+    expect((await post({ orderId: ORDER })).status).toBe(401);
+    expect(tossFetch).not.toHaveBeenCalled();
+    expect(att().last_checked_at).toBe(CHECKED);
+  });
+
+  it("9. POST: one Toss GET lookup of the stored paymentKey (no confirm, no Idempotency-Key); EXPIRED -> failed; last_checked_at updated; the win no longer blocks", async () => {
+    toss.lookup = tossSays({ status: "EXPIRED" });
+    const res = await post({ orderId: ORDER });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, status: "failed", code: "PAYMENT_AUTH_EXPIRED", error: expect.any(String) });
+    expect(tossCalls.map((c) => [c.method, c.url, c.headers["Idempotency-Key"] ?? null])).toEqual([["GET", LOOKUP_URL, null]]);
+    expect(att()).toMatchObject({ status: "failed", toss_status: "EXPIRED", toss_idempotency_key: KEY, payment_key: PKEY, amount: PRICE });
+    checkedNow();
+    expect(db.attempts).toHaveLength(1);
+    expect(db.attempts.filter((a) => ["pending", "paid", "reconciliation_required"].includes(a.status as string))).toHaveLength(0);
+    expect(db.rpcLog).not.toContain("payment_reserve_attempt");
+  });
+
+  it("POST: ABORTED -> failed", async () => {
+    toss.lookup = tossSays({ status: "ABORTED" });
+    expect(await (await post({ orderId: ORDER })).json()).toMatchObject({ ok: true, status: "failed", code: "PAYMENT_DECLINED" });
+    expect(att().status).toBe("failed");
+  });
+
+  it("POST: DONE + identity -> payment_finalize_paid -> paid (order created from the attempt); response carries no paymentKey", async () => {
+    toss.lookup = tossSays();
+    const res = await post({ orderId: ORDER });
+    const body = await res.json();
+    expect(body).toEqual({ ok: true, status: "paid" });
+    expect(JSON.stringify(body)).not.toContain(PKEY);
+    expect(db.rpcLog).toContain("payment_finalize_paid");
+    expect(att()).toMatchObject({ status: "paid", toss_status: "DONE" });
+    expect(db.orders).toEqual([expect.objectContaining({ order_id: ORDER, payment_key: PKEY, amount: PRICE, win_id: WIN_ID, product_name: WIN_PRODUCT })]);
+  });
+
+  for (const [name, lookup] of [
+    ["READY", tossSays({ status: "READY" })], ["IN_PROGRESS", tossSays({ status: "IN_PROGRESS" })], ["unknown status", tossSays({ status: "SOMETHING_NEW" })],
+    ["404", () => tossError(404, "NOT_FOUND_PAYMENT")], ["403 API_KEY_ACCESS_DENIED", () => tossError(403, "API_KEY_ACCESS_DENIED")],
+    ["timeout", () => { throw new DOMException("The operation was aborted.", "AbortError"); }], ["network error", () => { throw new TypeError("fetch failed"); }],
+  ] as [string, (k: string) => Response][]) {
+    it(`POST: lookup ${name} -> stays reconciliation_required, last_checked_at updated`, async () => {
+      toss.lookup = lookup;
+      expect(await (await post({ orderId: ORDER })).json()).toMatchObject({ ok: true, status: "reconciliation_required", code: "PAYMENT_NEEDS_REVIEW" });
+      expect(lookupCalls()).toHaveLength(1);
+      expect(confirmCalls()).toHaveLength(0);
+      expect(att().status).toBe("reconciliation_required");
+      checkedNow();
+      expect(db.orders).toHaveLength(0);
+    });
+  }
+
+  for (const [field, extra] of [["paymentKey", { paymentKey: "pk_test_someone_else" }], ["orderId", { orderId: "DTB-OTHER" }], ["totalAmount", { totalAmount: PRICE - 1 }], ["currency", { currency: "USD" }]] as const) {
+    for (const status of ["DONE", "EXPIRED", "ABORTED"]) {
+      it(`POST: lookup ${status} with a different ${field} -> neither paid nor failed`, async () => {
+        toss.lookup = tossSays({ status, ...extra });
+        expect(await (await post({ orderId: ORDER })).json()).toMatchObject({ ok: true, status: "reconciliation_required" });
+        expect(att()).toMatchObject({ status: "reconciliation_required", error_detail: expect.stringContaining(`lookup_identity_mismatch:${field}`) });
+        expect(db.orders).toHaveLength(0);
+      });
+    }
+  }
+
+  it("7. POST: earlier DONE trace (toss_status / approved_at / stored DONE response) -> EXPIRED never frees the win", async () => {
+    for (const extra of [{ toss_status: "DONE" }, { approved_at: "2026-11-04T16:11:00+09:00" }, { toss_response: { status: "DONE", paymentKey: PKEY, orderId: ORDER, totalAmount: PRICE } }]) {
+      db.attempts = [reviewRow(extra)];
+      toss.lookup = tossSays({ status: "EXPIRED" });
+      expect(await (await post({ orderId: ORDER })).json()).toMatchObject({ ok: true, status: "reconciliation_required" });
+      expect(att().error_detail).toMatch(/^recheck_not_approved_after_done:/);
+    }
+  });
+
+  it("10. another user's order: 404, no Toss call, row untouched", async () => {
+    db.user = { id: "user-intruder", user_metadata: { ...SHIPPING } };
+    const res = await post({ orderId: ORDER });
+    expect(res.status).toBe(404);
+    expect(tossFetch).not.toHaveBeenCalled();
+    expect(att()).toMatchObject({ status: "reconciliation_required", last_checked_at: CHECKED });
+  });
+
+  it("nothing from the request is trusted: extra paymentKey / amount / winId fields are ignored", async () => {
+    toss.lookup = tossSays({ status: "EXPIRED" });
+    await post({ orderId: ORDER, paymentKey: "pk_test_attacker_9999", amount: 1, winId: OTHER_WIN_ID });
+    expect(tossCalls.map((c) => c.url)).toEqual([LOOKUP_URL]);
+    expect(att()).toMatchObject({ payment_key: PKEY, amount: PRICE, win_id: WIN_ID });
+  });
+
+  it("bad / missing orderId -> 400; unknown orderId -> 404; no Toss call", async () => {
+    for (const body of [{}, { orderId: 123 }, { orderId: "" }, { orderId: "x".repeat(65) }, { orderId: "DTB-1;drop" }]) {
+      expect((await post(body)).status).toBe(400);
+    }
+    expect((await post({ orderId: "DTB-UNKNOWN-1" })).status).toBe(404);
+    expect(tossFetch).not.toHaveBeenCalled();
+  });
+
+  it("an attempt that is no longer reconciliation_required: its status is reported, no Toss call", async () => {
+    for (const status of ["paid", "failed", "pending"]) {
+      db.attempts = [reviewRow({ status })];
+      expect(await (await post({ orderId: ORDER })).json()).toEqual({ ok: true, status });
+    }
+    expect(tossFetch).not.toHaveBeenCalled();
+  });
+
+  it("not re-checkable (no Idempotency-Key / legacy row without win_id / win no longer matches): stays reconciliation_required, no Toss call", async () => {
+    for (const [extra, wins] of [
+      [{ toss_idempotency_key: null }, [baseWin()]],
+      [{ win_id: null }, [baseWin()]],
+      [{}, [baseWin({ winning_price: PRICE + 1 })]],
+      [{}, [baseWin({ winner_id: "someone-else" })]],
+      [{}, []],
+    ] as [Row, Row[]][]) {
+      db.attempts = [reviewRow(extra)];
+      db.wins = wins;
+      expect(await (await post({ orderId: ORDER })).json()).toMatchObject({ ok: true, status: "reconciliation_required" });
+      expect(att().last_checked_at).toBe(CHECKED);
+    }
+    expect(tossFetch).not.toHaveBeenCalled();
+  });
+
+  it("wrong Toss key mode: 503 PAYMENT_CONFIG_ERROR before anything is read; no Toss call", async () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    const res = await post({ orderId: ORDER });
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ ok: false, code: "PAYMENT_CONFIG_ERROR" });
+    expect(tossFetch).not.toHaveBeenCalled();
+  });
+
+  it("logs never carry the full paymentKey, the Idempotency-Key or the secret key", async () => {
+    toss.lookup = () => { throw new TypeError("fetch failed"); };
+    await post({ orderId: ORDER });
+    const logged = JSON.stringify([...vi.mocked(console.warn).mock.calls, ...vi.mocked(console.error).mock.calls]);
+    for (const leak of [PKEY, KEY, KEYS.testSecret]) expect(logged).not.toContain(leak);
   });
 });
