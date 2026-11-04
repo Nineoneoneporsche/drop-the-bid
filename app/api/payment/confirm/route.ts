@@ -11,7 +11,7 @@ import { isWinId } from "../../../lib/auctionWin";
 import { resolveTossServerConfig } from "../../../lib/tossEnv";
 import {
   classifyConfirm, classifyLookup, confirmTossPayment, getTossPayment, maskPaymentKey, paymentSummary,
-  storedTossError, storedTossPayment, type ExpectedPayment, type TossPayment,
+  storedTossError, storedTossPayment, type ExpectedPayment, type PaymentVerdict, type TossPayment,
 } from "../../../lib/tossClient";
 
 // The Toss confirm (30 s) + lookup (10 s) timeouts in app/lib/tossClient.ts
@@ -173,9 +173,21 @@ export async function POST(req: NextRequest) {
     if (existingAttempt.status === "reconciliation_required") {
       // Whatever Toss said, DTB could not finish recording it (unknown
       // outcome, an unexpected state, or the order write failed): neither
-      // "paid" nor "failed" can be claimed, and Toss is not called again —
-      // an operator resolves it.
-      return RESPONSE_NEEDS_REVIEW();
+      // "paid" nor "failed" can be claimed. An M4-A attempt (it has its
+      // paymentKey and Toss Idempotency-Key) is re-checked with a Toss
+      // lookup of that paymentKey — see recheckReconciliation(); anything
+      // else (legacy row, no key) is left for an operator.
+      if (!isRecheckable(existingAttempt)) return RESPONSE_NEEDS_REVIEW();
+      const { data: recheckWin, error: recheckWinError } = await supabaseAdmin
+        .from("auction_wins")
+        .select("id, winner_id, product_name, winning_price, claimed_at, payment_deadline")
+        .eq("id", existingAttempt.win_id)
+        .maybeSingle();
+      if (recheckWinError) {
+        console.error("[payment/confirm] auction_wins lookup failed", { orderId, error: recheckWinError });
+        return RESPONSE_UNAVAILABLE();
+      }
+      return recheckReconciliation(supabaseAdmin, toss.secretKey, existingAttempt, recheckWin as AuctionWin | null, user.id);
     }
     if (existingAttempt.status === "pending") {
       // Another request for this exact order is (or was) mid-flight with
@@ -215,6 +227,31 @@ export async function POST(req: NextRequest) {
   }
   if (win.winning_price !== amount) {
     return NextResponse.json({ ok: false, error: "결제 금액이 낙찰가와 일치하지 않습니다" }, { status: 400 });
+  }
+
+  // This win's earlier attempt is reconciliation_required (e.g. /mypage ->
+  // /payment opened a new payment window, so this request carries a new
+  // orderId / paymentKey): no new approval while it is unsettled — that
+  // earlier attempt is re-checked with a Toss lookup instead, judged
+  // against ITS paymentKey / orderId / amount; nothing of this request's
+  // payment is used. Before the deadline check: the attempt was reserved in time,
+  // and a Toss answer for it is recorded whenever it arrives. (A legacy
+  // attempt without win_id is still refused by the reservation's 23505.)
+  const { data: openReview, error: openReviewError } = await supabaseAdmin
+    .from("payment_attempts")
+    .select("*")
+    .eq("win_id", win.id)
+    .eq("status", "reconciliation_required")
+    .maybeSingle();
+  if (openReviewError) {
+    console.error("[payment/confirm] payment_attempts lookup failed", { orderId, error: openReviewError });
+    return RESPONSE_UNAVAILABLE();
+  }
+  if (openReview) {
+    console.warn("[payment/confirm] win has a reconciliation_required attempt — re-checking it instead of a new approval", {
+      orderId, reviewOrderId: openReview.order_id, winId: win.id,
+    });
+    return recheckReconciliation(supabaseAdmin, toss.secretKey, openReview, win, user.id);
   }
 
   // Payment deadline, early check (a clear answer before anything is
@@ -313,49 +350,76 @@ export async function POST(req: NextRequest) {
   // ── Toss: confirm, and when the answer doesn't settle it, look it up ────
   // The attempt is the only source of the values sent: the paymentKey just
   // reserved (equal to the request's), the win's price, the attempt's own
-  // idempotency key. Outcomes (app/lib/tossClient.ts classifyConfirm /
-  // classifyLookup):
-  //   done          DONE, paymentKey / orderId / amount / KRW / method match -> order + paid
-  //   not_approved  provably not approved (decline allowlist, lookup
-  //                 ABORTED / EXPIRED) -> 'failed', the win is free again
-  //   review        anything else that is known but not "paid" (other
-  //                 statuses, identity mismatch, lookup failure / 404)
-  //                 -> 'reconciliation_required', the win stays locked
-  //   ambiguous     (confirm only: network / timeout / unreadable body /
-  //                 5xx / 408 / 429 / ALREADY_PROCESSED_PAYMENT / any
-  //                 unlisted code) -> one lookup decides between the above
-  const expected: ExpectedPayment = { paymentKey, orderId, amount: win.winning_price };
-  const confirmResult = await confirmTossPayment({
-    secretKey: toss.secretKey, paymentKey, orderId, amount: win.winning_price, idempotencyKey,
+  // idempotency key. Outcomes: see settleWithToss().
+  const { verdict, tossError } = await settleWithToss(toss.secretKey, {
+    paymentKey, orderId, amount: win.winning_price, idempotencyKey,
   });
-  let verdict = classifyConfirm(confirmResult, expected);
-  let tossError = storedTossError(confirmResult);
-  if (verdict.verdict === "ambiguous") {
-    console.warn("[payment/confirm] Toss confirm outcome not settled — looking the payment up", {
-      orderId, paymentKey: maskPaymentKey(paymentKey), detail: verdict.detail,
-    });
-    const confirmDetail = verdict.detail;
-    const lookup = await getTossPayment({ secretKey: toss.secretKey, paymentKey });
-    const settled = classifyLookup(lookup, expected);
-    verdict = settled.verdict === "done" ? settled : { ...settled, detail: `${confirmDetail}|${settled.detail}` };
-    tossError = storedTossError(lookup) ?? tossError;
-  }
+  return applyVerdict(supabaseAdmin, verdict, tossError, {
+    orderId, paymentKey, amount: win.winning_price, productName: win.product_name, from: "pending",
+  });
+}
 
+type Settled = { verdict: Exclude<PaymentVerdict, { verdict: "ambiguous" }>; tossError: Record<string, unknown> | null };
+
+// Toss confirm (with the attempt's Idempotency-Key) and, when its answer
+// doesn't settle it, one lookup. Outcomes (app/lib/tossClient.ts
+// classifyConfirm / classifyLookup):
+//   done          DONE, paymentKey / orderId / amount / KRW / method match -> order + paid
+//   not_approved  provably not approved (decline allowlist, lookup
+//                 ABORTED / EXPIRED) -> 'failed', the win is free again
+//   review        anything else that is known but not "paid" (other
+//                 statuses, identity mismatch, lookup failure / 404)
+//                 -> 'reconciliation_required', the win stays locked
+//   ambiguous     (confirm only: network / timeout / unreadable body /
+//                 5xx / 408 / 429 / ALREADY_PROCESSED_PAYMENT / any
+//                 unlisted code) -> one lookup decides between the above
+async function settleWithToss(
+  secretKey: string,
+  p: { paymentKey: string; orderId: string; amount: number; idempotencyKey: string },
+): Promise<Settled> {
+  const expected: ExpectedPayment = { paymentKey: p.paymentKey, orderId: p.orderId, amount: p.amount };
+  const confirmResult = await confirmTossPayment({
+    secretKey, paymentKey: p.paymentKey, orderId: p.orderId, amount: p.amount, idempotencyKey: p.idempotencyKey,
+  });
+  const confirmVerdict = classifyConfirm(confirmResult, expected);
+  let tossError = storedTossError(confirmResult);
+  if (confirmVerdict.verdict !== "ambiguous") return { verdict: confirmVerdict, tossError };
+  console.warn("[payment/confirm] Toss confirm outcome not settled — looking the payment up", {
+    orderId: p.orderId, paymentKey: maskPaymentKey(p.paymentKey), detail: confirmVerdict.detail,
+  });
+  const lookup = await getTossPayment({ secretKey, paymentKey: p.paymentKey });
+  const settled = classifyLookup(lookup, expected);
+  tossError = storedTossError(lookup) ?? tossError;
+  return { verdict: settled.verdict === "done" ? settled : { ...settled, detail: `${confirmVerdict.detail}|${settled.detail}` }, tossError };
+}
+
+type AttemptStatus = "pending" | "reconciliation_required";
+
+// Records what Toss said on the attempt, moving it only from `from` (its
+// status when this request read it). `keepTossResponse`: a re-check that
+// did not get a Payment back leaves an earlier stored Payment in place.
+async function applyVerdict(
+  admin: AdminClient,
+  verdict: Settled["verdict"],
+  tossError: Record<string, unknown> | null,
+  ctx: { orderId: string; paymentKey: string; amount: number; productName: string | null; from: AttemptStatus; keepTossResponse?: boolean },
+): Promise<NextResponse> {
+  const { orderId, paymentKey, from } = ctx;
   if (verdict.verdict === "done") {
-    return finalize(supabaseAdmin, { orderId, paymentKey, payment: verdict.payment, productName: win.product_name, amount: win.winning_price });
+    return finalize(admin, { orderId, paymentKey, payment: verdict.payment, productName: ctx.productName, amount: ctx.amount, from });
   }
 
   if (verdict.verdict === "not_approved") {
     console.warn("[payment/confirm] Toss did not approve the payment — attempt failed", {
       orderId, paymentKey: maskPaymentKey(paymentKey), detail: verdict.detail, toss: tossError,
     });
-    const marked = await markAttempt(supabaseAdmin, orderId, "failed", {
+    const marked = await markAttempt(admin, orderId, "failed", {
       toss_response: verdict.payment ? storedTossPayment(verdict.payment) : tossError,
       toss_status: verdict.payment?.status ?? null,
       error_detail: verdict.detail,
       last_checked_at: new Date().toISOString(),
-    });
-    // Not recorded as failed -> the attempt stays 'pending' (the win stays
+    }, from);
+    // Not recorded as failed -> the attempt keeps its status (the win stays
     // locked); tell the user it is under review, not "declined".
     if (!marked) return RESPONSE_NEEDS_REVIEW(503);
     return refuse(verdict.userCode, verdict.userCode === PAYMENT_CONFIG_ERROR ? 503 : 400);
@@ -365,30 +429,100 @@ export async function POST(req: NextRequest) {
   console.error("[payment/confirm] Toss outcome needs review — reconciliation_required", {
     orderId, paymentKey: maskPaymentKey(paymentKey), detail: verdict.detail, toss: tossError,
   });
-  const reviewPayment = "payment" in verdict ? verdict.payment : undefined;
-  await markAttempt(supabaseAdmin, orderId, "reconciliation_required", {
-    toss_response: reviewPayment ? storedTossPayment(reviewPayment) : tossError,
-    toss_status: reviewPayment?.status ?? null,
+  const reviewPayment = verdict.payment;
+  const keep = ctx.keepTossResponse && !reviewPayment;
+  await markAttempt(admin, orderId, "reconciliation_required", {
+    ...(keep ? {} : { toss_response: reviewPayment ? storedTossPayment(reviewPayment) : tossError, toss_status: reviewPayment?.status ?? null }),
     error_detail: verdict.detail,
     last_checked_at: new Date().toISOString(),
-  });
+  }, from);
   return RESPONSE_NEEDS_REVIEW(502);
+}
+
+// An M4-A reconciliation_required attempt Toss can be asked about again:
+// it has its paymentKey, the Idempotency-Key it was confirmed with (the
+// M4-A marker), and a win. (Legacy / pre-M4-A rows have no key: an operator settles those.)
+function isRecheckable(a: Record<string, unknown>): boolean {
+  return a.status === "reconciliation_required"
+    && typeof a.payment_key === "string" && a.payment_key.length > 0
+    && typeof a.toss_idempotency_key === "string" && a.toss_idempotency_key.length > 0
+    && typeof a.win_id === "string";
+}
+
+// Re-check of a reconciliation_required attempt: a Toss lookup (GET
+// /v1/payments/{paymentKey}) of the attempt's own paymentKey, judged
+// against its orderId / amount — never a confirm: Toss answers a repeated
+// Idempotency-Key with the FIRST response (errors included) for 15 days,
+// so re-sending the confirmation could not retry it, and no new key is
+// ever issued (no new attempt either). Applied as for a first
+// confirmation's lookup: DONE + identity match -> payment_finalize_paid;
+// EXPIRED / ABORTED -> failed; anything else (READY / IN_PROGRESS /
+// unknown status, 404, timeout, network, identity mismatch) stays
+// reconciliation_required; last_checked_at updated either way. Only for
+// the attempt's own user, and only while the attempt still matches its win
+// (winner, price). Once Toss has reported this payment DONE (toss_status /
+// approved_at / a stored DONE response), a re-check never frees the win
+// as failed.
+async function recheckReconciliation(
+  admin: AdminClient,
+  secretKey: string,
+  att: Record<string, unknown>,
+  win: AuctionWin | null,
+  userId: string,
+): Promise<NextResponse> {
+  const orderId = att.order_id as string;
+  if (!isRecheckable(att)) return RESPONSE_NEEDS_REVIEW();
+  const mismatch: string[] = [];
+  if (att.user_id !== userId) mismatch.push("user_id");
+  if (att.winner_id !== userId) mismatch.push("winner_id");
+  if (!win) mismatch.push("win");
+  else {
+    if (win.id !== att.win_id) mismatch.push("win_id");
+    if (win.winner_id !== userId) mismatch.push("win_winner");
+    if (win.winning_price !== att.amount) mismatch.push("amount");
+  }
+  if (typeof att.amount !== "number" || !(att.amount > 0)) mismatch.push("amount_value");
+  if (mismatch.length > 0) {
+    console.error("[payment/confirm] reconciliation_required attempt does not match its win — not re-checked", { orderId, mismatch });
+    return RESPONSE_NEEDS_REVIEW();
+  }
+  const paymentKey = att.payment_key as string;
+  const amount = att.amount as number;
+  console.warn("[payment/confirm] re-checking a reconciliation_required attempt with a Toss lookup", {
+    orderId, paymentKey: maskPaymentKey(paymentKey),
+  });
+  const lookup = await getTossPayment({ secretKey, paymentKey });
+  const tossError = storedTossError(lookup);
+  const looked = classifyLookup(lookup, { paymentKey, orderId, amount });
+  let verdict: Settled["verdict"] = looked.verdict === "done" ? looked : { ...looked, detail: `recheck|${looked.detail}` };
+  const storedStatus = (att.toss_response as { status?: unknown } | null)?.status;
+  const sawDone = att.toss_status === "DONE" || att.approved_at != null || storedStatus === "DONE";
+  if (verdict.verdict === "not_approved" && sawDone) {
+    verdict = { verdict: "review", detail: `recheck_not_approved_after_done:${verdict.detail}`, payment: verdict.payment };
+  }
+  return applyVerdict(admin, verdict, tossError, {
+    orderId, paymentKey, amount, productName: win!.product_name, from: "reconciliation_required",
+    keepTossResponse: att.toss_status != null,
+  });
 }
 
 type AdminClient = SupabaseClient;
 
-// pending -> failed / reconciliation_required, only from 'pending' (the
-// guard trigger on payment_attempts enforces the allowed transitions too).
-// true only when exactly this attempt was updated; an error or 0 rows is
-// logged and reported, never ignored.
-async function markAttempt(admin: AdminClient, orderId: string, status: "failed" | "reconciliation_required", fields: Record<string, unknown>): Promise<boolean> {
+// pending / reconciliation_required -> failed / reconciliation_required,
+// only from `from` (the guard trigger on payment_attempts enforces the
+// allowed transitions too). true only when exactly this attempt was
+// updated; an error or 0 rows is logged and reported, never ignored.
+async function markAttempt(
+  admin: AdminClient, orderId: string, status: "failed" | "reconciliation_required", fields: Record<string, unknown>,
+  from: AttemptStatus = "pending",
+): Promise<boolean> {
   const { data, error } = await admin.from("payment_attempts")
     .update({ status, ...fields, updated_at: new Date().toISOString() })
     .eq("order_id", orderId)
-    .eq("status", "pending")
+    .eq("status", from)
     .select("order_id");
   if (error || !data || data.length !== 1) {
-    console.error("[payment/confirm] could not record the attempt outcome — it stays pending for an operator", {
+    console.error(`[payment/confirm] could not record the attempt outcome — it stays ${from} for an operator`, {
       orderId, status, rows: data?.length ?? null, error,
     });
     return false;
@@ -405,7 +539,7 @@ async function markAttempt(admin: AdminClient, orderId: string, status: "failed"
 // reported as success unless the order and 'paid' are both committed.
 async function finalize(
   admin: AdminClient,
-  p: { orderId: string; paymentKey: string; payment: TossPayment; productName: string; amount: number },
+  p: { orderId: string; paymentKey: string; payment: TossPayment; productName: string | null; amount: number; from: AttemptStatus },
 ): Promise<NextResponse> {
   const stored = storedTossPayment(p.payment);
   const { data, error } = await admin.rpc("payment_finalize_paid", {
@@ -415,7 +549,7 @@ async function finalize(
     p_approved_at: p.payment.approvedAt,
   });
   if (error) {
-    // The transaction rolled back: no order, attempt still 'pending'. Keep
+    // The transaction rolled back: no order, attempt unchanged. Keep
     // what Toss said on the attempt so it can be completed by hand.
     console.error("[payment/confirm] payment finalization failed after Toss DONE — reconciliation_required", {
       orderId: p.orderId, paymentKey: maskPaymentKey(p.paymentKey), amount: p.amount, error,
@@ -424,7 +558,7 @@ async function finalize(
       toss_response: stored, toss_status: p.payment.status, approved_at: p.payment.approvedAt,
       error_detail: `finalize_error:${String(error.message ?? error)}`.slice(0, 500),
       last_checked_at: new Date().toISOString(),
-    });
+    }, p.from);
     return RESPONSE_NEEDS_REVIEW(503);
   }
   if (data === "paid" || data === "already_paid") {

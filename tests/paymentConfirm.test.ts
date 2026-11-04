@@ -700,10 +700,17 @@ describe("one active payment per win (atomic, DB-enforced)", () => {
     expect(await res.json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
     expect(db.attempts[0]).toMatchObject({ status: "reconciliation_required", error_detail: "confirm_network|lookup_network" });
 
-    tossFetch.mockClear();
+    // A new payment for the same win is not approved: the earlier attempt is
+    // re-checked instead (a lookup of its paymentKey, no confirm), and with
+    // Toss still unreachable it stays reconciliation_required.
+    const key = db.attempts[0].toss_idempotency_key;
+    tossCalls.length = 0;
     const retry = await POST(req("DTB-2", "pk_test_second_payment"));
     expect(await retry.json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
-    expect(tossFetch).not.toHaveBeenCalled();
+    expect(confirmCalls()).toHaveLength(0);
+    expect(lookupCalls().map((c) => c.url)).toEqual(["https://api.tosspayments.com/v1/payments/pk_test_123456789"]);
+    expect(db.attempts).toHaveLength(1);
+    expect(db.attempts[0]).toMatchObject({ status: "reconciliation_required", toss_idempotency_key: key });
   });
 
   it("27. order write failure after Toss DONE -> reconciliation_required, NOT reported as success (nor as failed), win stays locked", async () => {
@@ -717,13 +724,24 @@ describe("one active payment per win (atomic, DB-enforced)", () => {
     expect(db.attempts[0].error_detail).toMatch(/^finalize_error:/);
     expect(db.attempts[0].toss_response).toMatchObject({ status: "DONE", totalAmount: PRICE });
 
-    // Same order replay: still under review, Toss not called again.
+    // Same order replay while the order write still fails: re-checked
+    // (lookup DONE), still under review, no order.
     expect(await (await POST(req("DTB-1", "pk_test_123456789"))).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
-    // A new payment for the same win: refused, no Toss call.
+    expect(db.orders).toHaveLength(0);
+    expect(db.attempts[0].status).toBe("reconciliation_required");
+    // Once the DB is back, a new payment for the same win completes the
+    // EARLIER attempt (its own paymentKey / key) — no second approval.
     db.ordersInsertError = null;
+    db.rpcLog = [];
     const second = await POST(req("DTB-2", "pk_test_second_payment"));
-    expect(await second.json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
-    expect(tossFetch).toHaveBeenCalledTimes(1);
+    expect(second.status).toBe(200);
+    expect(await second.json()).toMatchObject({ ok: true, data: { orderId: "DTB-1", totalAmount: PRICE } });
+    expect(db.rpcLog).not.toContain("payment_reserve_attempt");
+    expect(db.attempts).toHaveLength(1);
+    expect(db.orders).toEqual([expect.objectContaining({ order_id: "DTB-1", payment_key: "pk_test_123456789" })]);
+    // One confirm (the first approval); the re-checks were lookups only.
+    expect(confirmCalls()).toHaveLength(1);
+    expect(lookupCalls().map((c) => c.url)).toEqual(Array(2).fill("https://api.tosspayments.com/v1/payments/pk_test_123456789"));
   });
 });
 
@@ -901,10 +919,16 @@ describe("auction_wins as the source of truth (code deploy 1)", () => {
     expect(db.attempts[0].toss_response).toBeTruthy();
     expect(db.orders).toHaveLength(1);
     expect(JSON.stringify(err.mock.calls)).toContain("duplicate_win");
-    // The win stays locked for any further payment.
+    // The win stays locked for any further payment: the re-check (lookup)
+    // sees DONE again and is refused again by the finalize RPC.
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const again = await POST(confirmRequest(body({ orderId: "DTB-2", paymentKey: "pk_test_second_payment" })));
     expect(await again.json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
-    expect(tossFetch).toHaveBeenCalledTimes(1);
+    expect(confirmCalls()).toHaveLength(1);
+    expect(lookupCalls().map((c) => c.url)).toEqual(["https://api.tosspayments.com/v1/payments/pk_test_123456789"]);
+    expect(db.attempts).toHaveLength(1);
+    expect(db.attempts[0]).toMatchObject({ status: "reconciliation_required", error_detail: "finalize:duplicate_win" });
+    expect(db.orders).toHaveLength(1);
     err.mockRestore();
   });
 
@@ -1148,10 +1172,13 @@ describe("M4-A approval safety", () => {
         const res = await POST(confirmRequest(body()));
         expect(await res.json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
         expect(attempt().status).toBe("reconciliation_required");
-        // A new payment for the same win stays blocked.
+        // A new payment for the same win stays blocked: only the earlier
+        // attempt is re-checked (a lookup of its paymentKey, no confirm).
         const again = await POST(confirmRequest(body({ orderId: "DTB-2", paymentKey: "pk_test_second" })));
         expect(await again.json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
         expect(confirmCalls()).toHaveLength(1);
+        expect(lookupCalls().map((c) => c.url)).toEqual(Array(2).fill("https://api.tosspayments.com/v1/payments/pk_test_123456789"));
+        expect(db.attempts).toHaveLength(1);
       });
     }
 
@@ -1451,5 +1478,251 @@ describe("M4-A approval safety", () => {
       expect(logged).not.toContain("pk_test_123456789");
       expect(logged).toContain("pk_tes...6789");
     });
+  });
+});
+
+describe("re-check of a reconciliation_required attempt (lookup first, never a confirm)", () => {
+  const KEY = "confirm-11111111-2222-4333-8444-555555555555";
+  const OLD = { orderId: "DTB-1793776241021-EAXXS", paymentKey: "pk_test_old_payment_0001" };
+  const CHECKED = "2026-11-04T07:11:18.426Z";
+  const LOOKUP_URL = `https://api.tosspayments.com/v1/payments/${OLD.paymentKey}`;
+  // The case from the Preview E2E: confirm and lookup both refused by the
+  // Toss key's IP policy. Toss would answer a repeated confirm with the
+  // same Idempotency-Key with that same first error for 15 days.
+  const reviewAttempt = (extra: Row = {}): Row => ({
+    order_id: OLD.orderId, user_id: WINNER_ID, winner_id: WINNER_ID, win_id: WIN_ID, win_claimed_at: CLAIMED, amount: PRICE,
+    payment_key: OLD.paymentKey, status: "reconciliation_required", toss_idempotency_key: KEY,
+    toss_response: { code: "API_KEY_ACCESS_DENIED", httpStatus: 403 }, toss_status: null, approved_at: null,
+    error_detail: "confirm_http_403:API_KEY_ACCESS_DENIED|lookup_http_403:API_KEY_ACCESS_DENIED",
+    last_checked_at: CHECKED,
+    shipping_recipient_name: "홍길동", shipping_phone: "010-1234-5678", shipping_postcode: "06236",
+    shipping_address: "서울 강남구 테헤란로 152", shipping_address_detail: "12층", ...extra,
+  });
+  // Same order replay (success page refresh / pending-confirm resume) and a
+  // new payment window for the same win (/mypage -> /payment).
+  const replay = () => confirmRequest({ ...OLD, amount: PRICE, winId: WIN_ID });
+  const fresh = () => confirmRequest({ paymentKey: "pk_test_new_window_0002", orderId: "DTB-NEW", amount: PRICE, winId: WIN_ID });
+  const att = () => db.attempts.find((a) => a.order_id === OLD.orderId)!;
+  const tossSays = (extra: Row = {}) => (key: string) => json(tossPayment({ paymentKey: key, orderId: OLD.orderId, amount: PRICE }, extra));
+  const quiet = () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  };
+  beforeEach(() => {
+    quiet();
+    db.attempts = [reviewAttempt()];
+    // A confirm during a re-check would be a bug: make it loud.
+    toss.confirm = () => { throw new Error("confirm must not be called on a re-check"); };
+  });
+  const onlyOneLookup = () => {
+    expect(confirmCalls()).toHaveLength(0);
+    expect(tossCalls.map((c) => [c.method, c.url, c.headers["Idempotency-Key"] ?? null])).toEqual([["GET", LOOKUP_URL, null]]);
+  };
+  const checkedNow = () => expect(Date.parse(att().last_checked_at as string)).toBeGreaterThan(Date.parse(CHECKED));
+
+  for (const [entry, request] of [["same orderId replay", replay], ["new payment window for the same win", fresh]] as const) {
+    describe(entry, () => {
+      const call = () => POST(request());
+
+      it("1. lookup FIRST, no confirm / no Idempotency-Key; DONE + identity -> payment_finalize_paid -> paid", async () => {
+        toss.lookup = tossSays();
+        const res = await call();
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ ok: true, data: expect.objectContaining({ orderId: OLD.orderId, totalAmount: PRICE, orderName: WIN_PRODUCT }) });
+        onlyOneLookup();
+        expect(JSON.stringify(tossCalls)).not.toContain("pk_test_new_window_0002");
+        expect(db.rpcLog).not.toContain("payment_reserve_attempt");
+        expect(db.rpcLog).toContain("payment_finalize_paid");
+        expect(db.attempts).toHaveLength(1);
+        expect(att()).toMatchObject({ status: "paid", toss_idempotency_key: KEY, toss_status: "DONE", error_detail: null });
+        expect(db.orders).toEqual([expect.objectContaining({ order_id: OLD.orderId, payment_key: OLD.paymentKey, amount: PRICE, win_id: WIN_ID })]);
+      });
+
+      for (const [status, code] of [["EXPIRED", "PAYMENT_AUTH_EXPIRED"], ["ABORTED", "PAYMENT_DECLINED"]] as const) {
+        it(`7. lookup ${status} -> failed (${code}); the win is free for a new payment (and a reset) afterwards`, async () => {
+          toss.lookup = tossSays({ status });
+          expect(await (await call()).json()).toMatchObject({ ok: false, code });
+          onlyOneLookup();
+          expect(att()).toMatchObject({ status: "failed", toss_status: status, toss_idempotency_key: KEY, error_detail: `recheck|lookup_status:${status}` });
+          checkedNow();
+          expect(db.orders).toHaveLength(0);
+          expect(db.attempts.filter((a) => ["pending", "paid", "reconciliation_required"].includes(a.status as string))).toHaveLength(0);
+          toss.confirm = null; toss.lookup = null;
+          const next = await POST(confirmRequest({ paymentKey: "pk_test_after_fail_03", orderId: "DTB-AFTER", amount: PRICE, winId: WIN_ID }));
+          expect(next.status).toBe(200);
+          expect(db.orders).toEqual([expect.objectContaining({ order_id: "DTB-AFTER" })]);
+        });
+      }
+
+      for (const status of ["READY", "IN_PROGRESS", "WAITING_FOR_DEPOSIT", "CANCELED", "PARTIAL_CANCELED", "SOMETHING_NEW"]) {
+        it(`lookup ${status} -> stays reconciliation_required (toss_status recorded, last_checked_at updated), never paid`, async () => {
+          toss.lookup = tossSays({ status });
+          expect(await (await call()).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
+          onlyOneLookup();
+          expect(att()).toMatchObject({ status: "reconciliation_required", toss_status: status, error_detail: `recheck|lookup_status:${status}` });
+          checkedNow();
+          expect(db.orders).toHaveLength(0);
+        });
+      }
+
+      for (const [name, lookup, detail] of [
+        ["404 NOT_FOUND_PAYMENT", () => tossError(404, "NOT_FOUND_PAYMENT"), "recheck|lookup_http_404:NOT_FOUND_PAYMENT"],
+        ["403 API_KEY_ACCESS_DENIED (still blocked)", () => tossError(403, "API_KEY_ACCESS_DENIED"), "recheck|lookup_http_403:API_KEY_ACCESS_DENIED"],
+        ["timeout", () => { throw new DOMException("The operation was aborted.", "AbortError"); }, "recheck|lookup_timeout"],
+        ["network error", () => { throw new TypeError("fetch failed"); }, "recheck|lookup_network"],
+        ["unreadable body", () => new Response("<html>bad gateway</html>", { status: 200 }), "recheck|lookup_unreadable_body"],
+        ["500", () => tossError(500, "FAILED_INTERNAL_SYSTEM_PROCESSING"), "recheck|lookup_http_500:FAILED_INTERNAL_SYSTEM_PROCESSING"],
+      ] as [string, (k: string) => Response, string][]) {
+        it(`lookup ${name} -> stays reconciliation_required, last_checked_at updated, no order`, async () => {
+          toss.lookup = lookup;
+          expect(await (await call()).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
+          onlyOneLookup();
+          expect(att()).toMatchObject({ status: "reconciliation_required", toss_idempotency_key: KEY });
+          expect(att().error_detail).toMatch(new RegExp(`^${detail.replace(/[|]/g, "\\|")}`));
+          checkedNow();
+          expect(db.attempts).toHaveLength(1);
+          expect(db.orders).toHaveLength(0);
+        });
+      }
+
+      for (const [field, extra] of [["paymentKey", { paymentKey: "pk_test_someone_else" }], ["orderId", { orderId: "DTB-OTHER" }], ["totalAmount", { totalAmount: PRICE - 1 }], ["currency", { currency: "USD" }]] as const) {
+        for (const status of ["DONE", "EXPIRED", "ABORTED"]) {
+          it(`lookup ${status} with a different ${field} -> neither paid nor failed: stays reconciliation_required`, async () => {
+            toss.lookup = tossSays({ status, ...extra });
+            expect(await (await call()).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
+            expect(att()).toMatchObject({ status: "reconciliation_required", error_detail: expect.stringContaining(`lookup_identity_mismatch:${field}`) });
+            checkedNow();
+            expect(db.orders).toHaveLength(0);
+            expect(db.rpcLog).not.toContain("payment_finalize_paid");
+          });
+        }
+      }
+
+      it("lookup DONE with a method outside the payment window -> stays reconciliation_required", async () => {
+        toss.lookup = tossSays({ method: "가상계좌" });
+        expect(await (await call()).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
+        expect(att()).toMatchObject({ status: "reconciliation_required", error_detail: "recheck|lookup_unexpected_method" });
+      });
+
+      it("after the payment deadline: still re-checked (the attempt was reserved in time)", async () => {
+        db.serverNow = afterClaim(3 * 60 * 60);
+        db.reserveNow = afterClaim(3 * 60 * 60);
+        toss.lookup = tossSays();
+        expect((await call()).status).toBe(200);
+        expect(att().status).toBe("paid");
+      });
+
+      it("once paid, a further request never calls Toss again (paid replay / ALREADY_PAID)", async () => {
+        toss.lookup = tossSays();
+        expect((await call()).status).toBe(200);
+        tossCalls.length = 0;
+        tossFetch.mockClear();
+        const again = await call();
+        expect(again.status).toBe(request === replay ? 200 : 409);
+        expect(await again.json()).toMatchObject(request === replay ? { ok: true } : { ok: false, code: "PAYMENT_ALREADY_PAID" });
+        expect(tossFetch).not.toHaveBeenCalled();
+        expect(db.orders).toHaveLength(1);
+      });
+    });
+  }
+
+  for (const [name, extra] of [
+    ["toss_status DONE", { toss_status: "DONE" }],
+    ["approved_at set", { approved_at: "2026-11-04T16:11:00+09:00" }],
+    ["a stored DONE toss_response only", { toss_response: { paymentKey: "pk_test_old_payment_0001", orderId: "DTB-1793776241021-EAXXS", status: "DONE", totalAmount: PRICE, method: "카드" } }],
+  ] as [string, Row][]) {
+    it(`6. Toss reported DONE earlier (${name}): lookup EXPIRED / ABORTED never frees the win`, async () => {
+      for (const status of ["EXPIRED", "ABORTED"]) {
+        db.attempts = [reviewAttempt({ error_detail: "finalize:duplicate_win", ...extra })];
+        toss.lookup = tossSays({ status });
+        expect(await (await POST(replay())).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
+        expect(att()).toMatchObject({ status: "reconciliation_required", error_detail: `recheck_not_approved_after_done:recheck|lookup_status:${status}` });
+      }
+    });
+  }
+
+  it("a stored DONE Payment is kept when the re-check gets no Payment back (network error)", async () => {
+    const stored = { paymentKey: OLD.paymentKey, orderId: OLD.orderId, status: "DONE", totalAmount: PRICE, method: "카드" };
+    db.attempts = [reviewAttempt({ toss_status: "DONE", approved_at: "2026-11-04T16:11:00+09:00", toss_response: stored, error_detail: "finalize:duplicate_win" })];
+    toss.lookup = () => { throw new TypeError("fetch failed"); };
+    await POST(replay());
+    expect(att()).toMatchObject({ status: "reconciliation_required", toss_status: "DONE", toss_response: stored, error_detail: "recheck|lookup_network" });
+    checkedNow();
+  });
+
+  it("finalize RPC error on re-check -> stays reconciliation_required (503), no order", async () => {
+    db.finalizeError = { code: "40001", message: "could not serialize access" };
+    toss.lookup = tossSays();
+    const res = await POST(replay());
+    expect(res.status).toBe(503);
+    expect(att()).toMatchObject({ status: "reconciliation_required", toss_status: "DONE", error_detail: "finalize_error:could not serialize access" });
+    expect(db.orders).toHaveLength(0);
+  });
+
+  it("not re-checked (no Toss call at all): no Idempotency-Key (pre-M4-A attempt)", async () => {
+    for (const extra of [{ toss_idempotency_key: null }, { toss_idempotency_key: "" }]) {
+      db.attempts = [reviewAttempt(extra)];
+      expect(await (await POST(replay())).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
+      expect(await (await POST(fresh())).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
+      expect(att()).toMatchObject({ status: "reconciliation_required", last_checked_at: CHECKED });
+    }
+    expect(tossFetch).not.toHaveBeenCalled();
+    expect(db.attempts).toHaveLength(1);
+  });
+
+  it("not re-checked when the attempt no longer matches its win (price / winner / missing) — no Toss call", async () => {
+    db.wins = [baseWin({ winning_price: PRICE + 1000 })];
+    expect(await (await POST(replay())).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
+    db.wins = [baseWin({ winner_id: "someone-else" })];
+    expect(await (await POST(replay())).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
+    db.wins = [];
+    expect(await (await POST(replay())).json()).toMatchObject({ ok: false, code: "PAYMENT_NEEDS_REVIEW" });
+    expect(tossFetch).not.toHaveBeenCalled();
+    expect(att()).toMatchObject({ status: "reconciliation_required", last_checked_at: CHECKED });
+  });
+
+  it("another user cannot trigger the re-check (same orderId -> 409; their own request for the win -> 403)", async () => {
+    db.user = { id: "user-intruder", user_metadata: { ...SHIPPING } };
+    expect((await POST(replay())).status).toBe(409);
+    expect((await POST(fresh())).status).toBe(403);
+    expect(tossFetch).not.toHaveBeenCalled();
+    expect(att()).toMatchObject({ status: "reconciliation_required", last_checked_at: CHECKED });
+  });
+
+  it("a different amount in the replay is not the same request (409), no Toss call", async () => {
+    expect((await POST(confirmRequest({ ...OLD, amount: PRICE - 1, winId: WIN_ID }))).status).toBe(409);
+    expect(tossFetch).not.toHaveBeenCalled();
+  });
+
+  it("concurrent re-checks: lookups only, one order, attempt paid", async () => {
+    toss.lookup = async (key) => { await new Promise((r) => setTimeout(r, 20)); return tossSays()(key); };
+    const results = await Promise.all([POST(replay()), POST(fresh()), POST(replay())]);
+    expect(results.every((r) => r.status === 200)).toBe(true);
+    expect(confirmCalls()).toHaveLength(0);
+    expect(db.orders).toHaveLength(1);
+    expect(db.attempts).toHaveLength(1);
+    expect(att().status).toBe("paid");
+  });
+
+  it("the first approval flow is unchanged: confirm (with its Idempotency-Key) first, lookup only when ambiguous", async () => {
+    db.attempts = [];
+    toss.confirm = () => tossError(500, "FAILED_INTERNAL_SYSTEM_PROCESSING");
+    toss.lookup = (key) => json(tossPayment({ paymentKey: key, orderId: "DTB-FIRST", amount: PRICE }));
+    const res = await POST(confirmRequest({ paymentKey: "pk_test_first_0004", orderId: "DTB-FIRST", amount: PRICE, winId: WIN_ID }));
+    expect(res.status).toBe(200);
+    expect(tossCalls.map((c) => [c.method, c.url.replace("https://api.tosspayments.com", ""), typeof c.headers["Idempotency-Key"]])).toEqual([
+      ["POST", "/v1/payments/confirm", "string"], ["GET", "/v1/payments/pk_test_first_0004", "undefined"],
+    ]);
+  });
+
+  it("logs never carry the full paymentKey or a key value", async () => {
+    const warn = vi.mocked(console.warn);
+    const error = vi.mocked(console.error);
+    toss.lookup = () => { throw new TypeError("fetch failed"); };
+    await POST(fresh());
+    const logged = JSON.stringify([...warn.mock.calls, ...error.mock.calls]);
+    expect(logged).not.toContain(OLD.paymentKey);
+    expect(logged).not.toContain(KEY);
+    expect(logged).not.toContain(KEYS.testSecret);
   });
 });
