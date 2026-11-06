@@ -126,11 +126,12 @@ for (const env of ["pre1030", "post1030"] as const) {
       if (r !== "ok") throw new Error(`M4-A: ${r}`);
     }, 180_000);
 
-    it("fresh replay: 34 migrations, M4-A last, no explicit BEGIN/COMMIT; bodies pinned; M1 / M2 / M3 bodies untouched", async () => {
+    it("fresh replay: 34 migrations up to M4-A (M4-B1 follows), no explicit BEGIN/COMMIT; bodies pinned; M1 / M2 / M3 bodies untouched", async () => {
       expect(BEFORE_M4).toHaveLength(33);
       expect(BEFORE_M4.at(-1)).toBe("20261030100000_scheduled_start_join_window.sql");
-      expect(FILES).toHaveLength(34);
-      expect(FILES.at(-1)).toBe(M4_FILE);
+      expect(FILES).toHaveLength(35);
+      expect(FILES.at(-2)).toBe(M4_FILE);
+      expect(FILES.at(-1)).toBe("20261104100000_payment_cancellations.sql");
       expect(M4).not.toMatch(/^\s*(begin|commit)\s*;/im);
       expect(M4).toMatch(/^set local lock_timeout = '5s';$/m);
       for (const k of ["reserve", "finalize", "guard"] as const) {

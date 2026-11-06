@@ -141,12 +141,12 @@ for (const env of ["pre1030", "post1030"] as const) {
       if (r !== "ok") throw new Error(`M3: ${r}`);
     }, 180_000);
 
-    it("36. fresh replay: M3 is the 33rd migration (M4-A follows), no explicit BEGIN/COMMIT; pre/post bodies as pinned", async () => {
+    it("36. fresh replay: M3 is the 33rd migration (M4-A and M4-B1 follow), no explicit BEGIN/COMMIT; pre/post bodies as pinned", async () => {
       expect(BEFORE_M3).toHaveLength(32);
       expect(BEFORE_M3.at(-1)).toBe("20261029100000_reset_game_uses_auction_wins.sql");
-      expect(FILES).toHaveLength(34);
-      expect(FILES.at(-2)).toBe(M3_FILE);
-      expect(FILES.at(-1)).toBe("20261030200000_payment_confirm_safety.sql");
+      expect(FILES).toHaveLength(35);
+      expect(FILES.at(-3)).toBe(M3_FILE);
+      expect(FILES.slice(-2)).toEqual(["20261030200000_payment_confirm_safety.sql", "20261104100000_payment_cancellations.sql"]);
       expect(M3).not.toMatch(/^\s*(begin|commit)\s*;/im);
       for (const k of ["join", "start", "force"] as const) {
         expect(await md5(base, SIGS[k])).toBe(PRE_MD5[k]);

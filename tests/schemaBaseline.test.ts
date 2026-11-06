@@ -53,6 +53,8 @@ const TABLE_GRANTS: Record<string, Record<string, string>> = {
   participant_verifications: { anon: ALL, authenticated: ALL, service_role: ALL },
   participants: { anon: `DELETE,${READ}`, authenticated: `DELETE,${READ}`, service_role: ALL },
   payment_attempts: { service_role: ALL },
+  // M4-B1: read-only for service_role; every write is an RPC.
+  payment_cancellations: { service_role: "SELECT" },
   profiles: { anon: ALL, authenticated: ALL, service_role: ALL },
   service_health: { anon: ALL, authenticated: ALL, service_role: ALL },
 };
@@ -69,7 +71,13 @@ const FUNCTION_EXECUTE: Record<string, string[]> = {
   "cleanup_stale_participants()": ALL_ROLES,
   "join_game(text,text)": ALL_ROLES,
   "join_game_participant(uuid,text,text,uuid)": ["service_role"],
+  "orders_guard_refunded_at()": [],
   "payment_attempts_guard_transition()": [],
+  "payment_cancel_finalize(uuid,text,text,timestamp with time zone,jsonb)": ["service_role"],
+  "payment_cancel_record_post(uuid,text,integer,text)": ["service_role"],
+  "payment_cancel_mark(uuid,text,text,text,jsonb,text)": ["service_role"],
+  "payment_cancel_reserve(text,text,uuid)": ["service_role"],
+  "payment_cancellations_guard_transition()": [],
   "payment_finalize_paid(text,jsonb,text,timestamp with time zone)": ["service_role"],
   "payment_reserve_attempt(text,uuid,uuid,integer,text,text,text,text,text,text)": ["service_role"],
   "pause_game(text)": ["service_role"],
@@ -157,16 +165,17 @@ const bodyMd5 = async (db: PGlite, name: string) =>
     where n.nspname = 'public' and p.proname = '${name}'`)).map((r) => r.h);
 
 describe("migration chain order", () => {
-  it("starts with the schema baseline; the explicit grants are followed only by auction_wins, M2, M3 and M4-A (34 files)", () => {
-    expect(FILES).toHaveLength(34);
+  it("starts with the schema baseline; the explicit grants are followed only by auction_wins, M2, M3, M4-A and M4-B1 (35 files)", () => {
+    expect(FILES).toHaveLength(35);
     expect(FILES[0]).toBe("20260901000000_schema_baseline.sql");
     expect(FILES[1]).toBe("20260902120000_drop_zones.sql");
-    expect(FILES.at(-6)).toBe("20261027100000_drop_orphan_calc_drop_price.sql");
-    expect(FILES.at(-5)).toBe("20261027110000_explicit_data_api_grants.sql");
-    expect(FILES.at(-4)).toBe("20261028150000_auction_wins.sql");
-    expect(FILES.at(-3)).toBe("20261029100000_reset_game_uses_auction_wins.sql");
-    expect(FILES.at(-2)).toBe("20261030100000_scheduled_start_join_window.sql");
-    expect(FILES.at(-1)).toBe("20261030200000_payment_confirm_safety.sql");
+    expect(FILES.at(-7)).toBe("20261027100000_drop_orphan_calc_drop_price.sql");
+    expect(FILES.at(-6)).toBe("20261027110000_explicit_data_api_grants.sql");
+    expect(FILES.at(-5)).toBe("20261028150000_auction_wins.sql");
+    expect(FILES.at(-4)).toBe("20261029100000_reset_game_uses_auction_wins.sql");
+    expect(FILES.at(-3)).toBe("20261030100000_scheduled_start_join_window.sql");
+    expect(FILES.at(-2)).toBe("20261030200000_payment_confirm_safety.sql");
+    expect(FILES.at(-1)).toBe("20261104100000_payment_cancellations.sql");
   });
 
   it("the baseline grants nothing (privileges live in the explicit grants migration)", () => {
@@ -211,7 +220,7 @@ for (const env of ["pre1030", "post1030"] as const) {
       expect(failures).toEqual([]);
     });
 
-    it("has Production's 12 public tables plus auction_wins, all with RLS", async () => {
+    it("has Production's 12 public tables plus auction_wins and payment_cancellations, all with RLS", async () => {
       const t = await rows<{ relname: string; rls: boolean }>(db, `
         select c.relname, c.relrowsecurity rls from pg_class c join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm', 'S') order by 1`);
@@ -219,7 +228,7 @@ for (const env of ["pre1030", "post1030"] as const) {
       expect(t.every((r) => r.rls)).toBe(true);
     });
 
-    it("has Production's 16 functions plus M3's admin_update_schedule and M4-A's three, with their EXECUTE grantees", async () => {
+    it("has Production's 16 functions plus M3's admin_update_schedule, M4-A's three and M4-B1's five, with their EXECUTE grantees", async () => {
       const f = Object.fromEntries((await functionExecute(db)).map((r) => [r.sig, [...r.grantees].sort()]));
       expect(f).toEqual(FUNCTION_EXECUTE);
     });
