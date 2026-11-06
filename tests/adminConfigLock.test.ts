@@ -26,6 +26,7 @@ vi.mock("react", async (orig) => {
     useState: <T,>(init: T | (() => T)) => [typeof init === "function" ? (init as () => T)() : init, () => {}],
     useEffect: () => {},
     useCallback: <T,>(fn: T) => fn,
+    useRef: <T,>(v: T) => ({ current: v }),
   };
 });
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, replace: () => {} }) }));

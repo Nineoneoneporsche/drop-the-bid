@@ -7,6 +7,7 @@ import { useGame, formatKRW, DEFAULT_CONFIG, validateDropZones, type OperatorMes
 import { getServerNow } from "../../lib/serverClock";
 import { WINNER_PAYMENT_WINDOW_MINUTES } from "../../lib/paymentWindow";
 import { MAX_JOIN_LEAD_MINUTES, MIN_JOIN_LEAD_MINUTES, isValidJoinLeadMinutes, joinOpensAtMs } from "../../lib/auctionSchedule";
+import AdminPaymentsPanel from "../../components/AdminPaymentsPanel";
 
 const PHASE_LABEL: Record<string, string> = {
   home: "대기중 (waiting)",
@@ -435,6 +436,8 @@ export default function AdminPage() {
         </div>
 
         <MonitoringPanel />
+
+        <AdminPaymentsPanel />
 
         {/* Form */}
         <div className="space-y-5">

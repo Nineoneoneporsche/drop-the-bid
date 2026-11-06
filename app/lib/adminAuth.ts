@@ -76,8 +76,12 @@ export async function revokeAdminSessionByToken(token: string): Promise<void> {
     .is("revoked_at", null);
 }
 
-export async function verifyAdminSessionToken(token: string | undefined | null): Promise<boolean> {
-  if (!token) return false;
+// The admin_sessions.id of a valid (existing, not revoked, not expired)
+// session for this token, or null. Server-only: the id is used to attribute
+// actions (payment_cancellations.requested_by_session) and is never sent
+// to the browser.
+export async function adminSessionIdForToken(token: string | undefined | null): Promise<string | null> {
+  if (!token) return null;
   const tokenHash = sha256Hex(token);
 
   const { data, error } = await getSupabaseAdmin()
@@ -86,17 +90,26 @@ export async function verifyAdminSessionToken(token: string | undefined | null):
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
-  if (error || !data) return false;
-  if (data.revoked_at) return false;
-  if (new Date(data.expires_at as string).getTime() <= Date.now()) return false;
-  return true;
+  if (error || !data) return null;
+  if (data.revoked_at) return null;
+  if (new Date(data.expires_at as string).getTime() <= Date.now()) return null;
+  return typeof data.id === "string" && data.id ? data.id : null;
+}
+
+export async function verifyAdminSessionToken(token: string | undefined | null): Promise<boolean> {
+  return (await adminSessionIdForToken(token)) !== null;
 }
 
 // Route-handler convenience: read the session cookie off a NextRequest and
 // verify it in one call.
 export async function requireAdminSession(req: NextRequest): Promise<boolean> {
+  return (await requireAdminSessionId(req)) !== null;
+}
+
+// Same check, returning the valid session's id (null = not an admin).
+export async function requireAdminSessionId(req: NextRequest): Promise<string | null> {
   const token = req.cookies.get(ADMIN_SESSION_COOKIE)?.value;
-  return verifyAdminSessionToken(token);
+  return adminSessionIdForToken(token);
 }
 
 // ── brute-force gate ─────────────────────────────────────────────────────
