@@ -5,16 +5,16 @@ Status owner: update at every meaningful development session
 
 ---
 
-## 0. Repository checkpoint
+## 0. 저장소 체크포인트
 
-- GitHub repository: `Nineoneoneporsche/drop-the-bid`
-- Remote default branch: `main`
-- Remote `main` HEAD verified on 2026-11-06: `0be30ad9d408d348dc19c1462a98470d9b19a298`
-- HEAD message: `Use scheduled auction start for participation`
-- Continuity setup branch: `chore/dtb-context-continuity`
-- GitHub repository visibility observed on 2026-11-06: `public`
+- GitHub 저장소: `Nineoneoneporsche/drop-the-bid`
+- 기본 브랜치: `main`
+- 연속성 시스템은 코드 커밋 `0be30ad9d408d348dc19c1462a98470d9b19a298`을 기준으로 처음 구축했다.
+- 연속성 문서는 커밋 `edd567054399a63daccf320dd407acac3b19353a`을 통해 `main`에 최초 반영되었다.
+- 검토용 브랜치 `chore/dtb-context-continuity`는 감사 추적용으로 유지한다.
+- 2026-11-06 확인 당시 GitHub 저장소 공개 범위는 `public`이었다.
 
-Important: a developer's local working tree can be ahead of GitHub. Before any change, compare local HEAD/status with this checkpoint rather than assuming remote `main` is the newest work.
+중요: **이 문서에 적힌 SHA를 현재 HEAD로 간주하지 않는다.** 새 개발 세션을 시작할 때마다 실제 브랜치/HEAD/status를 먼저 확인한다. 로컬 작업 트리는 GitHub보다 앞서 있을 수도 있다.
 
 ---
 
