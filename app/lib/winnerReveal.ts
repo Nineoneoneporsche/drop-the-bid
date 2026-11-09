@@ -16,6 +16,12 @@ export function nextSawLiveAuction(sawLive: boolean, observed: Observed): boolea
   return sawLive || (observed.isLoaded && (observed.phase === "strategy" || observed.phase === "game"));
 }
 
+// The winner video (public/winner-animation.mp4) shows the mascot striking a
+// gavel — auction imagery, off while the site is presented as a price-drop
+// sale (PG review). With it off, the live sequence is blackout -> LED price
+// count-down. Replace the file with gavel-free art, then set this to true.
+export const WINNER_VIDEO_ENABLED = false;
+
 export type WinnerRevealMode = "sequence" | "result";
 
 export function winnerRevealMode(sawLiveAuction: boolean): WinnerRevealMode {

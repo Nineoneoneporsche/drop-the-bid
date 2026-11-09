@@ -55,3 +55,13 @@ describe("winner reveal: live vs re-entry", () => {
     expect(nextSawLiveAuction(true, { isLoaded: false, phase: "home" })).toBe(true);
   });
 });
+
+describe("winner video switch", () => {
+  it("is off while the gavel animation is in place, and /strategy honours it", async () => {
+    const { WINNER_VIDEO_ENABLED } = await import("../app/lib/winnerReveal");
+    expect(WINNER_VIDEO_ENABLED).toBe(false);
+    const src = (await import("node:fs")).readFileSync(new URL("../app/strategy/page.tsx", import.meta.url), "utf8");
+    expect(src).toContain("{WINNER_VIDEO_ENABLED && <video");
+    expect(src).toContain("if (!WINNER_VIDEO_ENABLED) {");
+  });
+});

@@ -16,7 +16,7 @@ import RightActionMenu from "../components/RightActionMenu";
 import HomeButton from "../components/HomeButton";
 import { getServerNow } from "../lib/serverClock";
 import { formatCountdown, joinWindowRemaining, parseScheduledStart, secondsUntil, showLive } from "../lib/auctionSchedule";
-import { nextSawLiveAuction, winnerRevealMode } from "../lib/winnerReveal";
+import { nextSawLiveAuction, WINNER_VIDEO_ENABLED, winnerRevealMode } from "../lib/winnerReveal";
 import StageBackdrop from "../components/StageBackdrop";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -496,6 +496,13 @@ export default function StrategyPage() {
     }
 
     setWinnerStage("blackout-in");
+    if (!WINNER_VIDEO_ENABLED) {
+      setTimeout(() => {
+        setWinnerStage("blackout-out");
+        setTimeout(() => setWinnerStage("reveal"), 300);
+      }, 1200);
+      return;
+    }
     setTimeout(() => {
       setWinnerStage("video");
       const v = winnerVideoRef.current;
@@ -740,7 +747,7 @@ export default function StrategyPage() {
       )}
       {/* Mounted (not conditionally rendered) from the start of the game phase so the
           browser has the whole bidding window to buffer it — no load stall once winner fires. */}
-      <video
+      {WINNER_VIDEO_ENABLED && <video
         ref={winnerVideoRef}
         preload="auto"
         playsInline
@@ -762,7 +769,7 @@ export default function StrategyPage() {
         }}
       >
         <source src="/winner-animation.mp4" type="video/mp4" />
-      </video>
+      </video>}
 
       {winnerStage === "video" && showSkipButton && (
         <button
