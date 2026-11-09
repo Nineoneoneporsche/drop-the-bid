@@ -1,6 +1,6 @@
 # DTB Current State
 
-Last updated: 2026-11-06
+Last updated: 2026-11-09
 Status owner: update at every meaningful development session
 
 ---
@@ -18,41 +18,97 @@ Status owner: update at every meaningful development session
 
 ---
 
-## A. Current top-priority issue
+## A. Login failure / Supabase Auth redirect issue — CLOSED
 
-### Login failure / Supabase Auth redirect issue — OPEN
+상태: `CLOSED` (2026-11-06 해결)
 
-현재 로그인 문제는 **해결되지 않았다**.
+증상:
 
-확인 완료:
+- Production / Preview에서 소셜 로그인 후 `http://localhost:3000/#access_token=...`으로 이동
 
-- 실제 DTB Supabase project ref와 local app ref가 일치하는 것으로 확인됨
-- Management API READ-only 조회 성공
-- `site_url = https://dropthebid.com`
-- Production `/auth/callback` allow-list 존재
-- Production `/reset-password` allow-list 존재
-- Vercel Preview callback/reset entries 존재
-- localhost allow-list entry 1개 존재
-- `linked ref == app(.env.local) ref: true`
+해결 내용:
 
-따라서 현재 배제된 가설:
+- Supabase Site URL을 잠시 다른 값으로 변경
+- 다시 `https://dropthebid.com`으로 원복
+- 몇 분 뒤 로그인 재테스트
+- 정상 동작 확인 (runtime probe에서 Production/Preview callback, reset-password 모두 정상 redirect, 미허용 URL은 `https://dropthebid.com`으로 fallback)
+- 앱 코드 변경 없음
 
-- ❌ 엉뚱한 Supabase 프로젝트를 보고 있어서 생긴 문제
-- ❌ Supabase Site URL 자체가 localhost로 설정돼 있어서 생긴 문제
+원인:
 
-아직 확인할 것:
+- 근본 원인 확정 아님
+- Supabase Dashboard / Management API에는 정상 설정이 보였는데 실제 Auth runtime redirect가 이전 상태(Site URL `localhost:3000`, allow-list 미적용)처럼 동작했던 정황
+- 따라서 Supabase Auth stale config 또는 설정 propagation 지연 가능성이 높음
+- 앱 코드(redirectTo = `window.location.origin` + `/auth/callback`), Production bundle의 Supabase project, Google/Kakao provider 단계는 모두 정상으로 확인됨
 
-1. 실제 브라우저 로그인 순간 `/auth/v1/authorize` 요청이 어느 project ref로 가는지
-2. 실제 `redirect_to` 값
-3. Production Vercel bundle이 현재 env/config를 실제로 사용하는지
-4. 최근 login/auth 관련 code diff에서 regression이 생겼는지
-5. Google/Kakao provider 설정과 앱 callback 처리 사이의 regression 여부
+재발 시 무작정 Auth 설정이나 앱 코드를 수정하기 전에:
 
-**주의:** Auth 설정을 추측으로 바꾸지 않는다.
+1. 현재 Site URL / redirect allow-list 확인
+2. 필요 시 Site URL 재저장 또는 값 변경→원복
+3. 수 분 기다린 뒤 재테스트
+
+순서로 확인한다. 실제 runtime 동작은 로그인 없이 READ-only로 확인할 수 있다:
+`GET <SUPABASE_URL>/auth/v1/verify?type=signup&token=<invalid>&redirect_to=<url>` → 303 Location이 `<url>`이면 허용, 아니면 Site URL로 fallback.
+
+후속 정리(긴급 아님):
+
+- Redirect URLs에서 `http://localhost:3000/auth/callback` 제거
+- 사용하지 않는 옛 Preview URL(`drop-the-bg837xet0…`, `drop-the-h2rl5y7mo…`) 제거
+- `www.dropthebid.com` DNS 미연결 (별개 이슈)
 
 ---
 
-## B. Recently confirmed platform state
+## B. Current development branch state
+
+- branch: `preview/m4a-payment-safety`
+- HEAD: `ed9c842` (Merge remote-tracking branch 'origin/main' into preview/m4a-payment-safety)
+- origin/main(`8754020`) merge 완료
+- merge 충돌 없음
+- working tree clean
+
+### M4 commits in this branch
+
+- `35701fb` Harden Toss payment confirmation
+- `40a5a13` Fix reconciliation payment recheck flow
+- `9e9116a` Add payment reconciliation recheck flow
+- `3a74bdf` Add durable payment cancellation ledger
+- `f9c412e` Add admin payment refund management
+
+### Verification (2026-11-09, at `ed9c842`)
+
+- `npm test`: **31 files / 1071 tests PASS**
+- `npm run build`: **PASS**
+- build output: **38 pages**
+- 오류/경고 없음
+- 검증 후 working tree clean
+
+### Production DB state
+
+이미 적용 완료:
+
+- `20261030200000_payment_confirm_safety` — M4-A
+- `20261104100000_payment_cancellations` — M4-B1
+
+마지막 확인된 migration history 최신값: `20261104100000`
+
+중요:
+
+- Production DB는 M4 DB 변경까지 반영되어 있음
+- Production app의 main은 아직 M4 app code가 반영되지 않은 상태
+- 따라서 Preview smoke 검증 이후 app code와 Production DB 상태를 맞추는 것이 중요한 launch-critical 작업임
+- `supabase db push`, `migration repair`, SQL Editor 실행은 별도 승인 없이 하지 않는다
+
+### Git 주의사항
+
+- local main: `35701fb`
+- origin/main: `8754020`
+- 서로 다름
+- **local main에서 push 금지**
+- 이후 push는 반드시 현재 Preview branch를 명시적으로 대상으로 한다: `git push origin HEAD:preview/m4a-payment-safety`
+
+---
+
+## C. Recently confirmed platform state
 
 - Production domain: `https://dropthebid.com`
 - Supabase ref: `ivnoxbsqzeodnoouqped`
@@ -61,7 +117,7 @@ Status owner: update at every meaningful development session
 
 ---
 
-## C. Remote-main development state worth preserving
+## D. Remote-main development state worth preserving
 
 Recent verified remote commits include:
 
@@ -82,7 +138,7 @@ The latest remote main includes a scheduled-start participation model with a con
 
 ---
 
-## D. Historical auth/entry changes worth checking during regression analysis
+## E. Historical auth/entry changes
 
 Past work known from earlier development sessions includes:
 
@@ -95,11 +151,11 @@ Past work known from earlier development sessions includes:
 - Vercel Production/Preview env omission + redeploy history
 - Realtime publication / resynchronization issues
 
-These historical references must be validated against current Git history/code before being used as an explanation for today's login regression.
+These historical references must be validated against current Git history/code before being used as an explanation for any future regression.
 
 ---
 
-## E. DB / migration / security work
+## F. DB / migration / security work
 
 Known project principles/state:
 
@@ -109,15 +165,13 @@ Known project principles/state:
 - reset/payment logic now depends on durable win identity and payment-safety invariants.
 - `service_role` remains server-only.
 
-While the login incident is open, do not change unrelated Production migrations or grants merely to troubleshoot Auth.
-
 ---
 
-## F. Payment
+## G. Payment
 
 Historical verified test flow includes Toss approval → server confirmation → order creation → success page.
 
-Current remote main includes multiple payment hardening commits (payment window enforcement, shipping snapshot, double-payment prevention, stale-session recovery, durable win IDs).
+Current remote main includes multiple payment hardening commits (payment window enforcement, shipping snapshot, double-payment prevention, stale-session recovery, durable win IDs). The M4 branch (section B) adds confirm safety, reconciliation recheck, the cancellation ledger and admin full refund.
 
 Launch-critical checks can still include:
 
@@ -126,11 +180,9 @@ Launch-critical checks can still include:
 - Production smoke / cancel path
 - exact migration deployment status
 
-**Do not move the active debugging focus away from the login incident until it is resolved or explicitly deprioritized.**
-
 ---
 
-## G. Security reminders
+## H. Security reminders
 
 - `service_role` is server-only.
 - Never store secrets in continuity docs.
@@ -141,27 +193,24 @@ Launch-critical checks can still include:
 
 ---
 
-## H. Deferred / follow-up reminders
+## I. Deferred / follow-up reminders
 
 - Distinguish the now-implemented configurable scheduled join lead from any future UX refinements to entry scheduling.
 - Revisit any paused GRANT/baseline work only after confirming the exact Production migration state; do not infer it from chat memory.
 - Before live launch, re-check Toss TEST temporary access policy and live-key access policy.
+- M4 deferred: customer MyPage refund display, cancel POST resend, partial refund, webhook.
 
 ---
 
-## I. Next action
+## J. Next action
 
-Current next action is **login regression root-cause tracing**.
+Current next action is **M4 Preview smoke → Production app/DB alignment**.
 
 Recommended order:
 
-1. inspect current auth/login code path and recent auth-related diffs
-2. capture the actual Production OAuth `/auth/v1/authorize` request project ref + `redirect_to`
-3. compare Production Vercel env scope with the code path actually used at build/runtime
-4. inspect callback/session exchange and middleware/redirect guards
-5. identify the regression before changing settings
-6. apply the smallest fix
-7. Preview smoke
-8. Production deploy
-9. Production login smoke
-10. update this file and create a session checkpoint
+1. push `preview/m4a-payment-safety` and confirm the Vercel Preview build
+2. Preview smoke: win → payment → confirm → admin full refund (reason + 2-step confirm) → refund done; pending / recheck paths
+3. Production `supabase migration list --linked` (READ-only) to reconfirm history
+4. merge to main and Production deploy only with explicit approval
+5. Production smoke (login, payment, refund)
+6. update this file and create a session checkpoint

@@ -55,3 +55,22 @@ Known:
 
 Therefore:
 설정 변경보다 regression tracing을 우선한다.
+
+---
+
+## D-004 — Login incident recovery record
+Date: 2026-11-09 (incident resolved 2026-11-06)
+
+Supersedes: D-003의 "설정 변경보다 regression tracing을 우선한다"는 이번 장애에 한해 종료됨 (regression은 발견되지 않음).
+
+Record:
+- Supabase Site URL은 설정상 정상으로 보였지만 OAuth redirect가 비정상 동작
+- Site URL을 잠시 다른 값으로 변경 후 원래 production URL로 원복
+- 수 분 뒤 Auth 정상화
+- 코드 변경 없음
+- 근본 원인은 확정하지 않음
+- 향후 동일 증상 발생 시 stale Auth configuration / propagation 가능성을 우선 점검
+- 단, 이것을 모든 로그인 장애의 일반 원인으로 간주하지 말 것
+
+Rule:
+- Dashboard에 보이는 값과 실제 runtime 동작이 다를 수 있으므로 Auth redirect 장애 시 실제 runtime behavior를 별도로 검증한다.
