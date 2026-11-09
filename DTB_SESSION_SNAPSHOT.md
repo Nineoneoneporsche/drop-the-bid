@@ -1,35 +1,28 @@
 # DTB Session Snapshot
 
-Generated: 2026-11-09 15:32:45 +0900
+Generated: 2026-11-09 16:02:52 +0900
 
 ## Git
 
 ```text
 branch: preview/pg-readiness
-head: 8885f66f05761ae685a62e1e0942ac8df82d5f59
+head: 80399c26e81107e386d70c597c0a6959b26254e3
 
 [status]
  M DTB_CURRENT_STATE.md
  M DTB_SESSION_SNAPSHOT.md
- M "public/\354\204\244\353\252\2051.png"
- M "public/\354\204\244\353\252\2052.png"
- M "public/\354\204\244\353\252\2053.png"
- M "public/\354\204\244\353\252\2054.png"
- M "public/\354\204\244\353\252\2055.png"
- M "public/\354\204\244\353\252\2056.png"
- M "public/\354\204\244\353\252\2057.png"
 
 [recent commits]
-8885f66 (HEAD -> preview/pg-readiness, origin/preview/pg-readiness) Replace auction artwork with drop-themed stage art
+80399c2 (HEAD -> preview/pg-readiness, origin/preview/pg-readiness, origin/main, origin/HEAD) Turn off the gavel winner video; reveal goes blackout -> price count-down
+6d26e34 Show company and support email in mypage app info
+e1d0e07 Regenerate how-to slides with drop/purchase screens
+8885f66 Replace auction artwork with drop-themed stage art
 fff14f7 Prepare site for PG review: drop/purchase wording, legal pages, business footer
 8741083 (origin/preview/m4a-payment-safety, preview/m4a-payment-safety) docs: M4 결제 안전성 작업 상태 체크포인트
 ed9c842 Merge remote-tracking branch 'origin/main' into preview/m4a-payment-safety
-8754020 (origin/main, origin/HEAD) 연속성 시스템 병합 후 저장소 체크포인트 문구 정리
+8754020 연속성 시스템 병합 후 저장소 체크포인트 문구 정리
 edd5670 (origin/chore/dtb-context-continuity) Add DTB development continuity context
 f9c412e Add admin payment refund management
-3a74bdf Add durable payment cancellation ledger
-9e9116a Add payment reconciliation recheck flow
-40a5a13 Fix reconciliation payment recheck flow
 ```
 
 ## Changed files vs HEAD
@@ -37,13 +30,6 @@ f9c412e Add admin payment refund management
 ```text
 M	DTB_CURRENT_STATE.md
 M	DTB_SESSION_SNAPSHOT.md
-M	"public/\354\204\244\353\252\2051.png"
-M	"public/\354\204\244\353\252\2052.png"
-M	"public/\354\204\244\353\252\2053.png"
-M	"public/\354\204\244\353\252\2054.png"
-M	"public/\354\204\244\353\252\2055.png"
-M	"public/\354\204\244\353\252\2056.png"
-M	"public/\354\204\244\353\252\2057.png"
 ```
 
 ## Environment variable names only

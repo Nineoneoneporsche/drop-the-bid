@@ -108,9 +108,20 @@ Status owner: update at every meaningful development session
 
 ---
 
+## B0. Production 배포 — 2026-11-09 (main = `80399c2`)
+
+- origin/main을 `8754020` → `80399c2`로 fast-forward (M4 결제 안전성 + PG 심사 대비 작업 전체). Vercel Production 배포 성공
+- 배포 전 확인: Production migration history 35/35, pending 0 (DB 작업 없음)
+- 배포 후 READ-only 확인: 주요 페이지/정책 페이지 200, 예전 경매 이미지 404, 관리자 API 비로그인 401, 번들에 live_sk/test_sk 없음, 경매/낙찰 문구 0, Auth redirect 정상(dropthebid.com/auth/callback)
+- **Toss live 키 없음 (Toss 신청 내역 없음)**: M4 fail-closed 정책상 Production 결제창은 열리지 않음 (B안). live 계약 후 Production scope에만 live 키 설정 → 재배포
+- 롤백: Vercel Deployments에서 직전 Production 배포(`8754020`)로 Instant Rollback. Redeploy 금지
+- local `main`은 여전히 `35701fb` (origin/main과 다름) — local main에서 push 금지
+
+---
+
 ## B2. PG 심사 대비 작업 — branch `preview/pg-readiness` (2026-11-09)
 
-- M4 tip(`8741083`)에서 분기. 아직 main 미반영, Production 미반영
+- M4 tip(`8741083`)에서 분기. 2026-11-09 main/Production 반영 완료 (B0 참고)
 - 사용자 화면 용어: 역경매 → 실시간 가격하락 딜, 경매 → 드랍, 낙찰 → 구매 (관리자 화면·코드 주석은 유지). 마케팅 표현은 추후 재검토
 - 공개 페이지 `/terms`, `/privacy`, `/refund` 추가 (본문: `app/lib/legal.ts`, 시행일 2026-11-09)
 - 사업자 정보 footer (`app/lib/businessInfo.ts` 한 곳에서 관리): 홈, 마이페이지, 회원가입, 정책 페이지
