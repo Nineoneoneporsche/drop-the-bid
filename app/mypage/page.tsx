@@ -10,6 +10,7 @@ import PendingWinBanner from "../components/PendingWinBanner";
 import PaymentReviewList from "../components/PaymentReviewList";
 import { clearPendingConfirm, readPendingConfirm, resumeConfirmUrl, type PendingConfirm } from "../lib/pendingConfirm";
 import { supabase } from "../lib/supabase";
+import { APP_VERSION, BUSINESS_INFO } from "../lib/businessInfo";
 import { buildOrderStats, type DisplayOrder, type OrderRow, type WinRow } from "../lib/orderStats";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_FIELD_LABELS } from "../lib/shipping";
 
@@ -253,7 +254,7 @@ function LoggedOut() {
 
         {/* App info */}
         <div className="mt-8 space-y-1.5">
-          {[["버전", "0.4.0"], ["제작", "Drop The Bid Team"], ["문의", "hello@dtb.kr"]].map(([k, v]) => (
+          {[["버전", APP_VERSION], ["제작", BUSINESS_INFO.companyName], ["문의", BUSINESS_INFO.customerEmail ?? ""]].map(([k, v]) => (
             <div key={k} className="flex justify-between">
               <span className="text-xs uppercase tracking-wider text-white/50 font-medium">{k}</span>
               <span className="text-xs text-white/65">{v}</span>
@@ -917,7 +918,7 @@ export default function MyPage() {
 
         {/* App info */}
         <div ref={setRef(8)} className="card-rise mb-6 space-y-1.5" style={{ transitionDelay: "340ms" }}>
-          {[["버전", "0.4.0"], ["제작", "Drop The Bid Team"], ["문의", "hello@dtb.kr"]].map(([k, v]) => (
+          {[["버전", APP_VERSION], ["제작", BUSINESS_INFO.companyName], ["문의", BUSINESS_INFO.customerEmail ?? ""]].map(([k, v]) => (
             <div key={k} className="flex justify-between">
               <span className="text-xs uppercase tracking-wider text-white/45 font-medium">{k}</span>
               <span className="text-xs text-white/60">{v}</span>

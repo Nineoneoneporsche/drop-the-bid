@@ -84,3 +84,12 @@ describe("auction-free imagery", () => {
     for (const f of consumerSourceFiles(path.join(ROOT, "app"))) expect(read(path.relative(ROOT, f))).not.toMatch(/newmainimage|gamepagevideo|\/og-image\.jpg/);
   });
 });
+
+describe("mypage app info", () => {
+  it("shows version, maker and contact from businessInfo (no stale team name or old address)", () => {
+    const src = fs.readFileSync(path.join(ROOT, "app", "mypage", "page.tsx"), "utf8");
+    expect(src).toContain('["제작", BUSINESS_INFO.companyName]');
+    expect(src).toContain('["문의", BUSINESS_INFO.customerEmail');
+    expect(src).not.toMatch(/hello@dtb\.kr|Drop The Bid Team/);
+  });
+});

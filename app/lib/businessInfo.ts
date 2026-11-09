@@ -3,6 +3,9 @@
 // 항목들이다. null인 항목은 화면에 표시하지 않으므로, PG 심사 신청 전에는
 // 모든 값을 채워야 한다.
 
+// 마이페이지 하단에 표시하는 서비스 버전.
+export const APP_VERSION = "1.0.0";
+
 export const BUSINESS_INFO = {
   serviceName: "드랍더비드 (Drop The Bid)",
   companyName: "에스피알씨",
