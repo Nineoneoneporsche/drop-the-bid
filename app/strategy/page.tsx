@@ -17,6 +17,7 @@ import HomeButton from "../components/HomeButton";
 import { getServerNow } from "../lib/serverClock";
 import { formatCountdown, joinWindowRemaining, parseScheduledStart, secondsUntil, showLive } from "../lib/auctionSchedule";
 import { nextSawLiveAuction, winnerRevealMode } from "../lib/winnerReveal";
+import StageBackdrop from "../components/StageBackdrop";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -652,14 +653,9 @@ export default function StrategyPage() {
   return (
     <main className="fixed inset-x-0 top-0 h-dvh bg-[#0a0a0a] max-w-md mx-auto overflow-hidden flex flex-col">
 
-      {/* ── Background video ── */}
+      {/* ── Background (StageBackdrop) ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <video autoPlay loop muted playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.45 }}
-        >
-          <source src="/gamepagevideo.mp4" type="video/mp4" />
-        </video>
+        <StageBackdrop opacity={0.45} />
         <div className="absolute inset-0"
           style={{ background: "linear-gradient(180deg, rgba(10,10,10,0.80) 0%, rgba(10,10,10,0.35) 38%, rgba(10,10,10,0.85) 100%)" }}
         />
@@ -810,9 +806,7 @@ export default function StrategyPage() {
               WebkitMaskImage: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 26%, black 55%)",
             }}
           >
-            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "center bottom" }}>
-              <source src="/gamepagevideo.mp4" type="video/mp4" />
-            </video>
+            <StageBackdrop objectPosition="center bottom" />
             <div
               className="absolute inset-0"
               style={{ background: "linear-gradient(180deg, transparent 0%, rgba(20,6,40,0.3) 32%, rgba(5,2,8,0.55) 62%, rgba(5,2,8,0.88) 100%)" }}

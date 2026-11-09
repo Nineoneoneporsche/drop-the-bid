@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
+import StageBackdrop from "../components/StageBackdrop";
 import { ProductThumb } from "../components/ProductImage";
 import {
   TRAINING_CONFIG,
@@ -208,12 +209,7 @@ export default function PracticePage() {
     <main className="fixed inset-x-0 top-0 h-dvh bg-[#0a0a0a] max-w-md mx-auto overflow-hidden flex flex-col">
 
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <video autoPlay loop muted playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.38 }}
-        >
-          <source src="/gamepagevideo.mp4" type="video/mp4" />
-        </video>
+        <StageBackdrop opacity={0.38} />
         <div className="absolute inset-0"
           style={{ background: "linear-gradient(180deg, rgba(10,10,10,0.78) 0%, rgba(10,10,10,0.50) 38%, rgba(10,10,10,0.85) 100%)" }}
         />

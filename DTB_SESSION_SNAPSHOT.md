@@ -1,48 +1,31 @@
 # DTB Session Snapshot
 
-Generated: 2026-11-09 14:14:47 +0900
+Generated: 2026-11-09 15:14:04 +0900
 
 ## Git
 
 ```text
 branch: preview/pg-readiness
-head: 87410830acaa267353e9f7bcc98bfc6e502bb1ee
+head: fff14f74f658e7a7b946c5b0449c6a5586c13fb0
 
 [status]
- M DTB_CURRENT_STATE.md
  M DTB_SESSION_SNAPSHOT.md
- M app/api/join/participant/route.ts
- M app/api/payment/confirm/route.ts
- M app/components/PaymentReviewList.tsx
- M app/components/PendingWinBanner.tsx
- M app/components/RightActionMenu.tsx
- M app/join/page.tsx
+ M app/globals.css
+ M app/join/layout.tsx
  M app/layout.tsx
- M app/lib/auctionSchedule.ts
- M app/lib/paymentCodes.ts
- M app/lib/paymentReview.ts
- M app/mini-game/page.tsx
- M app/mypage/page.tsx
  M app/page.tsx
- M app/payment/page.tsx
- M app/payment/success/page.tsx
  M app/practice/page.tsx
- M app/signup/page.tsx
  M app/strategy/page.tsx
- M tests/auctionSchedule.test.ts
- M tests/joinParticipantRoute.test.ts
- M tests/paymentConfirm.test.ts
-?? app/components/LegalDocument.tsx
-?? app/components/SiteFooter.tsx
-?? app/lib/businessInfo.ts
-?? app/lib/legal.ts
-?? app/privacy/
-?? app/refund/
-?? app/terms/
-?? tests/pgReadiness.test.ts
+D  public/gamepagevideo.mp4
+D  public/newmainimage.png
+RM public/og-image.jpg -> public/og-image-drop.jpg
+ M tests/pgReadiness.test.ts
+?? app/components/StageBackdrop.tsx
+?? public/main.png
 
 [recent commits]
-8741083 (HEAD -> preview/pg-readiness, origin/preview/m4a-payment-safety, preview/m4a-payment-safety) docs: M4 결제 안전성 작업 상태 체크포인트
+fff14f7 (HEAD -> preview/pg-readiness, origin/preview/pg-readiness) Prepare site for PG review: drop/purchase wording, legal pages, business footer
+8741083 (origin/preview/m4a-payment-safety, preview/m4a-payment-safety) docs: M4 결제 안전성 작업 상태 체크포인트
 ed9c842 Merge remote-tracking branch 'origin/main' into preview/m4a-payment-safety
 8754020 (origin/main, origin/HEAD) 연속성 시스템 병합 후 저장소 체크포인트 문구 정리
 edd5670 (origin/chore/dtb-context-continuity) Add DTB development continuity context
@@ -51,35 +34,23 @@ f9c412e Add admin payment refund management
 9e9116a Add payment reconciliation recheck flow
 40a5a13 Fix reconciliation payment recheck flow
 35701fb (main) Harden Toss payment confirmation
-0be30ad Use scheduled auction start for participation
 ```
 
 ## Changed files vs HEAD
 
 ```text
-M	DTB_CURRENT_STATE.md
 M	DTB_SESSION_SNAPSHOT.md
-M	app/api/join/participant/route.ts
-M	app/api/payment/confirm/route.ts
-M	app/components/PaymentReviewList.tsx
-M	app/components/PendingWinBanner.tsx
-M	app/components/RightActionMenu.tsx
-M	app/join/page.tsx
+M	app/globals.css
+M	app/join/layout.tsx
 M	app/layout.tsx
-M	app/lib/auctionSchedule.ts
-M	app/lib/paymentCodes.ts
-M	app/lib/paymentReview.ts
-M	app/mini-game/page.tsx
-M	app/mypage/page.tsx
 M	app/page.tsx
-M	app/payment/page.tsx
-M	app/payment/success/page.tsx
 M	app/practice/page.tsx
-M	app/signup/page.tsx
 M	app/strategy/page.tsx
-M	tests/auctionSchedule.test.ts
-M	tests/joinParticipantRoute.test.ts
-M	tests/paymentConfirm.test.ts
+D	public/gamepagevideo.mp4
+D	public/newmainimage.png
+A	public/og-image-drop.jpg
+D	public/og-image.jpg
+M	tests/pgReadiness.test.ts
 ```
 
 ## Environment variable names only
