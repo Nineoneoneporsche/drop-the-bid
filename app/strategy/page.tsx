@@ -153,9 +153,9 @@ const CHAT_EVENTS = [
 
 const NARRATOR_EVENTS = [
   { threshold: 92, message: "경기 시작 — 참가자들이 숨죽이며 가격을 지켜보고 있습니다" },
-  { threshold: 79, message: "₩720,000 이하 진입 — 아직 아무도 낙찰받지 않았습니다" },
+  { threshold: 79, message: "₩720,000 이하 진입 — 아직 아무도 구매하지 않았습니다" },
   { threshold: 70, message: "30% 할인 구간 돌파 — 심리전이 본격화되고 있습니다" },
-  { threshold: 65, message: "⚡ 35% 이상 할인 — 언제든 낙찰이 날 수 있습니다" },
+  { threshold: 65, message: "⚡ 35% 이상 할인 — 언제든 구매가 확정될 수 있습니다" },
   { threshold: 61, message: "🔥 최저가 근접 — 지금이 경기의 마지막 순간입니다" },
 ];
 
@@ -686,9 +686,9 @@ export default function StrategyPage() {
         <div className="absolute inset-0 z-[60] flex items-center justify-center px-6" style={{ background: "rgba(10,10,10,0.85)" }}>
           <div className="w-full max-w-xs bg-[#1a1a1a] border border-white/15 rounded-2xl p-6 text-center">
             <div className="text-5xl mb-3">😔</div>
-            <p className="text-white font-extrabold text-lg mb-1.5">경매 실패</p>
+            <p className="text-white font-extrabold text-lg mb-1.5">구매자 없이 종료</p>
             <p className="text-white/50 text-sm leading-relaxed mb-6">
-              아무도 낙찰받지 않아 경매가 종료됐어요.
+              아무도 구매하지 않아 드랍이 종료됐어요.
             </p>
             <button
               onClick={async () => {
@@ -711,8 +711,8 @@ export default function StrategyPage() {
       {showWatchConfirm && (
         <div className="absolute inset-0 z-[50] flex items-center justify-center px-6" style={{ background: "rgba(10,10,10,0.75)" }}>
           <div className="w-full max-w-xs bg-[#1a1a1a] border border-white/15 rounded-2xl p-6 text-center">
-            <p className="text-white font-semibold text-lg mb-1.5">경매를 포기하고 관전하시겠어요?</p>
-            <p className="text-white/45 text-sm mb-6 leading-relaxed">관전으로 전환하면 낙찰받기 버튼이 비활성화되고 채팅에 참여할 수 있어요. 다시 경매에 참여할 수 없어요.</p>
+            <p className="text-white font-semibold text-lg mb-1.5">드랍 참여를 포기하고 관전하시겠어요?</p>
+            <p className="text-white/45 text-sm mb-6 leading-relaxed">관전으로 전환하면 구매하기 버튼이 비활성화되고 채팅에 참여할 수 있어요. 다시 드랍에 참여할 수 없어요.</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowWatchConfirm(false)}
@@ -837,7 +837,7 @@ export default function StrategyPage() {
               <div className="scene-fade-in flex items-center gap-2.5 mb-2 flex-shrink-0" style={{ animationDelay: "80ms" }}>
                 <span className="h-px w-6" style={{ background: "rgba(196,132,252,0.65)" }} />
                 <span className="text-[11px] font-semibold tracking-[0.32em]" style={{ color: "#c084fc" }}>
-                  오늘의 낙찰자
+                  오늘의 구매자
                 </span>
                 <span className="h-px w-6" style={{ background: "rgba(196,132,252,0.65)" }} />
               </div>
@@ -863,7 +863,7 @@ export default function StrategyPage() {
               <div className="scene-fade-in flex items-center gap-2 mt-5 mb-1 flex-shrink-0" style={{ animationDelay: `${PRICE_COUNTDOWN_START_MS}ms` }}>
                 <span className="h-px w-5" style={{ background: "rgba(196,132,252,0.45)" }} />
                 <span className="text-[10px] font-semibold tracking-[0.28em]" style={{ color: "rgba(196,132,252,0.85)" }}>
-                  낙찰가
+                  구매가
                 </span>
                 <span className="h-px w-5" style={{ background: "rgba(196,132,252,0.45)" }} />
               </div>
@@ -1119,7 +1119,7 @@ export default function StrategyPage() {
                     {formatCountdown(timeLeft)}
                   </span>
                   <span className="text-[11px] text-white/38 font-medium mt-2">
-                    {timeLeft > 0 ? "⏳ 경매 시작까지" : "⏳ 곧 시작합니다"}
+                    {timeLeft > 0 ? "⏳ 드랍 시작까지" : "⏳ 곧 시작합니다"}
                   </span>
                 </>
               ) : (
@@ -1132,12 +1132,12 @@ export default function StrategyPage() {
                   </span>
                   {isGamePaused ? (
                     <span className="text-[11px] font-semibold text-white/70 mt-1">
-                      {state.isPaused ? "⏸ 경매가 일시중지됐습니다" : "연결을 확인하고 있어요…"}
+                      {state.isPaused ? "⏸ 드랍이 일시중지됐습니다" : "연결을 확인하고 있어요…"}
                     </span>
                   ) : (
                     <div className={`flex items-center gap-2 mt-1 transition-opacity duration-300 ${currentSavings > 0 ? "opacity-100" : "opacity-0"}`}>
                       <span className="text-[11px] font-semibold text-white">-{currentSavingsPct}% · {formatKRW(currentSavings)} 절약</span>
-                      <span className="text-sm font-extrabold text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>local_fire_department</span>낙찰받기</span>
+                      <span className="text-sm font-extrabold text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>local_fire_department</span>구매하기</span>
                     </div>
                   )}
                 </>

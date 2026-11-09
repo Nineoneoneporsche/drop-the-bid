@@ -435,14 +435,14 @@ describe("existing checks are unchanged", () => {
     db.user = { id: "someone-else", user_metadata: { ...SHIPPING } };
     const res = await POST(confirmRequest());
     expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ ok: false, error: "낙찰자 본인만 결제할 수 있습니다" });
+    expect(await res.json()).toMatchObject({ ok: false, error: "구매자 본인만 결제할 수 있습니다" });
     expect(tossFetch).not.toHaveBeenCalled();
   });
 
   it("still refuses an amount that does not match the winning price", async () => {
     const res = await POST(confirmRequest({ paymentKey: "pk_test_123456789", orderId: "DTB-1", amount: PRICE - 1, winId: WIN_ID }));
     expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ ok: false, error: "결제 금액이 낙찰가와 일치하지 않습니다" });
+    expect(await res.json()).toMatchObject({ ok: false, error: "결제 금액이 구매가와 일치하지 않습니다" });
     expect(tossFetch).not.toHaveBeenCalled();
   });
 
@@ -850,7 +850,7 @@ describe("auction_wins as the source of truth (code deploy 1)", () => {
   it("winId that does not exist: refused before Toss", async () => {
     const res = await POST(confirmRequest(body({ winId: OTHER_WIN_ID })));
     expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ ok: false, error: "낙찰 정보를 찾을 수 없습니다" });
+    expect(await res.json()).toMatchObject({ ok: false, error: "구매 정보를 찾을 수 없습니다" });
     nothingTouched();
   });
 

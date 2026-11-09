@@ -301,7 +301,7 @@ export default function RightActionMenu({
           link: { mobileWebUrl: url, webUrl: url },
         },
         buttons: [
-          { title: "경매 보러가기", link: { mobileWebUrl: url, webUrl: url } },
+          { title: "드랍 보러가기", link: { mobileWebUrl: url, webUrl: url } },
         ],
       });
     } catch {
@@ -323,7 +323,7 @@ export default function RightActionMenu({
     setSheet(null);
     const url = shareUrl("share");
     const title = `${productName ? productName + " · " : ""}드랍더비드`;
-    const text = "🔥 지금 가격이 실시간으로 떨어지고 있어요. 낙찰의 짜릿함, DTB에서 확인해보세요!";
+    const text = "🔥 지금 가격이 실시간으로 떨어지고 있어요. 타이밍의 짜릿함, DTB에서 확인해보세요!";
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {

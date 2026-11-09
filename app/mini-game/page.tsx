@@ -23,7 +23,7 @@ function fmtMs(ms: number) {
 
 function evaluate(ms: number): { label: string; color: string } {
   if (ms < 120) return { label: "신의 손",           color: "text-yellow-400" };
-  if (ms < 170) return { label: "프로 낙찰러",       color: "text-[#c084fc]"  };
+  if (ms < 170) return { label: "타이밍 장인",       color: "text-[#c084fc]"  };
   if (ms < 220) return { label: "상위 10%",          color: "text-[#a855f7]"  };
   if (ms < 280) return { label: "평균 이상",         color: "text-blue-400"   };
   return           { label: "손가락 워밍업 필요",   color: "text-white/60"   };
@@ -216,7 +216,7 @@ export default function MiniGamePage() {
         </div>
 
         <div ref={setRef(1)} className="card-rise mb-5" style={{ transitionDelay: "60ms" }}>
-          <h1 className="text-[22px] font-extrabold text-white leading-tight">낙찰 훈련소</h1>
+          <h1 className="text-[22px] font-extrabold text-white leading-tight">타이밍 훈련소</h1>
           <p className="text-base font-semibold mt-1.5" style={{ color: "#4ade80" }}>가장 빠른 손가락만 살아남습니다.</p>
         </div>
 
@@ -301,7 +301,7 @@ export default function MiniGamePage() {
               className="w-60 h-60 rounded-full text-white font-extrabold text-2xl leading-tight select-none bid-btn-purple"
               style={{ touchAction: "manipulation" }}
             >
-              <span className="material-symbols-outlined" style={{fontSize:"2.5rem",display:"block",marginBottom:"6px"}}>local_fire_department</span>낙찰받기
+              <span className="material-symbols-outlined" style={{fontSize:"2.5rem",display:"block",marginBottom:"6px"}}>local_fire_department</span>구매하기
             </button>
           </div>
         )}
@@ -311,7 +311,7 @@ export default function MiniGamePage() {
           <div className="bg-[#141414] border border-red-500/30 px-6 py-8 text-center">
             <div className="mb-3"><span className="material-symbols-outlined" style={{fontSize:"3rem"}}>do_not_touch</span></div>
             <h2 className="text-lg font-extrabold text-white mb-1">성급했습니다!</h2>
-            <p className="text-white/70 text-sm mb-1">낙찰 버튼이 나오기 전에 누르면 실패입니다.</p>
+            <p className="text-white/70 text-sm mb-1">구매 버튼이 나오기 전에 누르면 실패입니다.</p>
             <p className="text-white/60 text-xs mb-6">버튼이 나타날 때까지 침착하게 기다리세요.</p>
             <button
               onClick={startRound}

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useGame, formatKRW } from "./context/GameContext";
 import { ProductThumb } from "./components/ProductImage";
 import BottomNav from "./components/BottomNav";
+import SiteFooter from "./components/SiteFooter";
 import PendingWinBanner from "./components/PendingWinBanner";
 import { getServerNow } from "./lib/serverClock";
 import { homeCta, parseScheduledStart, scheduleStatus, secondsUntil, showLive } from "./lib/auctionSchedule";
@@ -176,7 +177,7 @@ export default function HomePage() {
             {/* DTB까지 남은시간 */}
             <div className="px-4 py-3.5">
               <p className="text-xs uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
-                경매 상태
+                드랍 상태
               </p>
               <p
                 className="font-extrabold tabular-nums leading-none"
@@ -191,29 +192,29 @@ export default function HomePage() {
                 {countdown !== null
                   ? fmtCountdown(countdown)
                   : auctionLive
-                  ? "경매 진행 중"
+                  ? "드랍 진행 중"
                   : status === "starting"
                   ? "곧 시작"
                   : status === "missedNoParticipants"
                   ? "시작 안 됨"
                   : status === "ended"
-                  ? "경매 종료"
+                  ? "드랍 종료"
                   : "예정 없음"}
               </p>
               <p className="text-xs mt-1" style={{ color: statusColor }}>
                 {status === "joinOpen"
                   ? "지금 참가 가능"
                   : status === "beforeJoinWindow"
-                  ? "경매 시작까지"
+                  ? "드랍 시작까지"
                   : auctionLive
                   ? "관전만 가능합니다"
                   : status === "starting"
-                  ? "경매가 곧 시작됩니다"
+                  ? "드랍이 곧 시작됩니다"
                   : status === "missedNoParticipants"
                   ? "참가자가 없어 시작되지 않았습니다"
                   : status === "ended"
-                  ? "다음 경매를 기다려주세요"
-                  : "예정된 경매가 없습니다"}
+                  ? "다음 드랍을 기다려주세요"
+                  : "예정된 드랍이 없습니다"}
               </p>
             </div>
 
@@ -232,7 +233,7 @@ export default function HomePage() {
           <ProductThumb alt={state.config.productName} size={64} rounded="rounded-sm" />
           <div className="flex-1 min-w-0">
             <p className="text-xs uppercase tracking-[0.22em] text-orange-400 font-semibold mb-1">
-              오늘의 경매
+              오늘의 드랍
             </p>
             <p className="text-white font-semibold text-base leading-snug">
               {state.config.productName}
@@ -290,6 +291,7 @@ export default function HomePage() {
 
       </div>
 
+      <SiteFooter withBottomNav />
       <BottomNav />
     </main>
   );

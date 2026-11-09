@@ -88,11 +88,11 @@ describe("home button per status", () => {
     expect(cta(T - 30 * MIN - (12 * 60 + 34) * 1000)).toMatchObject({ kind: "disabled", label: "참가 오픈까지 12:34" });
   });
   it("window open: enabled join, with the T countdown", () => {
-    expect(cta(T - 20 * MIN)).toEqual({ kind: "join", label: "경매 참여하기", sub: "경매 시작까지 20:00" });
+    expect(cta(T - 20 * MIN)).toEqual({ kind: "join", label: "드랍 참여하기", sub: "드랍 시작까지 20:00" });
   });
   it("no T / missed / starting / ended: disabled; game: watch", () => {
-    expect(cta(T, { scheduledStartMs: null })).toMatchObject({ kind: "disabled", label: "예정된 경매가 없습니다" });
-    expect(cta(T)).toMatchObject({ kind: "disabled", sub: "참가자가 없어 경매가 시작되지 않았습니다" });
+    expect(cta(T, { scheduledStartMs: null })).toMatchObject({ kind: "disabled", label: "예정된 드랍이 없습니다" });
+    expect(cta(T)).toMatchObject({ kind: "disabled", sub: "참가자가 없어 드랍이 시작되지 않았습니다" });
     expect(cta(T, { phase: "strategy", participantCount: 1 })).toMatchObject({ kind: "disabled" });
     expect(cta(T, { phase: "ended" })).toMatchObject({ kind: "disabled" });
     expect(cta(T, { phase: "game" })).toMatchObject({ kind: "watch", label: "관전하기" });

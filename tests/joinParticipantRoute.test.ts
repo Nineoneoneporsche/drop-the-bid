@@ -71,7 +71,7 @@ describe("join participant route", () => {
     const res = await POST(req(token({ sub: UID, session_id: SESSION })));
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({
-      ok: false, code: "ACCOUNT_ACTIVE_ELSEWHERE", error: "이 계정은 다른 기기에서 현재 경매에 참여 중입니다.",
+      ok: false, code: "ACCOUNT_ACTIVE_ELSEWHERE", error: "이 계정은 다른 기기에서 현재 드랍에 참여 중입니다.",
     });
   });
 

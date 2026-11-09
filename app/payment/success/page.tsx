@@ -47,15 +47,15 @@ const authDeps: AuthRecoveryDeps = {
 // NEEDS_REVIEW: the outcome isn't settled — never "failed", never retried.
 const ACTIVE_PAYMENT_SCREENS: Record<string, { label: string; title: string; body: string; href: string; cta: string }> = {
   [ALREADY_PAID]: {
-    label: "결제 완료된 낙찰",
-    title: "이미 결제가 완료된 낙찰입니다",
+    label: "결제 완료된 구매",
+    title: "이미 결제가 완료된 구매 건입니다",
     body: "이번 결제는 승인되지 않았으며 청구되지 않습니다.\n주문 내역은 마이페이지에서 확인할 수 있습니다.",
     href: "/mypage",
     cta: "주문 내역 보기",
   },
   [PAYMENT_IN_PROGRESS]: {
     label: "결제 처리 중",
-    title: "이 낙찰의 결제가 처리 중입니다",
+    title: "이 구매 건의 결제가 처리 중입니다",
     body: "중복 결제를 막기 위해 이번 요청은 승인하지 않았습니다.\n잠시 후 마이페이지에서 주문 내역을 확인해주세요.",
     href: "/mypage",
     cta: "주문 내역 보기",
@@ -262,7 +262,7 @@ function SuccessInner() {
         <p className="text-xs uppercase tracking-[0.18em] font-semibold mb-1 text-red-400">결제 시간 만료</p>
         <h1 className="text-lg font-extrabold text-white mb-2">결제 가능 시간이 지났습니다</h1>
         <p className="text-white/55 text-sm leading-relaxed mb-8">
-          낙찰 후 {WINNER_PAYMENT_WINDOW_MINUTES}분 안에 결제가 완료되지 않아 결제가 승인되지 않았습니다.<br />
+          구매 확정 후 {WINNER_PAYMENT_WINDOW_MINUTES}분 안에 결제가 완료되지 않아 결제가 승인되지 않았습니다.<br />
           이 결제는 청구되지 않으며, 더 이상 결제할 수 없습니다.
         </p>
         <div className="w-full max-w-xs">
@@ -318,7 +318,7 @@ function SuccessInner() {
           </svg>
         </div>
         <p className="text-xs uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: "#c084fc" }}>결제 완료</p>
-        <h1 className="text-lg font-extrabold text-white mb-2">낙찰이 확정되었습니다!</h1>
+        <h1 className="text-lg font-extrabold text-white mb-2">구매가 확정되었습니다!</h1>
         <p className="text-white/55 text-sm leading-relaxed">
           주문이 접수되었습니다.<br />배송 정보는 등록된 연락처로 안내드립니다.
         </p>

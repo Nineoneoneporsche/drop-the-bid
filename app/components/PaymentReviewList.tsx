@@ -71,7 +71,7 @@ export default function PaymentReviewList({ onPaid, className = "" }: { onPaid?:
           <div key={item.orderId} className={`px-5 py-3.5 ${i < items.length - 1 ? "border-b border-white/8" : ""}`}>
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-base font-semibold text-white/80 truncate">{item.productName ?? "낙찰 상품"}</p>
+                <p className="text-base font-semibold text-white/80 truncate">{item.productName ?? "구매 상품"}</p>
                 <p className="text-xs text-white/50 mt-0.5">{fmt(item.amount)} · 결제 상태 확인 필요</p>
               </div>
               {!result?.settled && (

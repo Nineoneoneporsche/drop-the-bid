@@ -174,7 +174,7 @@ export default function PaymentPage() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
           </svg>
-          <p className="text-white/60 text-sm">낙찰 정보를 확인하고 있습니다...</p>
+          <p className="text-white/60 text-sm">구매 정보를 확인하고 있습니다...</p>
         </div>
       </main>
     );
@@ -188,7 +188,7 @@ export default function PaymentPage() {
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h1 className="text-lg font-extrabold text-white mb-2">이미 결제가 완료된 낙찰입니다.</h1>
+        <h1 className="text-lg font-extrabold text-white mb-2">이미 결제가 완료된 구매 건입니다.</h1>
         <p className="text-white/50 text-sm leading-relaxed mb-8">주문 내역은 마이페이지에서 확인할 수 있습니다.</p>
         <a href="/mypage" className="block w-full max-w-xs py-3.5 text-center text-white font-semibold text-base rounded-xl bid-btn-purple">주문 내역 보기</a>
       </main>
@@ -202,7 +202,7 @@ export default function PaymentPage() {
           <span className="material-symbols-outlined text-white/40" style={{ fontSize: "32px" }}>block</span>
         </div>
         <h1 className="text-lg font-extrabold text-white mb-2">접근할 수 없습니다</h1>
-        <p className="text-white/50 text-sm leading-relaxed mb-8">낙찰받은 경매의 결제 페이지에만<br/>접근할 수 있습니다.</p>
+        <p className="text-white/50 text-sm leading-relaxed mb-8">구매를 확정한 드랍의 결제 페이지에만<br/>접근할 수 있습니다.</p>
         <a href="/" className="text-[#a855f7] text-sm font-semibold">← 홈으로 돌아가기</a>
       </main>
     );
@@ -216,7 +216,7 @@ export default function PaymentPage() {
         <div className="flex items-end justify-between">
           <div>
             <h1 className="text-lg font-extrabold text-white">결제하기</h1>
-            <p className="text-white/65 text-xs mt-0.5">낙찰 상품을 확인하고 결제를 완료하세요.</p>
+            <p className="text-white/65 text-xs mt-0.5">구매 상품을 확인하고 결제를 완료하세요.</p>
           </div>
           <div className="text-right">
             <p className="text-xs uppercase tracking-wider text-white/60 mb-0.5">남은 시간</p>
@@ -322,10 +322,15 @@ export default function PaymentPage() {
               )}
             </div>
             <p className="text-white/70 text-base leading-relaxed">
-              결제 정보 및 개인정보 수집·이용에 동의합니다.{" "}
+              주문 내용을 확인했으며, 이용약관·환불정책 및 결제를 위한 개인정보 수집·이용에 동의합니다.{" "}
               <span className="text-[#a855f7] font-semibold">(필수)</span>
             </p>
           </button>
+          <p className="text-white/45 text-xs mt-3 pl-8 flex gap-3">
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">이용약관</a>
+            <a href="/refund" target="_blank" rel="noopener noreferrer" className="underline">환불정책</a>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">개인정보처리방침</a>
+          </p>
         </div>
       </div>
 

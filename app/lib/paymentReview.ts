@@ -15,7 +15,7 @@ export const REVIEW_STILL_UNKNOWN = "아직 결제 상태를 확인할 수 없�
 
 export function reviewResult(r: { ok?: unknown; status?: unknown } | null): ReviewResult {
   if (r?.ok === true && r.status === "paid") {
-    return { tone: "done", text: "결제가 완료되었습니다. 낙찰 내역에서 확인할 수 있습니다.", settled: true };
+    return { tone: "done", text: "결제가 완료되었습니다. 구매 내역에서 확인할 수 있습니다.", settled: true };
   }
   if (r?.ok === true && r.status === "failed") {
     return { tone: "failed", text: "결제가 승인되지 않아 취소 처리되었습니다. 청구되지 않았습니다.", settled: true };

@@ -21,7 +21,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 const CONFLICT_CODES: Record<string, { code: string; error: string }> = {
   "account active on another session": {
     code: "ACCOUNT_ACTIVE_ELSEWHERE",
-    error: "이 계정은 다른 기기에서 현재 경매에 참여 중입니다.",
+    error: "이 계정은 다른 기기에서 현재 드랍에 참여 중입니다.",
   },
   "participant join closed": {
     code: "PARTICIPANT_JOIN_CLOSED",

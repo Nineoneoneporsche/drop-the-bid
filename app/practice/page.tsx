@@ -155,7 +155,7 @@ export default function PracticePage() {
             <h1 className="text-[22px] font-extrabold text-white leading-tight">모의훈련</h1>
             <p className="text-white/70 text-base mt-3 leading-relaxed">
               실전 전에 한 번 연습해보세요.<br />
-              실제 경매와 동일하게 가격이 내려갑니다. 연습에서는 결제되지 않습니다.
+              실제 드랍과 동일하게 가격이 내려갑니다. 연습에서는 결제되지 않습니다.
             </p>
             <p className="text-white/40 text-xs mt-3">약 15초 · 실제 결제 없음</p>
           </div>
@@ -178,9 +178,9 @@ export default function PracticePage() {
       <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-xs text-center">
           <p className="text-xs uppercase tracking-widest text-white/50 mb-2 font-medium">
-            {isSuccess ? "낙찰 성공" : "한발 늦었습니다"}
+            {isSuccess ? "구매 성공" : "한발 늦었습니다"}
           </p>
-          <p className="text-xs text-white/45 mb-1">{isSuccess ? "내가 누른 가격" : "경쟁자가 낙찰한 가격"}</p>
+          <p className="text-xs text-white/45 mb-1">{isSuccess ? "내가 누른 가격" : "다른 참여자가 구매한 가격"}</p>
           <p
             className="font-extrabold tabular-nums leading-none mb-8"
             style={{ fontSize: "2.6rem", color: "#f5f3ff", textShadow: "0 0 6px rgba(255,255,255,0.9), 0 0 14px #c084fc, 0 0 28px #a855f7" }}
@@ -195,7 +195,7 @@ export default function PracticePage() {
               다시 해보기
             </button>
             <Link href="/" className="w-full py-4 font-semibold text-base text-center border border-white/15 text-white/65 rounded-xl">
-              실전 경매 보러가기
+              실전 드랍 보러가기
             </Link>
           </div>
         </div>
@@ -339,7 +339,7 @@ export default function PracticePage() {
             </span>
             <div className={`flex items-center gap-2 mt-1 transition-opacity duration-300 ${currentSavings > 0 ? "opacity-100" : "opacity-0"}`}>
               <span className="text-[11px] font-semibold text-white">-{currentSavingsPct}% · {fmt(currentSavings)} 절약</span>
-              <span className="text-sm font-extrabold text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{ fontSize: "16px" }}>local_fire_department</span>낙찰받기</span>
+              <span className="text-sm font-extrabold text-white flex items-center gap-1"><span className="material-symbols-outlined" style={{ fontSize: "16px" }}>local_fire_department</span>구매하기</span>
             </div>
           </button>
         </div>

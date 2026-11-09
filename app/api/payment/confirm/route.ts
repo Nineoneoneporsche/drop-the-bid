@@ -33,9 +33,9 @@ function uniqueViolation(err: { code?: string; message?: string } | null): strin
 // transaction, after it re-checked the win under a row lock).
 const RESERVE_REFUSALS: Record<string, () => NextResponse> = {
   "reserve:window_expired": () => refuse(PAYMENT_WINDOW_EXPIRED, 403),
-  "reserve:not_winner": () => NextResponse.json({ ok: false, error: "낙찰자 본인만 결제할 수 있습니다" }, { status: 403 }),
-  "reserve:amount_mismatch": () => NextResponse.json({ ok: false, error: "결제 금액이 낙찰가와 일치하지 않습니다" }, { status: 400 }),
-  "reserve:no_win": () => NextResponse.json({ ok: false, error: "낙찰 정보를 찾을 수 없습니다" }, { status: 400 }),
+  "reserve:not_winner": () => NextResponse.json({ ok: false, error: "구매자 본인만 결제할 수 있습니다" }, { status: 403 }),
+  "reserve:amount_mismatch": () => NextResponse.json({ ok: false, error: "결제 금액이 구매가와 일치하지 않습니다" }, { status: 400 }),
+  "reserve:no_win": () => NextResponse.json({ ok: false, error: "구매 정보를 찾을 수 없습니다" }, { status: 400 }),
   "reserve:order_in_use": () => NextResponse.json({ ok: false, error: "이미 사용된 주문번호입니다" }, { status: 409 }),
   "reserve:busy": RESPONSE_IN_PROGRESS,
   "reserve:invalid": () => NextResponse.json({ ok: false, error: "잘못된 결제 요청입니다" }, { status: 400 }),
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
   // it must be a UUID. It identifies the win — it is never trusted for
   // who won or what it costs (both re-read from auction_wins below).
   if (winId !== undefined && winId !== null && !isWinId(winId)) {
-    return NextResponse.json({ ok: false, error: "잘못된 낙찰 정보입니다" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "잘못된 구매 정보입니다" }, { status: 400 });
   }
   const requestWinId: string | null = winId ?? null;
 
@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
   // reset). A new approval without a winId is refused: since M1 every
   // payment page sends one.
   if (!requestWinId) {
-    return NextResponse.json({ ok: false, error: "낙찰 정보를 찾을 수 없습니다" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "구매 정보를 찾을 수 없습니다" }, { status: 400 });
   }
   const { data: winRow, error: winLookupError } = await supabaseAdmin
     .from("auction_wins")
@@ -202,13 +202,13 @@ export async function POST(req: NextRequest) {
   }
   const win = winRow as AuctionWin | null;
   if (!win) {
-    return NextResponse.json({ ok: false, error: "낙찰 정보를 찾을 수 없습니다" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "구매 정보를 찾을 수 없습니다" }, { status: 400 });
   }
   if (win.winner_id !== user.id) {
-    return NextResponse.json({ ok: false, error: "낙찰자 본인만 결제할 수 있습니다" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: "구매자 본인만 결제할 수 있습니다" }, { status: 403 });
   }
   if (win.winning_price !== amount) {
-    return NextResponse.json({ ok: false, error: "결제 금액이 낙찰가와 일치하지 않습니다" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "결제 금액이 구매가와 일치하지 않습니다" }, { status: 400 });
   }
 
   // This win's earlier attempt is reconciliation_required (e.g. /mypage ->

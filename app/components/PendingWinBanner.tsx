@@ -24,7 +24,7 @@ export default function PendingWinBanner({ className = "" }: { className?: strin
     >
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-white text-sm font-bold">결제 대기 중인 낙찰이 있습니다</p>
+          <p className="text-white text-sm font-bold">결제 대기 중인 구매 건이 있습니다</p>
           <p className="text-white/60 text-xs mt-0.5">
             남은 시간 <span className={`font-bold tabular-nums ${remainingSeconds < 60 ? "text-red-400" : "text-[#c084fc]"}`}>{fmtTime(remainingSeconds)}</span>
           </p>

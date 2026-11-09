@@ -90,22 +90,22 @@ export function homeCta(status: ScheduleStatus, i: Pick<ScheduleInput, "schedule
   const T = i.scheduledStartMs;
   switch (status) {
     case "joinOpen":
-      return { kind: "join", label: "경매 참여하기", sub: `경매 시작까지 ${formatCountdown(secondsUntil(T!, i.nowMs))}` };
+      return { kind: "join", label: "드랍 참여하기", sub: `드랍 시작까지 ${formatCountdown(secondsUntil(T!, i.nowMs))}` };
     case "beforeJoinWindow":
       return {
         kind: "disabled",
         label: `참가 오픈까지 ${formatCountdown(secondsUntil(joinOpensAtMs(T!, i.leadMinutes), i.nowMs))}`,
-        sub: `경매 시작 ${i.leadMinutes}분 전부터 참가할 수 있어요`,
+        sub: `드랍 시작 ${i.leadMinutes}분 전부터 참가할 수 있어요`,
       };
     case "game":
-      return { kind: "watch", label: "관전하기", sub: "경매가 진행 중입니다 · 관전만 가능합니다" };
+      return { kind: "watch", label: "관전하기", sub: "드랍이 진행 중입니다 · 관전만 가능합니다" };
     case "starting":
-      return { kind: "disabled", label: "곧 경매가 시작됩니다", sub: "참가 접수가 마감되었습니다" };
+      return { kind: "disabled", label: "곧 드랍이 시작됩니다", sub: "참가 접수가 마감되었습니다" };
     case "missedNoParticipants":
-      return { kind: "disabled", label: "경매가 시작되지 않았습니다", sub: "참가자가 없어 경매가 시작되지 않았습니다" };
+      return { kind: "disabled", label: "드랍이 시작되지 않았습니다", sub: "참가자가 없어 드랍이 시작되지 않았습니다" };
     case "ended":
-      return { kind: "disabled", label: "경매가 종료되었습니다", sub: "다음 경매를 기다려주세요" };
+      return { kind: "disabled", label: "드랍이 종료되었습니다", sub: "다음 드랍을 기다려주세요" };
     case "noSchedule":
-      return { kind: "disabled", label: "예정된 경매가 없습니다", sub: "다음 경매 일정을 기다려주세요" };
+      return { kind: "disabled", label: "예정된 드랍이 없습니다", sub: "다음 드랍 일정을 기다려주세요" };
   }
 }

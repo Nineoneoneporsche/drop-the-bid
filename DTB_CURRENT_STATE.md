@@ -108,6 +108,20 @@ Status owner: update at every meaningful development session
 
 ---
 
+## B2. PG 심사 대비 작업 — branch `preview/pg-readiness` (2026-11-09)
+
+- M4 tip(`8741083`)에서 분기. 아직 main 미반영, Production 미반영
+- 사용자 화면 용어: 역경매 → 실시간 가격하락 딜, 경매 → 드랍, 낙찰 → 구매 (관리자 화면·코드 주석은 유지). 마케팅 표현은 추후 재검토
+- 공개 페이지 `/terms`, `/privacy`, `/refund` 추가 (본문: `app/lib/legal.ts`, 시행일 2026-11-09)
+- 사업자 정보 footer (`app/lib/businessInfo.ts` 한 곳에서 관리): 홈, 마이페이지, 회원가입, 정책 페이지
+- 회원가입의 (숨겨져 있던) 카드 입력 단계 삭제
+- 회귀 테스트: `tests/pgReadiness.test.ts`
+- 남은 일 (사용자):
+  - `help@dropthebid.com` 수신 불가 — dropthebid.com에 MX 레코드 없음 (DNS: 가비아). 메일 포워딩/메일 서비스 설정 필요
+  - 이미지 속 경매 표현 교체: `public/newmainimage.png`(AUCTION, 망치, BID NOW), `public/og-image.jpg`, `public/설명1~7.png`(낙찰 문구)
+
+---
+
 ## C. Recently confirmed platform state
 
 - Production domain: `https://dropthebid.com`

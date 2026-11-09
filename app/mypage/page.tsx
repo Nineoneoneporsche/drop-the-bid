@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BottomNav from "../components/BottomNav";
+import SiteFooter from "../components/SiteFooter";
 import HomeButton from "../components/HomeButton";
 import PendingWinBanner from "../components/PendingWinBanner";
 import PaymentReviewList from "../components/PaymentReviewList";
@@ -39,7 +40,7 @@ type Order = DisplayOrder;
 const MENU = [
   { label: "게임방법",     href: "/guide"     },
   { label: "모의훈련",     href: "/practice"  },
-  { label: "낙찰 훈련소",  href: "/mini-game" },
+  { label: "타이밍 훈련소",  href: "/mini-game" },
   { label: "지난결과보기", href: "/results"   },
 ];
 
@@ -123,7 +124,7 @@ function LoggedOut() {
             </svg>
           </div>
           <h2 className="text-lg font-extrabold text-white mb-1.5">로그인이 필요해요</h2>
-          <p className="text-white/50 text-sm mb-6 leading-relaxed">낙찰 내역, 배지, 절약 금액을<br/>확인하려면 로그인하세요.</p>
+          <p className="text-white/50 text-sm mb-6 leading-relaxed">구매 내역, 배지, 절약 금액을<br/>확인하려면 로그인하세요.</p>
 
           {/* 소셜 로그인 */}
           <button
@@ -261,6 +262,7 @@ function LoggedOut() {
         </div>
 
       </div>
+      <SiteFooter />
       <BottomNav />
     </main>
   );
@@ -592,7 +594,7 @@ export default function MyPage() {
         <div ref={setRef(3)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl grid grid-cols-4 mb-5 overflow-hidden" style={{ transitionDelay: "150ms" }}>
           {[
             { label: "참여",  value: "-"                                                  },
-            { label: "낙찰",  value: `${stats.wins}회`                                    },
+            { label: "구매",  value: `${stats.wins}회`                                    },
             { label: "절약",  value: stats.savings > 0 ? fmt(stats.savings) : "₩0"       },
             { label: "승률",  value: "-"                                                  },
           ].map(({ label, value }, i) => (
@@ -606,11 +608,11 @@ export default function MyPage() {
         {/* History */}
         <div ref={setRef(4)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "200ms" }}>
           <div className="px-5 pt-4 pb-1">
-            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium">낙찰 내역</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium">구매 내역</p>
           </div>
           {orders.length === 0 ? (
             <div className="px-5 py-4">
-              <p className="text-white/35 text-sm">아직 낙찰 내역이 없습니다.</p>
+              <p className="text-white/35 text-sm">아직 구매 내역이 없습니다.</p>
             </div>
           ) : orders.map((order, i) => {
             const date = new Date(order.created_at);
@@ -869,11 +871,11 @@ export default function MyPage() {
         {/* Achievements */}
         {(() => {
           const achievements = [
-            { icon: "emoji_events",          label: "첫 낙찰",    unlocked: stats.wins >= 1,                                                hint: "첫 낙찰 달성 시" },
-            { icon: "bolt",                  label: "반응왕",      unlocked: orders.some(o => o.amount / o.start_price >= 0.85),               hint: "시작가 85% 이상에서 낙찰 시" },
-            { icon: "fitness_center",        label: "버티기 고수", unlocked: orders.some(o => o.amount / o.start_price <= 0.70),               hint: "시작가 70% 이하에서 낙찰 시" },
+            { icon: "emoji_events",          label: "첫 구매",    unlocked: stats.wins >= 1,                                                hint: "첫 구매 달성 시" },
+            { icon: "bolt",                  label: "반응왕",      unlocked: orders.some(o => o.amount / o.start_price >= 0.85),               hint: "시작가 85% 이상에서 구매 확정 시" },
+            { icon: "fitness_center",        label: "버티기 고수", unlocked: orders.some(o => o.amount / o.start_price <= 0.70),               hint: "시작가 70% 이하에서 구매 확정 시" },
             { icon: "gps_fixed",             label: "연습왕",      unlocked: false,                                                         hint: "모의훈련 5회 완료 시" },
-            { icon: "workspace_premium",     label: "레전드",      unlocked: stats.wins >= 3,                                               hint: "낙찰 3회 달성 시" },
+            { icon: "workspace_premium",     label: "레전드",      unlocked: stats.wins >= 3,                                               hint: "구매 3회 달성 시" },
             { icon: "local_fire_department", label: "연속 참가",   unlocked: false,                                                         hint: "3일 연속 참가 시" },
           ];
           const unlockedCount = achievements.filter(a => a.unlocked).length;
@@ -945,7 +947,7 @@ export default function MyPage() {
             <div className="bg-red-500/8 border border-red-500/20 rounded-xl p-4 space-y-3">
               <p className="text-red-400 text-sm font-semibold text-center">정말 탈퇴하시겠어요?</p>
               <p className="text-white/40 text-xs text-center leading-relaxed">
-                낙찰 내역, 프로필 등 모든 데이터가 삭제되며<br/>복구할 수 없습니다.
+                구매 내역, 프로필 등 모든 데이터가 삭제되며<br/>복구할 수 없습니다.
               </p>
               <div className="flex gap-2">
                 <button
@@ -968,6 +970,7 @@ export default function MyPage() {
         </div>
 
       </div>
+      <SiteFooter />
       <BottomNav />
     </main>
   );

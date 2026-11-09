@@ -17,12 +17,12 @@ const ROLES: { value: Role; label: string; desc: string }[] = [
   {
     value: "participant",
     label: "참여자",
-    desc: "가격이 원하는 수준에 도달하면 손을 들어 낙찰받을 수 있어요. (회원가입 및 로그인 필요)",
+    desc: "가격이 원하는 수준에 도달하면 손을 들어 구매할 수 있어요. (회원가입 및 로그인 필요)",
   },
   {
     value: "spectator",
     label: "관전자",
-    desc: "라이브를 지켜보고 채팅에 계속 참여할 수 있어요. 낙찰은 받을 수 없어요",
+    desc: "라이브를 지켜보고 채팅에 계속 참여할 수 있어요. 구매는 할 수 없어요",
   },
 ];
 
@@ -145,7 +145,7 @@ export default function JoinPage() {
       <main className="min-h-screen bg-[#0f0f0f] flex flex-col px-4 pt-8 pb-12 max-w-md mx-auto">
         <HomeButton />
         <div className="mt-10 mb-6">
-          <h1 className="text-[22px] font-extrabold text-white leading-tight">낙찰을 축하합니다</h1>
+          <h1 className="text-[22px] font-extrabold text-white leading-tight">구매 확정을 축하합니다</h1>
           <p className="text-white/70 text-base mt-2">결제 가능 시간 안에 결제를 완료해주세요.</p>
         </div>
         <PendingWinBanner />
@@ -228,15 +228,15 @@ export default function JoinPage() {
                 <p className="text-white/55 text-sm mt-1 leading-snug">
                   {disabled
                     ? (status === "game"
-                        ? "경매가 진행 중입니다. 관전으로만 입장 가능합니다."
+                        ? "드랍이 진행 중입니다. 관전으로만 입장 가능합니다."
                         : status === "ended"
-                          ? "경매가 종료되어 참여자로 입장할 수 없습니다."
+                          ? "드랍이 종료되어 참여자로 입장할 수 없습니다."
                         : status === "starting" || status === "missedNoParticipants"
                           ? "참가 접수가 마감되어 참여자로 입장할 수 없습니다."
                         : status === "beforeJoinWindow"
-                          ? `경매 시작 ${state.config.joinLeadMinutes}분 전부터 참여자로 입장할 수 있습니다.`
+                          ? `드랍 시작 ${state.config.joinLeadMinutes}분 전부터 참여자로 입장할 수 있습니다.`
                         : status === "noSchedule"
-                          ? "예정된 경매가 없어 참여자로 입장할 수 없습니다."
+                          ? "예정된 드랍이 없어 참여자로 입장할 수 없습니다."
                           : "참여자로 입장하려면 로그인이 필요합니다.")
                     : desc}
                 </p>
