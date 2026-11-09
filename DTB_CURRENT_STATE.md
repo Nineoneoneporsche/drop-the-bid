@@ -117,8 +117,12 @@ Status owner: update at every meaningful development session
 - 회원가입의 (숨겨져 있던) 카드 입력 단계 삭제
 - 회귀 테스트: `tests/pgReadiness.test.ts`
 - 남은 일 (사용자):
-  - `help@dropthebid.com` 수신 불가 — dropthebid.com에 MX 레코드 없음 (DNS: 가비아). 메일 포워딩/메일 서비스 설정 필요
-  - 이미지 속 경매 표현 교체: `public/newmainimage.png`(AUCTION, 망치, BID NOW), `public/og-image.jpg`, `public/설명1~7.png`(낙찰 문구)
+  - `public/winner-animation.mp4`에 경매 요소가 있는지 확인
+- 완료 (2026-11-09):
+  - 홈 이미지 `public/main.png`(경매 요소 제거, 테두리 정리), 공유 이미지 `public/og-image-drop.jpg`(새 파일명으로 공유 캐시 회피)
+  - 게임/모의훈련 배경 영상 → `StageBackdrop`(main.png + 천천히 움직이는 효과). `newmainimage.png`, `gamepagevideo.mp4`, `og-image.jpg` 삭제
+  - 게임방법 슬라이드 `public/설명1~7.png` 재제작: 실제 화면을 백엔드 모킹으로 렌더링(운영 DB 접속 없음), 1번·6번 제목 변경
+  - `help@dropthebid.com` 수신: 가비아 DNS에 ImprovMX MX 2개 + SPF TXT 추가, Gmail 전달 확인 (Gmail 필터: 스팸 분류 안 함)
 
 ---
 

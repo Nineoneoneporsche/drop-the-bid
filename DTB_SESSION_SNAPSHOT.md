@@ -1,30 +1,27 @@
 # DTB Session Snapshot
 
-Generated: 2026-11-09 15:14:04 +0900
+Generated: 2026-11-09 15:32:45 +0900
 
 ## Git
 
 ```text
 branch: preview/pg-readiness
-head: fff14f74f658e7a7b946c5b0449c6a5586c13fb0
+head: 8885f66f05761ae685a62e1e0942ac8df82d5f59
 
 [status]
+ M DTB_CURRENT_STATE.md
  M DTB_SESSION_SNAPSHOT.md
- M app/globals.css
- M app/join/layout.tsx
- M app/layout.tsx
- M app/page.tsx
- M app/practice/page.tsx
- M app/strategy/page.tsx
-D  public/gamepagevideo.mp4
-D  public/newmainimage.png
-RM public/og-image.jpg -> public/og-image-drop.jpg
- M tests/pgReadiness.test.ts
-?? app/components/StageBackdrop.tsx
-?? public/main.png
+ M "public/\354\204\244\353\252\2051.png"
+ M "public/\354\204\244\353\252\2052.png"
+ M "public/\354\204\244\353\252\2053.png"
+ M "public/\354\204\244\353\252\2054.png"
+ M "public/\354\204\244\353\252\2055.png"
+ M "public/\354\204\244\353\252\2056.png"
+ M "public/\354\204\244\353\252\2057.png"
 
 [recent commits]
-fff14f7 (HEAD -> preview/pg-readiness, origin/preview/pg-readiness) Prepare site for PG review: drop/purchase wording, legal pages, business footer
+8885f66 (HEAD -> preview/pg-readiness, origin/preview/pg-readiness) Replace auction artwork with drop-themed stage art
+fff14f7 Prepare site for PG review: drop/purchase wording, legal pages, business footer
 8741083 (origin/preview/m4a-payment-safety, preview/m4a-payment-safety) docs: M4 결제 안전성 작업 상태 체크포인트
 ed9c842 Merge remote-tracking branch 'origin/main' into preview/m4a-payment-safety
 8754020 (origin/main, origin/HEAD) 연속성 시스템 병합 후 저장소 체크포인트 문구 정리
@@ -33,24 +30,20 @@ f9c412e Add admin payment refund management
 3a74bdf Add durable payment cancellation ledger
 9e9116a Add payment reconciliation recheck flow
 40a5a13 Fix reconciliation payment recheck flow
-35701fb (main) Harden Toss payment confirmation
 ```
 
 ## Changed files vs HEAD
 
 ```text
+M	DTB_CURRENT_STATE.md
 M	DTB_SESSION_SNAPSHOT.md
-M	app/globals.css
-M	app/join/layout.tsx
-M	app/layout.tsx
-M	app/page.tsx
-M	app/practice/page.tsx
-M	app/strategy/page.tsx
-D	public/gamepagevideo.mp4
-D	public/newmainimage.png
-A	public/og-image-drop.jpg
-D	public/og-image.jpg
-M	tests/pgReadiness.test.ts
+M	"public/\354\204\244\353\252\2051.png"
+M	"public/\354\204\244\353\252\2052.png"
+M	"public/\354\204\244\353\252\2053.png"
+M	"public/\354\204\244\353\252\2054.png"
+M	"public/\354\204\244\353\252\2055.png"
+M	"public/\354\204\244\353\252\2056.png"
+M	"public/\354\204\244\353\252\2057.png"
 ```
 
 ## Environment variable names only
