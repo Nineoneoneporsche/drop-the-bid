@@ -56,6 +56,7 @@ describe("legal texts", () => {
     expect(REFUND_POLICY).toContain(BUSINESS_INFO.address);
     expect(REFUND_POLICY).toContain("영업일 기준 2일 이내에 출고");
     expect(REFUND_POLICY).toContain("결제일로부터 7일 이내 도착");
+    expect(REFUND_POLICY).toContain("배송비: 무료");
   });
   it("privacy policy names the processors and the privacy officer", () => {
     for (const s of ["토스페이먼츠", "Supabase", "Vercel", "Cloudflare", "국외 이전", BUSINESS_INFO.privacyOfficer]) expect(PRIVACY_POLICY).toContain(s);
