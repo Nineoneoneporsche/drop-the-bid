@@ -19,15 +19,6 @@ import { formatCountdown, joinWindowRemaining, parseScheduledStart, secondsUntil
 import { nextSawLiveAuction, WINNER_VIDEO_ENABLED, winnerRevealMode } from "../lib/winnerReveal";
 import StageBackdrop from "../components/StageBackdrop";
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 // Responsive nickname sizing so long nicknames never clip on the LED reveal.
 function nicknameFontSize(nickname: string): string {
   // Scaled to 60% of the original clamp() values (40% smaller) at the
@@ -46,115 +37,13 @@ const NICKNAME_REVEAL_DELAY_MS = 350;
 const PRICE_COUNTDOWN_START_MS = 500;
 const PRICE_COUNTDOWN_DURATION_MS = 850;
 
-// ── Pre-game lounge messages ─────────────────────────────────────────────────
-const LOUNGE_MESSAGES: { nickname: string; message: string }[] = [
-  { nickname: "쇼핑고수",    message: "드디어 시작이네요 🎉" },
-  { nickname: "라이브팬",    message: "오늘 기대 많이 됩니다!" },
-  { nickname: "득템요정",    message: "이거 꼭 갖고 싶었어요!" },
-  { nickname: "설레는밤",    message: "두근두근 떨려요" },
-  { nickname: "행운아123",   message: "드디어!" },
-  { nickname: "기다렸다",    message: "기다렸던 라이브예요 ㅎㅎ" },
-  { nickname: "운좋을듯",    message: "오늘 운 좋을 것 같아요!" },
-  { nickname: "happy_live",  message: "설레네요 진짜로" },
-  { nickname: "라이브킹",    message: "오오오 시작한다!" },
-  { nickname: "알람설정완료", message: "이거 보려고 알람 맞춰뒀어요" },
-  { nickname: "드디어왔다",  message: "드디어 왔네요 ㅋㅋ" },
-  { nickname: "꼭가져간다",  message: "오늘 꼭 가져갑니다!" },
-  { nickname: "짜릿해요",    message: "짜릿하다~" },
-  { nickname: "설거지중달려옴", message: "라이브 켜놓고 설거지 하다 달려왔어요 ㅋㅋ" },
-  { nickname: "느낌좋아",    message: "오늘 뭔가 될 것 같은 느낌적 느낌" },
-  { nickname: "빨리빨리",    message: "빨리 시작하죠" },
-  { nickname: "언제해요",    message: "언제 시작해요?" },
-  { nickname: "1분이영원",   message: "1분이 이렇게 길 줄이야" },
-  { nickname: "내려가라",    message: "얼른 가격 내려가라" },
-  { nickname: "초조해요",    message: "초조하네요" },
-  { nickname: "기다리기힘들어", message: "기다리는 거 힘들다" },
-  { nickname: "와이파이확인3회", message: "와이파이 확인 3번 함 ㅋㅋ" },
-  { nickname: "배터리100",   message: "폰 배터리 100% 충전하고 왔어요 ㅋ" },
-  { nickname: "준비운동중",  message: "손가락 준비운동 중입니다 ㅋㅋ" },
-  { nickname: "좋은가격나올듯", message: "오늘 좋은 가격 나올 것 같아요" },
-  { nickname: "분위기좋다",  message: "오늘 분위기 좋네요" },
-  { nickname: "같이즐겨요",  message: "다같이 즐겨봐요 ㅎㅎ" },
-  { nickname: "화이팅123",   message: "다들 화이팅이에요!" },
-  { nickname: "얼마까지갈까", message: "이거 어디까지 내려갈까요" },
-  { nickname: "신중하게",    message: "신중하게 가야죠" },
-  { nickname: "타이밍중요",  message: "타이밍이 중요하겠네요" },
-  { nickname: "처음이에요ㅋ", message: "ㅋㅋㅋㅋ 오늘 처음 해봅니다" },
-  { nickname: "채팅재밌다",  message: "채팅창 은근 재밌네요 ㅋㅋ" },
-  { nickname: "숨참는중",    message: "다들 숨참고 계시는 거 알아요 ㅋㅋ" },
-  { nickname: "심장입으로",  message: "심장이 입으로 나올 것 같아 ㅋㅋ" },
-  { nickname: "아이아빠",    message: "아이가 좋아할 것 같아요" },
-  { nickname: "딸맘",        message: "딸이 엄청 갖고 싶어 했어요" },
-  { nickname: "아이패드팬",  message: "아이가 iPad 갖고 싶다고 해서 왔어요" },
-  { nickname: "아이선물",    message: "아이한테 서프라이즈로 주고 싶어요" },
-  { nickname: "솔직히비싸",  message: "89만원이면 솔직히 비싸긴 하죠" },
-  { nickname: "55만되면바로", message: "55만원 나오면 바로요 ㅋ" },
-  { nickname: "최저가도전",  message: "최저가 도전 중" },
-  { nickname: "가성비파",    message: "가성비 파라 부릅니다" },
-  { nickname: "아이패드탐나", message: "iPad Air 진짜 탐나네요" },
-  { nickname: "오늘첫도전",  message: "처음이라 긴장되네요" },
-  { nickname: "첫참여자",    message: "첫 참여입니다 잘 부탁드려요" },
-  { nickname: "사람많다",    message: "생각보다 사람 많네요" },
-  { nickname: "신기한쇼핑",  message: "신기한 쇼핑 방식이네요" },
-  { nickname: "재밌네요",    message: "이거 생각보다 재밌어요" },
-  { nickname: "구경꾼99",    message: "구경만 하다 채팅 합니다 ㅋ" },
-  { nickname: "라이브러버",  message: "라이브 쇼핑 너무 좋아요" },
-];
-
-// ── In-game rapid chat ────────────────────────────────────────────────────────
-const RAPID_CHATS = shuffle([
-  { nickname: "관전자K",    message: "아직 아무도 안 눌렀네" },
-  { nickname: "두근두근",   message: "손이 떨려요 ㅋㅋ" },
-  { nickname: "긴장맥스",   message: "심장 쫄깃쫄깃" },
-  { nickname: "뚝심파",     message: "버텨버텨버텨" },
-  { nickname: "관전러88",   message: "와 진짜 안 눌러요?" },
-  { nickname: "눈치게임",   message: "지금 다들 숨참고 있는 거 알잖아요" },
-  { nickname: "라이브덕후", message: "이런 분위기 너무 좋다 ㅋㅋ" },
-  { nickname: "조용히봄",   message: "..." },
-  { nickname: "긴장자",     message: "누가 먼저 누를 것 같아요?" },
-  { nickname: "관전자K",    message: "저도 참가할걸 그랬나" },
-  { nickname: "두근두근",   message: "지금 가격 실화임?" },
-  { nickname: "뚝심파",     message: "조금만 더 조금만 더" },
-  { nickname: "눈치게임",   message: "눈치 싸움 ㄷㄷ" },
-  { nickname: "라이브덕후", message: "이 긴장감이 진짜 묘미죠" },
-  { nickname: "관전러88",   message: "으악 빨리빨리" },
-  { nickname: "조용히봄",   message: "제발 제발..." },
-  { nickname: "긴장맥스",   message: "저면 지금 당장 눌렀을 것 같은데 ㅋ" },
-  { nickname: "뚝심파",     message: "단합 단합!!" },
-  { nickname: "관전자K",    message: "이거 얼마까지 내려갈 수 있는 거예요?" },
-  { nickname: "두근두근",   message: "손가락이 저절로 가려고 해요 㠠" },
-]);
-
-// ── In-game chat events (price threshold %) ───────────────────────────────────
-const CHAT_EVENTS = [
-  { threshold: 97, nickname: "버티기대장", message: "자 오늘 목표가 얼마까지예요? 저는 최소 70만원까지는 버텨볼 거예요" },
-  { threshold: 95, nickname: "신중한민수", message: "저는 75만원 선을 생각하고 있어요. 거기까지면 꽤 좋은 가격이죠" },
-  { threshold: 93, nickname: "빠른손99",   message: "솔직히 80만원에 눌러도 이미 괜찮지 않나요? 11% 할인인데..." },
-  { threshold: 91, nickname: "버티기대장", message: "80만원은 너무 아까워요. 다 같이 버티면 분명히 더 내려가요. 조금만 참아요" },
-  { threshold: 89, nickname: "구경꾼A",    message: "이 채팅방 분위기 보니까 오늘은 꽤 내려갈 것 같은데요" },
-  { threshold: 87, nickname: "의심많은B",  message: "근데 채팅 안 하는 사람들이 더 많잖아요. 그 사람들이 제일 무서운 거 아닌가요" },
-  { threshold: 85, nickname: "신중한민수", message: "맞아요... 저 포함해서 몇 명이 조용히 버티고 있는지 감도 안 와요" },
-  { threshold: 83, nickname: "버티기대장", message: "괜찮아요, 다들 믿어봐요. 여기서 흔들리면 안 돼요. 아직 한참 남았어요" },
-  { threshold: 81, nickname: "빠른손99",   message: "저는 믿는데... 근데 손이 벌써 조금씩 가고 있어요 ㅎ" },
-  { threshold: 79, nickname: "버티기대장", message: "드디어 71만원 밑으로 떨어졌어요! 여기서 누르는 사람은 없겠죠?" },
-  { threshold: 78, nickname: "구경꾼A",    message: "20% 할인에도 아무도 안 눌렀네요. 오늘 단합력 진짜 대단한데요" },
-  { threshold: 76, nickname: "의심많은B",  message: "단합력이라고 하기엔... 지금 이 순간에도 손가락 화면 위에 올려놓은 사람 있을 것 같은데요" },
-  { threshold: 74, nickname: "신중한민수", message: "지금 정확히 몇 퍼센트 할인인지 계산하기 귀찮아서요. 아시는 분 계세요?" },
-  { threshold: 72, nickname: "빠른손99",   message: "28% 할인이에요. 근데 솔직히 이 가격도 이미 충분하지 않나요? 저만 그런가요" },
-  { threshold: 70, nickname: "버티기대장", message: "충분하지 않아요!! 63만원까지는 같이 가봐요. 거기서 30% 할인이에요!" },
-  { threshold: 68, nickname: "의심많은B",  message: "다들 진짜 안 눌렀어요? 솔직하게요. 저만 혼자 버티고 있는 건 아니죠?" },
-  { threshold: 67, nickname: "구경꾼A",    message: "이 타이밍에 먼저 누르는 사람... 뭐라 하진 않겠지만 오래 기억할 것 같아요" },
-  { threshold: 66, nickname: "빠른손99",   message: "저 솔직히 말할게요. 지금 거의 한계예요. 이 가격 진짜 좋잖아요..." },
-  { threshold: 65, nickname: "버티기대장", message: "제발요ㅠ 조금만 더요. 58만원까지만! 거기서 35% 할인이에요" },
-  { threshold: 64, nickname: "신중한민수", message: "저도 손이 떨려요. 이게 심리전이구나 처음 실감하네요. 일단 버텨볼게요" },
-  { threshold: 63, nickname: "의심많은B",  message: "느낌이 이상해요. 누군가 아무 말 없이 조용히 누르려고 준비 중인 것 같아요" },
-  { threshold: 62, nickname: "버티기대장", message: "안 눌렀죠?? 아직 안 눌렀죠?? 제발 10초만요, 딱 10초만 더요!!" },
-  { threshold: 61, nickname: "빠른손99",   message: "저 진짜예요. 진짜 못 버티겠어요. 근데 아직 참고 있어요... 으으으" },
-];
-
+// The live drop shows only real participants' chat, narrator lines and the
+// admin's operator messages — no scripted fake-user chatter (it would stage
+// demand during a real purchase). /practice keeps its own scripted chat
+// (app/lib/trainingSim.ts) since that screen is a labelled simulation.
 const NARRATOR_EVENTS = [
   { threshold: 92, message: "경기 시작 — 참가자들이 숨죽이며 가격을 지켜보고 있습니다" },
-  { threshold: 79, message: "₩720,000 이하 진입 — 아직 아무도 구매하지 않았습니다" },
+  { threshold: 79, message: "20% 할인 구간 진입 — 아직 아무도 구매하지 않았습니다" },
   { threshold: 70, message: "30% 할인 구간 돌파 — 심리전이 본격화되고 있습니다" },
   { threshold: 65, message: "⚡ 35% 이상 할인 — 언제든 구매가 확정될 수 있습니다" },
   { threshold: 61, message: "🔥 최저가 근접 — 지금이 경기의 마지막 순간입니다" },
@@ -175,8 +64,6 @@ export default function StrategyPage() {
   const startAtMs = parseScheduledStart(state.config.gameStartTime);
   const [timeLeft, setTimeLeft] = useState(() => (startAtMs == null ? 0 : secondsUntil(startAtMs, getServerNow())));
   const [windowLeft, setWindowLeft] = useState(1);
-  const scheduleRef = useRef<Array<{ atSecond: number; nickname: string; message: string }>>([]);
-  const firedLoungeRef = useRef(new Set<number>());
 
   // Game phase
   const [raised, setRaised] = useState(false);
@@ -189,11 +76,8 @@ export default function StrategyPage() {
   const [showWatchConfirm, setShowWatchConfirm] = useState(false);
   const [showAuctionFailed, setShowAuctionFailed] = useState(false);
   const [tickFlash, setTickFlash] = useState(false);
-  const firedChatRef = useRef(new Set<number>());
   const firedNarratorRef = useRef(new Set<number>());
   const firedOperatorRef = useRef(new Set<number>());
-  const rapidChatRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const rapidIdxRef = useRef(0);
 
   // DROP ZONE entry sweep — brand mark slides in from the right, holds
   // center, exits left, once per NORMAL→FAST / FAST→FINAL transition.
@@ -295,53 +179,25 @@ export default function StrategyPage() {
     }
   }, [state.isLoaded, state.currentUser, state.phase, router, leaveGame]);
 
-  // ── Schedule lounge messages once ────────────────────────────────────────
-  useEffect(() => {
-    const pool = shuffle(LOUNGE_MESSAGES);
-    const sched: typeof scheduleRef.current = [];
-    let t = 1 + Math.floor(Math.random() * 3);
-    for (const item of pool) {
-      if (t >= 57) break;
-      sched.push({ atSecond: t, ...item });
-      t += 2 + Math.floor(Math.random() * 5);
-    }
-    scheduleRef.current = sched;
-  }, []);
-
   // ── Strategy countdown ───────────────────────────────────────────────────
   // Counts down to the scheduled start T (not to a fixed strategy length
   // from this user's entry), on the same server-adjusted clock as the live
   // price (app/lib/serverClock.ts) so the two never drift apart from each
-  // other, or from what other clients see. The scripted lounge chatter is
-  // paced from when this page was opened.
-  const mountedAtRef = useRef(getServerNow());
+  // other, or from what other clients see.
   useEffect(() => {
     if (state.phase !== "strategy" || startAtMs == null) return;
     const lead = state.config.joinLeadMinutes;
     const update = () => {
       const now = getServerNow();
-      const elapsed = Math.floor((now - mountedAtRef.current) / 1000);
       setTimeLeft(secondsUntil(startAtMs, now));
       setWindowLeft(joinWindowRemaining(startAtMs, lead, now));
-      scheduleRef.current.forEach((item, idx) => {
-        if (elapsed >= item.atSecond && !firedLoungeRef.current.has(idx)) {
-          firedLoungeRef.current.add(idx);
-          addLocalMessage({
-            id: `lounge-${idx}`,
-            nickname: item.nickname,
-            message: item.message,
-            kind: "chat",
-            timestamp: Date.now(),
-          });
-        }
-      });
     };
     update();
     const t = setInterval(update, 500);
     return () => clearInterval(t);
-  }, [state.phase, startAtMs, state.config.joinLeadMinutes, addLocalMessage]);
+  }, [state.phase, startAtMs, state.config.joinLeadMinutes]);
 
-  // ── Game tick flash + rapid chat ─────────────────────────────────────────
+  // ── Game tick flash ───────────────────────────────────────────────────
   useEffect(() => {
     if (state.phase !== "game" || isSequenceActive) return;
 
@@ -350,24 +206,10 @@ export default function StrategyPage() {
       setTimeout(() => setTickFlash(false), 220);
     }, 1000);
 
-    rapidIdxRef.current = 0;
-    rapidChatRef.current = setInterval(() => {
-      const msg = RAPID_CHATS[rapidIdxRef.current % RAPID_CHATS.length];
-      rapidIdxRef.current += 1;
-      addLocalMessage({
-        id: `rapid-${Date.now()}-${rapidIdxRef.current}`,
-        nickname: msg.nickname,
-        message: msg.message,
-        kind: "chat",
-        timestamp: Date.now(),
-      });
-    }, 3500);
-
     return () => {
       clearInterval(flashInterval);
-      if (rapidChatRef.current) clearInterval(rapidChatRef.current);
     };
-  }, [state.phase, isSequenceActive, addLocalMessage]);
+  }, [state.phase, isSequenceActive]);
 
   // ── DROP ZONE entry sweep ────────────────────────────────────────────────
   // dropStage only advances while phase === "game" (see GameContext's price
@@ -393,18 +235,6 @@ export default function StrategyPage() {
   useEffect(() => {
     if (state.phase !== "game" || !state.config.startPrice) return;
     const pct = Math.round((state.currentPrice / state.config.startPrice) * 100);
-    for (const evt of CHAT_EVENTS) {
-      if (pct <= evt.threshold && !firedChatRef.current.has(evt.threshold)) {
-        firedChatRef.current.add(evt.threshold);
-        addLocalMessage({
-          id: `chat-${evt.threshold}`,
-          nickname: evt.nickname,
-          message: evt.message,
-          kind: "chat",
-          timestamp: Date.now(),
-        });
-      }
-    }
     for (const evt of NARRATOR_EVENTS) {
       if (pct <= evt.threshold && !firedNarratorRef.current.has(evt.threshold)) {
         firedNarratorRef.current.add(evt.threshold);
@@ -444,7 +274,6 @@ export default function StrategyPage() {
   useEffect(() => {
     if (state.phase !== "game" || raised || showAuctionFailed || isSequenceActive || bidding) return;
     if (state.currentPrice <= state.config.floorPrice) {
-      if (rapidChatRef.current) { clearInterval(rapidChatRef.current); rapidChatRef.current = null; }
       setShowAuctionFailed(true);
     }
   }, [state.currentPrice, state.phase, raised, showAuctionFailed, state.config.floorPrice, bidding]);

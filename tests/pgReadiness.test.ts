@@ -101,3 +101,11 @@ describe("mypage app info", () => {
     expect(src.indexOf("이메일로 로그인")).toBeLessThan(src.indexOf('href="/signup"'));
   });
 });
+
+describe("live drop chat", () => {
+  it("shows no scripted fake-user chat (only real chat, narrator and operator messages)", () => {
+    const src = fs.readFileSync(path.join(ROOT, "app", "strategy", "page.tsx"), "utf8");
+    expect(src).not.toMatch(/LOUNGE_MESSAGES|RAPID_CHATS|CHAT_EVENTS|lounge-|rapid-/);
+    expect(src).not.toMatch(/₩720,000/);
+  });
+});
