@@ -92,4 +92,9 @@ describe("mypage app info", () => {
     expect(src).toContain('["문의", BUSINESS_INFO.customerEmail');
     expect(src).not.toMatch(/hello@dtb\.kr|Drop The Bid Team/);
   });
+  it("email login sits above the signup button (reviewer test accounts log in by email)", () => {
+    const src = fs.readFileSync(path.join(ROOT, "app", "mypage", "page.tsx"), "utf8");
+    expect(src).toContain("이메일로 로그인");
+    expect(src.indexOf("이메일로 로그인")).toBeLessThan(src.indexOf('href="/signup"'));
+  });
 });

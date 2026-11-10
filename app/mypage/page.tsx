@@ -158,16 +158,12 @@ function LoggedOut() {
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
-          <Link href="/signup" className="block w-full py-4 text-white font-semibold text-base text-center bid-btn-purple rounded-xl mb-3">
-            회원가입
-          </Link>
-
           {!showLogin ? (
             <button
               onClick={() => setShowLogin(true)}
-              className="w-full py-3 text-white/50 text-base border border-white/12 rounded-xl transition-colors hover:border-white/25"
+              className="w-full py-3 text-white/80 text-base border border-white/25 rounded-xl transition-colors hover:border-white/40"
             >
-              이미 계정이 있나요? 로그인
+              이메일로 로그인
             </button>
           ) : (
             <div className="step-enter text-left mt-1">
@@ -250,6 +246,11 @@ function LoggedOut() {
               )}
             </div>
           )}
+
+          {/* 이메일 로그인(기존 계정·심사용 계정)이 회원가입 버튼에 묻히지 않게 회원가입은 맨 아래 */}
+          <Link href="/signup" className="block w-full py-4 text-white font-semibold text-base text-center bid-btn-purple rounded-xl mt-3">
+            회원가입
+          </Link>
         </div>
 
         {/* App info */}
