@@ -10,6 +10,7 @@ import { hasOrderForAuctionWin } from "../lib/winOrder";
 import { fetchMyCurrentWin, type ClientAuctionWin, type WinLookupClient } from "../lib/auctionWin";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_FIELD_LABELS, type ShippingInfo } from "../lib/shipping";
 import { checkTossClientKey } from "../lib/tossEnv";
+import { resolvePaymentProvider } from "../lib/paymentProvider";
 
 // No built-in key (M4-A): without a well-formed NEXT_PUBLIC_TOSS_CLIENT_KEY
 // the Toss SDK is never started (see handlePay()). NEXT_PUBLIC_* values are
@@ -18,6 +19,10 @@ import { checkTossClientKey } from "../lib/tossEnv";
 // production, test elsewhere); either way /api/payment/confirm re-checks
 // both keys against VERCEL_ENV and approves nothing on a mismatch. The key
 // itself is never shown or logged.
+// "none" (default — no gateway contracted): no pay button, the Toss SDK is
+// never loaded. See lib/paymentProvider.ts.
+const PAYMENTS_OPEN = resolvePaymentProvider() === "toss";
+
 const TOSS_CLIENT = checkTossClientKey(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY, process.env.NEXT_PUBLIC_VERCEL_ENV);
 
 // Launch policy: one option — Toss's CARD 통합결제창, where the buyer
@@ -123,7 +128,7 @@ export default function PaymentPage() {
   // server-side before Toss is contacted.
   const missingShipping = profile ? missingShippingFields(profile) : null;
   const shippingComplete = missingShipping !== null && missingShipping.length === 0;
-  const canPay = agreed && !expired && !paying && !!win && PRICE > 0 && shippingComplete;
+  const canPay = PAYMENTS_OPEN && agreed && !expired && !paying && !!win && PRICE > 0 && shippingComplete;
 
   async function handlePay() {
     if (!canPay || !win) return;
@@ -277,9 +282,13 @@ export default function PaymentPage() {
                   <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
                 </svg>
               </div>
-              <span className="flex-1 text-base font-semibold text-white">{PAY_METHOD_LABEL}</span>
+              <span className="flex-1 text-base font-semibold text-white">{PAYMENTS_OPEN ? PAY_METHOD_LABEL : "결제 수단 준비 중"}</span>
             </div>
-            <p className="text-white/35 text-xs pt-1">토스페이먼츠 결제창에서 카드 또는 간편결제를 선택해 결제합니다.</p>
+            <p className="text-white/35 text-xs pt-1">
+              {PAYMENTS_OPEN
+                ? "결제창에서 카드 또는 간편결제를 선택해 결제합니다."
+                : "현재 결제 수단을 준비하고 있어 온라인 결제를 진행할 수 없습니다. 구매 건은 고객센터로 문의해주세요."}
+            </p>
           </div>
         </div>
 
@@ -350,9 +359,9 @@ export default function PaymentPage() {
               </svg>
               결제창 열리는 중...
             </>
-          ) : `${fmt(PRICE)} 결제하기`}
+          ) : PAYMENTS_OPEN ? `${fmt(PRICE)} 결제하기` : "결제 준비 중"}
         </button>
-        {!agreed && !expired && shippingComplete && <p className="text-center text-white/55 text-xs mt-2">동의 후 결제 가능합니다.</p>}
+        {PAYMENTS_OPEN && !agreed && !expired && shippingComplete && <p className="text-center text-white/55 text-xs mt-2">동의 후 결제 가능합니다.</p>}
         {!expired && !shippingComplete && <p className="text-center text-white/55 text-xs mt-2">배송지 정보를 등록한 후 결제 가능합니다.</p>}
         {expired && <p className="text-center text-red-400 text-xs mt-2">결제 가능 시간이 만료되었습니다.</p>}
       </div>

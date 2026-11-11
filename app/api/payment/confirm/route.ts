@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { checkPaymentDeadline, PAYMENT_WINDOW_EXPIRED } from "../../../lib/paymentWindow";
 import { missingShippingFields, shippingFromMetadata, SHIPPING_INFO_REQUIRED } from "../../../lib/shipping";
-import { ACTIVE_ATTEMPT_STATUSES, ALREADY_PAID, PAYMENT_CONFIG_ERROR, PAYMENT_IN_PROGRESS } from "../../../lib/paymentCodes";
+import { ACTIVE_ATTEMPT_STATUSES, ALREADY_PAID, PAYMENT_CONFIG_ERROR, PAYMENT_NOT_AVAILABLE, PAYMENT_IN_PROGRESS } from "../../../lib/paymentCodes";
 import { AUTH_REQUIRED, AUTH_SESSION_INVALID } from "../../../lib/confirmWithAuthRecovery";
 import { isWinId } from "../../../lib/auctionWin";
 import { resolveTossServerConfig } from "../../../lib/tossEnv";
+import { resolvePaymentProvider } from "../../../lib/paymentProvider";
 import { paymentSummary } from "../../../lib/tossClient";
 import {
   applyVerdict, isRecheckable, markAttempt, recheckReconciliation, refuse, RESPONSE_NEEDS_REVIEW, RESPONSE_UNAVAILABLE,
@@ -44,6 +45,8 @@ const RESERVE_REFUSALS: Record<string, () => NextResponse> = {
 };
 
 export async function POST(req: NextRequest) {
+  // No gateway contracted (see lib/paymentProvider.ts): approve and look up nothing.
+  if (resolvePaymentProvider() !== "toss") return refuse(PAYMENT_NOT_AVAILABLE, 503);
   // Keys first: no fallback key exists, and a wrong-mode key (test keys in
   // production, live keys anywhere else) refuses every approval. Only the
   // failed check is logged, never a key.

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { PAYMENT_CONFIG_ERROR } from "../../../lib/paymentCodes";
+import { PAYMENT_CONFIG_ERROR, PAYMENT_NOT_AVAILABLE } from "../../../lib/paymentCodes";
 import { resolveTossServerConfig } from "../../../lib/tossEnv";
+import { resolvePaymentProvider } from "../../../lib/paymentProvider";
 import { recheckReconciliation, refuse, RESPONSE_UNAVAILABLE, type AuctionWin } from "../../../lib/paymentSettle";
 
 // "결제 상태 확인" on /mypage, for the signed-in user's own
@@ -75,6 +76,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // No gateway contracted (see lib/paymentProvider.ts): approve and look up nothing.
+  if (resolvePaymentProvider() !== "toss") return refuse(PAYMENT_NOT_AVAILABLE, 503);
   const toss = resolveTossServerConfig();
   if (!toss.ok) {
     console.error("[payment/recheck] Toss key configuration refused — no lookup", { reason: toss.reason, vercelEnv: toss.vercelEnv });
