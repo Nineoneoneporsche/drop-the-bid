@@ -41,7 +41,7 @@ type Order = DisplayOrder;
 const MENU = [
   { label: "이용방법",     href: "/guide"     },
   { label: "구매 체험",    href: "/practice"  },
-  { label: "타이밍 훈련소",  href: "/mini-game" },
+  { label: "드랍 일정",    href: "/drops"     },
   { label: "지난결과보기", href: "/results"   },
 ];
 

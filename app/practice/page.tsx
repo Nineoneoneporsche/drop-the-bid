@@ -217,7 +217,7 @@ export default function PracticePage() {
               <p className="text-white/90 text-base font-semibold leading-snug line-clamp-1">
                 {TRAINING_CONFIG.productName}
               </p>
-              <p className="text-xs font-semibold tabular-nums mt-1" style={{ color: "#c084fc" }}>정가 {fmt(start)}</p>
+              <p className="text-xs font-semibold tabular-nums mt-1" style={{ color: "#c084fc" }}>시작가 {fmt(start)}</p>
             </div>
           </div>
         </div>

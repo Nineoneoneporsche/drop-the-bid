@@ -93,7 +93,6 @@ const ACTIVE_PAYMENT_SCREENS: Record<string, { label: string; title: string; bod
 // Display fallback only — the order's product_name is written server-side
 // from auction_wins; Toss's response echoes it back as orderName.
 const PRODUCT_NAME = "Apple iPad Air 11형 Wi-Fi 128GB";
-const RETAIL_PRICE = 899_000;
 function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
 
 function getTodayPlus(days: number) {
@@ -334,7 +333,6 @@ function SuccessInner() {
           <div>
             <p className="text-white/80 text-base font-semibold leading-snug">{productName}</p>
             <p className="text-[#c084fc] font-extrabold text-xl tabular-nums mt-1">{fmt(amount)}</p>
-            <p className="text-white/45 text-xs mt-0.5 line-through">정가 {fmt(RETAIL_PRICE)}</p>
           </div>
         </div>
         <div className="px-4 py-4 space-y-2.5">
@@ -351,15 +349,6 @@ function SuccessInner() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Savings highlight */}
-      <div className="bg-[#a855f7]/8 border border-[#a855f7]/20 px-4 py-3.5 mb-6 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-[#c084fc] font-semibold uppercase tracking-wider mb-0.5">절약 금액</p>
-          <p className="text-white/70 text-xs">정가 대비 아낀 금액</p>
-        </div>
-        <p className="text-[#c084fc] font-extrabold text-xl tabular-nums">{fmt(RETAIL_PRICE - amount)}</p>
       </div>
 
       {/* Actions */}

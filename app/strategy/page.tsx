@@ -797,7 +797,7 @@ export default function StrategyPage() {
               <p className="text-white/90 text-base font-semibold leading-snug line-clamp-1">
                 {state.config.productName}
               </p>
-              <p className="text-xs font-semibold tabular-nums mt-1" style={{ color: "#c084fc" }}>정가 {formatKRW(start)}</p>
+              <p className="text-xs font-semibold tabular-nums mt-1" style={{ color: "#c084fc" }}>시작가 {formatKRW(start)}</p>
             </div>
           </div>
         </div>

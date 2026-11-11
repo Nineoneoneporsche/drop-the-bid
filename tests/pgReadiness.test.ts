@@ -171,3 +171,28 @@ describe("구매 체험 (/practice)", () => {
     expect(page).not.toContain("실제 드랍과 동일하게");
   });
 });
+
+describe("드랍 일정 (catalog)", () => {
+  const read = (p: string) => fs.readFileSync(path.join(ROOT, p), "utf8");
+  it("lists at least 3 products, each with a list price and every 상품정보 제공고시 field", async () => {
+    const { DROP_CATALOG } = await import("../app/lib/dropCatalog");
+    expect(DROP_CATALOG.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(DROP_CATALOG.map((p) => p.id)).size).toBe(DROP_CATALOG.length);
+    const labels = ["품명 및 모델명", "KC 인증정보", "정격전압·소비전력", "출시년월", "제조자(수입자)", "제조국", "크기·무게", "품질보증기준", "A/S 책임자와 전화번호"];
+    for (const p of DROP_CATALOG) {
+      expect(p.retailPrice).toBeGreaterThan(0);
+      expect(p.notice.map((f) => f.label)).toEqual(labels);
+      if (p.image) expect(fs.existsSync(path.join(ROOT, "public", p.image))).toBe(true);
+    }
+  });
+  it("bottom nav shows 드랍 일정 instead of the mini game", () => {
+    const nav = read("app/components/BottomNav.tsx");
+    expect(nav).toContain('href: "/drops"');
+    expect(nav).not.toMatch(/mini-game|미니게임/);
+  });
+  it("start price is labelled 시작가, and no page hardcodes a 정가", () => {
+    for (const f of ["app/page.tsx", "app/strategy/page.tsx", "app/practice/page.tsx", "app/payment/page.tsx", "app/payment/success/page.tsx"]) {
+      expect(read(f)).not.toMatch(/정가 \{formatKRW\(start\)\}|정가 \{fmt\(start\)\}|정가 ₩|RETAIL_PRICE/);
+    }
+  });
+});

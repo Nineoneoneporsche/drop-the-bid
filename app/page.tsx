@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { useGame, formatKRW } from "./context/GameContext";
 import { ProductThumb } from "./components/ProductImage";
 import BottomNav from "./components/BottomNav";
 import SiteFooter from "./components/SiteFooter";
 import PendingWinBanner from "./components/PendingWinBanner";
+import CatalogThumb from "./components/CatalogThumb";
+import { DROP_CATALOG } from "./lib/dropCatalog";
 import { getServerNow } from "./lib/serverClock";
 import { homeCta, parseScheduledStart, scheduleStatus, secondsUntil, showLive } from "./lib/auctionSchedule";
 
@@ -239,7 +242,7 @@ export default function HomePage() {
               {state.config.productName}
             </p>
             <p className="text-white text-sm tabular-nums mt-1">
-              정가 {formatKRW(start)}
+              시작가 {formatKRW(start)}
             </p>
           </div>
         </div>
@@ -289,6 +292,31 @@ export default function HomePage() {
           )}
         </div>
 
+
+        {/* 예정된 드랍 — the catalog (lib/dropCatalog.ts), so the home page
+            shows the store's product lineup, not just today's drop. */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs uppercase tracking-[0.16em] text-white/60 font-medium">예정된 드랍</p>
+            <Link href="/drops" className="text-xs text-white/55">전체 보기</Link>
+          </div>
+          <div className="flex flex-col gap-2">
+            {DROP_CATALOG.slice(0, 3).map((item) => (
+              <Link
+                key={item.id}
+                href={`/drops/${item.id}`}
+                className="flex items-center gap-3 px-3 py-2.5"
+                style={{ background: "rgba(255,255,255,0.03)", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" }}
+              >
+                <CatalogThumb item={item} size={44} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-semibold leading-snug line-clamp-1">{item.name}</p>
+                  <p className="text-white/55 text-xs tabular-nums mt-0.5">정가 {formatKRW(item.retailPrice)} · {item.scheduleLabel.replace("드랍 예정 · ", "")}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
 
       <SiteFooter withBottomNav />

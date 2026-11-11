@@ -254,7 +254,7 @@ export default function PaymentPage() {
             <ProductThumb alt={PRODUCT_NAME} size={80} rounded="rounded-sm" />
             <div className="flex-1 min-w-0">
               <p className="text-white/70 text-base font-semibold leading-snug">{PRODUCT_NAME}</p>
-              <p className="text-white/55 text-xs mt-1">정가 ₩899,000</p>
+              {win && <p className="text-white/55 text-xs mt-1">시작가 {fmt(win.start_price)}</p>}
               <p className="text-[#c084fc] font-extrabold text-2xl tabular-nums mt-1 leading-none">{fmt(PRICE)}</p>
             </div>
           </div>
