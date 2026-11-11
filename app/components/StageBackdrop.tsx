@@ -7,7 +7,7 @@ import type { CSSProperties } from "react";
 export default function StageBackdrop({ opacity, objectPosition = "center top" }: { opacity?: number; objectPosition?: CSSProperties["objectPosition"] }) {
   return (
     <Image
-      src="/main.png"
+      src="/finalmainimage.png"
       alt=""
       aria-hidden
       fill

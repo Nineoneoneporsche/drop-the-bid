@@ -53,7 +53,7 @@ export default function HomePage() {
       <div className="relative flex-shrink-0" style={{ height: "52vh" }}>
 
         <Image
-          src="/main.png"
+          src="/finalmainimage.png"
           alt="Drop The Bid"
           fill
           priority

@@ -89,12 +89,13 @@ describe("SiteFooter", () => {
 describe("auction-free imagery", () => {
   it("home hero, OG image and stage backdrop point at the new art; old auction art is gone", () => {
     const read = (p: string) => fs.readFileSync(path.join(ROOT, p), "utf8");
-    expect(read("app/page.tsx")).toContain('src="/main.png"');
-    expect(read("app/components/StageBackdrop.tsx")).toContain('src="/main.png"');
-    for (const f of ["app/layout.tsx", "app/join/layout.tsx"]) expect(read(f)).toContain("/og-image-drop.jpg");
-    for (const p of ["public/main.png", "public/og-image-drop.jpg"]) expect(fs.existsSync(path.join(ROOT, p))).toBe(true);
-    for (const p of ["public/newmainimage.png", "public/gamepagevideo.mp4", "public/og-image.jpg"]) expect(fs.existsSync(path.join(ROOT, p))).toBe(false);
-    for (const f of consumerSourceFiles(path.join(ROOT, "app"))) expect(read(path.relative(ROOT, f))).not.toMatch(/newmainimage|gamepagevideo|\/og-image\.jpg/);
+    expect(read("app/page.tsx")).toContain('src="/finalmainimage.png"');
+    expect(read("app/components/StageBackdrop.tsx")).toContain('src="/finalmainimage.png"');
+    for (const f of ["app/layout.tsx", "app/join/layout.tsx"]) expect(read(f)).toContain("/og-image-main.jpg");
+    for (const p of ["public/finalmainimage.png", "public/og-image-main.jpg"]) expect(fs.existsSync(path.join(ROOT, p))).toBe(true);
+    // main.png / og-image-drop.jpg had a ₩899,000 -> ₩405,000 board, a TIME LEFT countdown and a club crowd.
+    for (const p of ["public/main.png", "public/og-image-drop.jpg", "public/newmainimage.png", "public/gamepagevideo.mp4", "public/og-image.jpg"]) expect(fs.existsSync(path.join(ROOT, p))).toBe(false);
+    for (const f of consumerSourceFiles(path.join(ROOT, "app"))) expect(read(path.relative(ROOT, f))).not.toMatch(/newmainimage|gamepagevideo|\/og-image\.jpg|\/main\.png|og-image-drop/);
   });
 });
 

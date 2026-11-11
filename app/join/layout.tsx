@@ -15,13 +15,13 @@ export const metadata: Metadata = {
     url: "/join",
     siteName: "드랍더비드",
     type: "website",
-    images: [{ url: "/og-image-drop.jpg", width: 1200, height: 630, alt: TITLE }],
+    images: [{ url: "/og-image-main.jpg", width: 1200, height: 630, alt: TITLE }],
   },
   twitter: {
     card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
-    images: ["/og-image-drop.jpg"],
+    images: ["/og-image-main.jpg"],
   },
 };
 
