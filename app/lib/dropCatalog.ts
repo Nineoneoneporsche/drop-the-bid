@@ -18,7 +18,11 @@ export type CatalogItem = {
   brand: string;
   category: string;
   icon: string;            // material symbol shown when there is no photo
-  image: string | null;    // /public path; null until a real product photo exists
+  image: string | null;    // /public path; null shows the category icon
+  // Where the image came from. Manufacturer images are used provisionally
+  // (no license yet) and must be replaced with own photos or licensed
+  // images before/at launch — see imageSource for what to swap.
+  imageSource: string | null;
   retailPrice: number;
   retailPriceSource: string;
   scheduleLabel: string;   // honest schedule text — "일정 미정" until a date is set
@@ -38,6 +42,7 @@ export const DROP_CATALOG: CatalogItem[] = [
     category: "태블릿",
     icon: "tablet_mac",
     image: "/product.png",
+    imageSource: "기존 사이트 이미지 (출처 확인 필요)",
     retailPrice: 1_249_000,
     retailPriceSource: "Apple 공식 온라인 스토어 판매가 (M4, 2026-11-11 확인)",
     scheduleLabel: "드랍 예정 · 일정 미정",
@@ -60,7 +65,8 @@ export const DROP_CATALOG: CatalogItem[] = [
     brand: "Apple",
     category: "이어폰",
     icon: "headphones",
-    image: null,
+    image: "/products/airpods-pro-3.png",
+    imageSource: "Apple 공식 온라인 스토어 상품 이미지 (임시 사용, 2026-11-11)",
     retailPrice: 369_000,
     retailPriceSource: "Apple 공식 온라인 스토어 판매가 (2026-11-11 확인)",
     scheduleLabel: "드랍 예정 · 일정 미정",
@@ -83,7 +89,8 @@ export const DROP_CATALOG: CatalogItem[] = [
     brand: "Apple",
     category: "스마트워치",
     icon: "watch",
-    image: null,
+    image: "/products/apple-watch-series-11.png",
+    imageSource: "Apple Newsroom 보도 이미지 (임시 사용, 2026-11-11)",
     retailPrice: 599_000,
     retailPriceSource: "Apple 국내 출고가 (2025년 9월 출시 기준)",
     scheduleLabel: "드랍 예정 · 일정 미정",
@@ -106,7 +113,8 @@ export const DROP_CATALOG: CatalogItem[] = [
     brand: "Dyson",
     category: "헤어 스타일러",
     icon: "air",
-    image: null,
+    image: "/products/dyson-airwrap-coanda-2x.png",
+    imageSource: "다이슨코리아 공식몰 상품 이미지 (임시 사용, 2026-11-11)",
     retailPrice: 879_000,
     retailPriceSource: "다이슨 권장소비자가 (2026년 6월 출시 기준)",
     scheduleLabel: "드랍 예정 · 일정 미정",

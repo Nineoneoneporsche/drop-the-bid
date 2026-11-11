@@ -30,8 +30,9 @@ export default async function DropItemPage({ params }: { params: Promise<{ id: s
           <Link href="/drops" className="text-white/55 text-sm">드랍 일정 전체</Link>
         </div>
 
-        <div className="flex justify-center mb-5">
+        <div className="flex flex-col items-center mb-5">
           <CatalogThumb item={item} size={200} />
+          {item.image && <p className="text-white/35 text-xs mt-2">이미지는 실제 상품과 다를 수 있습니다.</p>}
         </div>
 
         <p className="text-xs text-white/45">{item.brand} · {item.category}</p>

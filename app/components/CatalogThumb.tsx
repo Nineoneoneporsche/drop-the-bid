@@ -5,7 +5,7 @@ import type { CatalogItem } from "../lib/dropCatalog";
 export default function CatalogThumb({ item, size }: { item: CatalogItem; size: number }) {
   return (
     <div
-      className="relative flex-shrink-0 flex items-center justify-center rounded-lg overflow-hidden bg-white/[0.06] border border-white/10"
+      className={`relative flex-shrink-0 flex items-center justify-center rounded-lg overflow-hidden border border-white/10 ${item.image ? "bg-white" : "bg-white/[0.06]"}`}
       style={{ width: size, height: size }}
     >
       {item.image ? (
