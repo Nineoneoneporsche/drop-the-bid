@@ -36,6 +36,11 @@ describe("user-facing wording", () => {
     const src = fs.readFileSync(path.join(ROOT, "app", "signup", "page.tsx"), "utf8");
     expect(src).not.toMatch(/cc-number|cc-csc|cardNumber|카드 번호/);
   });
+  it("home hero sells, it doesn't pit buyers against each other", () => {
+    const src = fs.readFileSync(path.join(ROOT, "app", "page.tsx"), "utf8");
+    expect(src).toContain("원할 때 구매하세요");
+    expect(src).not.toMatch(/과연 누가|가져갈까요|경쟁 중/);
+  });
   it("legal texts use 드랍/구매 wording only", () => {
     for (const t of [TERMS_OF_SERVICE, PRIVACY_POLICY, REFUND_POLICY, MARKETING_CONSENT]) expect(t).not.toMatch(AUCTION_WORDS);
   });

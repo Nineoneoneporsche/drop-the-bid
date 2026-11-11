@@ -99,11 +99,11 @@ export default function HomePage() {
               letterSpacing: "-0.025em",
             }}
           >
-            <span className="text-white">과연 누가,</span>
+            <span className="text-white">기다릴수록</span>
             <br />
-            <span className="gold-shimmer-text">가장 낮은 가격에</span>
+            <span className="gold-shimmer-text">낮아지는 가격,</span>
             <br />
-            <span className="text-white">가져갈까요?</span>
+            <span className="text-white">원할 때 구매하세요</span>
           </h1>
 
           <p
@@ -171,7 +171,7 @@ export default function HomePage() {
                 <span className="tabular-nums">{participantCount}</span>
                 <span className="text-sm ml-0.5">명</span>
               </p>
-              <p className="text-white/45 text-xs mt-1">현재 경쟁 중</p>
+              <p className="text-white/45 text-xs mt-1">참여 신청</p>
             </div>
 
             {/* DTB까지 남은시간 */}
