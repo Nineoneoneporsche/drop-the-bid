@@ -394,7 +394,7 @@ export default function SignupPage() {
         <div className="mb-5"><HomeButton /></div>
 
         <div className="mb-6">
-          <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">드랍더비드</p>
           <h1 className="text-[22px] font-extrabold text-white leading-tight">회원가입</h1>
         </div>
 

@@ -75,7 +75,7 @@ function ResetPasswordInner() {
   return (
     <main className="min-h-screen bg-[#0f0f0f] flex flex-col max-w-md mx-auto px-4 pt-16 pb-12">
       <div className="mb-8">
-        <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">Drop The Bid</p>
+        <p className="text-xs uppercase tracking-[0.14em] text-white/55 font-medium mb-1">드랍더비드</p>
         <h1 className="text-[22px] font-extrabold text-white leading-tight">새 비밀번호 설정</h1>
       </div>
 

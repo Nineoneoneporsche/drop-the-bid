@@ -54,7 +54,7 @@ export default function HomePage() {
 
         <Image
           src="/finalmainimage.png"
-          alt="Drop The Bid"
+          alt="드랍더비드"
           fill
           priority
           style={{ objectFit: "cover", objectPosition: "center top" }}

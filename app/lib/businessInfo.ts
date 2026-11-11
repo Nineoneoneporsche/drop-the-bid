@@ -7,7 +7,7 @@
 export const APP_VERSION = "1.0.0";
 
 export const BUSINESS_INFO = {
-  serviceName: "드랍더비드 (Drop The Bid)",
+  serviceName: "드랍더비드",
   companyName: "에스피알씨",
   representative: "송종우",
   businessNumber: "444-64-00462",

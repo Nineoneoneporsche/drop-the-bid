@@ -654,7 +654,7 @@ export default function StrategyPage() {
             {/* Brand mark — DTB wordmark, glowing to sit on a dark stage */}
             <img
               src="/dtblogowhite.PNG"
-              alt="Drop The Bid"
+              alt="드랍더비드"
               className="scene-fade-in flex-shrink-0"
               style={{
                 width: 160,

@@ -210,3 +210,16 @@ describe("assets and share copy", () => {
     }
   });
 });
+
+describe("service name", () => {
+  it("is shown in Korean only (no English 'Drop The Bid' in business info or consumer pages)", () => {
+    expect(BUSINESS_INFO.serviceName).toBe("드랍더비드");
+    const hits: string[] = [];
+    for (const f of consumerSourceFiles(path.join(ROOT, "app"))) {
+      fs.readFileSync(f, "utf8").split("\n").forEach((l, i) => {
+        if (!isComment(l) && /Drop The Bid/i.test(l)) hits.push(`${path.relative(ROOT, f)}:${i + 1}`);
+      });
+    }
+    expect(hits).toEqual([]);
+  });
+});
