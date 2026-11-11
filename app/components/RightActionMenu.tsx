@@ -88,7 +88,7 @@ function loadKakaoSdk(): Promise<boolean> {
 
 /* ─── More sheet ─── */
 const MORE_ITEMS = [
-  { label: "게임 규칙" },
+  { label: "이용 규칙" },
   { label: "FAQ" },
   { label: "신고하기" },
   { label: "이벤트 안내" },

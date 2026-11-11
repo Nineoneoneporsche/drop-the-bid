@@ -523,7 +523,7 @@ export default function SignupPage() {
                   className={`w-full bg-white/5 border px-3.5 py-3 text-white placeholder-white/20 text-base focus:outline-none transition-colors rounded-xl pr-24 ${
                     errors.nickname ? "border-red-500/60 focus:border-red-500/80" : "border-white/12 focus:border-[#a855f7]/60"
                   }`}
-                  placeholder="게임에서 사용할 닉네임"
+                  placeholder="드랍에서 사용할 닉네임"
                   value={form.nickname}
                   onChange={e => { set("nickname", e.target.value.replace(/\s/g, "")); }}
                   maxLength={12}

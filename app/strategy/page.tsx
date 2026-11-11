@@ -42,11 +42,11 @@ const PRICE_COUNTDOWN_DURATION_MS = 850;
 // demand during a real purchase). /practice keeps its own scripted chat
 // (app/lib/trainingSim.ts) since that screen is a labelled simulation.
 const NARRATOR_EVENTS = [
-  { threshold: 92, message: "경기 시작 — 참가자들이 숨죽이며 가격을 지켜보고 있습니다" },
+  { threshold: 92, message: "드랍 시작 — 원하는 가격에서 구매하세요" },
   { threshold: 79, message: "20% 할인 구간 진입 — 아직 아무도 구매하지 않았습니다" },
-  { threshold: 70, message: "30% 할인 구간 돌파 — 심리전이 본격화되고 있습니다" },
-  { threshold: 65, message: "⚡ 35% 이상 할인 — 언제든 구매가 확정될 수 있습니다" },
-  { threshold: 61, message: "🔥 최저가 근접 — 지금이 경기의 마지막 순간입니다" },
+  { threshold: 70, message: "30% 할인 구간 진입" },
+  { threshold: 65, message: "35% 할인 구간 진입" },
+  { threshold: 61, message: "최저가에 가까워지고 있습니다" },
 ];
 
 export default function StrategyPage() {
@@ -867,7 +867,7 @@ export default function StrategyPage() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder={isStrategy ? "경기 전에 한 마디..." : "메시지..."}
+              placeholder={isStrategy ? "드랍 전에 한 마디..." : "메시지..."}
               className="flex-1 bg-white/5 border border-white/10 border-r-0 px-3 py-2 text-white placeholder-white/18 text-xs focus:outline-none focus:border-purple-500/40 transition-colors min-w-0 rounded-l-xl"
             />
             <button

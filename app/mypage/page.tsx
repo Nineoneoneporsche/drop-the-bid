@@ -39,7 +39,7 @@ type Order = DisplayOrder;
 
 
 const MENU = [
-  { label: "게임방법",     href: "/guide"     },
+  { label: "이용방법",     href: "/guide"     },
   { label: "모의훈련",     href: "/practice"  },
   { label: "타이밍 훈련소",  href: "/mini-game" },
   { label: "지난결과보기", href: "/results"   },
@@ -753,7 +753,7 @@ export default function MyPage() {
         {/* Nickname */}
         <div ref={setRef(10)} className="card-rise bg-[#141414] border border-white/10 rounded-2xl mb-5 overflow-hidden" style={{ transitionDelay: "240ms" }}>
           <div className="flex items-center justify-between px-5 pt-4 pb-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium">게임 닉네임</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-white/55 font-medium">닉네임</p>
             {!editingNick && (
               <button onClick={() => { setNickInput(user.nickname); setEditingNick(true); setNickStatus("idle"); }}
                 className="text-xs text-[#a855f7] font-semibold">
@@ -765,7 +765,7 @@ export default function MyPage() {
           {!editingNick ? (
             <div className="px-5 pb-4">
               <p className="text-white/80 text-base font-semibold">{user.nickname}</p>
-              <p className="text-white/35 text-xs mt-1">게임 입장 시 이 닉네임이 자동으로 사용됩니다</p>
+              <p className="text-white/35 text-xs mt-1">드랍 입장 시 이 닉네임이 자동으로 사용됩니다</p>
             </div>
           ) : (
             <div className="px-5 pb-5 space-y-3">
@@ -875,9 +875,9 @@ export default function MyPage() {
           const achievements = [
             { icon: "emoji_events",          label: "첫 구매",    unlocked: stats.wins >= 1,                                                hint: "첫 구매 달성 시" },
             { icon: "bolt",                  label: "반응왕",      unlocked: orders.some(o => o.amount / o.start_price >= 0.85),               hint: "시작가 85% 이상에서 구매 확정 시" },
-            { icon: "fitness_center",        label: "버티기 고수", unlocked: orders.some(o => o.amount / o.start_price <= 0.70),               hint: "시작가 70% 이하에서 구매 확정 시" },
+            { icon: "fitness_center",        label: "알뜰 구매", unlocked: orders.some(o => o.amount / o.start_price <= 0.70),               hint: "시작가 70% 이하에서 구매 확정 시" },
             { icon: "gps_fixed",             label: "연습왕",      unlocked: false,                                                         hint: "모의훈련 5회 완료 시" },
-            { icon: "workspace_premium",     label: "레전드",      unlocked: stats.wins >= 3,                                               hint: "구매 3회 달성 시" },
+            { icon: "workspace_premium",     label: "단골",        unlocked: stats.wins >= 3,                                               hint: "구매 3회 달성 시" },
             { icon: "local_fire_department", label: "연속 참가",   unlocked: false,                                                         hint: "3일 연속 참가 시" },
           ];
           const unlockedCount = achievements.filter(a => a.unlocked).length;

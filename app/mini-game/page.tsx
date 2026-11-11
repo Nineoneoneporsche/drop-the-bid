@@ -7,16 +7,6 @@ import HomeButton from "../components/HomeButton";
 
 type Phase = "ready" | "countdown" | "waiting" | "go" | "false_start" | "result";
 
-const LEADERBOARD = [
-  { rank: 1, nick: "빠른손가락", ms: 113 },
-  { rank: 2, nick: "절대안놓침", ms: 128 },
-  { rank: 3, nick: "반응왕",     ms: 141 },
-  { rank: 4, nick: "샘플유저",   ms: 153 },
-  { rank: 5, nick: "버티는민수", ms: 168 },
-];
-
-const RANK_LABEL = ["🥇", "🥈", "🥉"];
-
 function fmtMs(ms: number) {
   return (ms / 1000).toFixed(3) + "초";
 }
@@ -24,34 +14,9 @@ function fmtMs(ms: number) {
 function evaluate(ms: number): { label: string; color: string } {
   if (ms < 120) return { label: "신의 손",           color: "text-yellow-400" };
   if (ms < 170) return { label: "타이밍 장인",       color: "text-[#c084fc]"  };
-  if (ms < 220) return { label: "상위 10%",          color: "text-[#a855f7]"  };
+  if (ms < 220) return { label: "빠른 편",          color: "text-[#a855f7]"  };
   if (ms < 280) return { label: "평균 이상",         color: "text-blue-400"   };
-  return           { label: "손가락 워밍업 필요",   color: "text-white/60"   };
-}
-
-function Leaderboard({ userBest }: { userBest: number | null }) {
-  const nearTop5 = userBest !== null && userBest < 180;
-  return (
-    <div className="bg-[#141414] border border-white/15">
-      <div className="px-4 py-3 border-b border-white/15">
-        <p className="text-xs uppercase tracking-[0.12em] text-white/60 font-medium">오늘의 랭킹</p>
-      </div>
-      <div>
-        {LEADERBOARD.map((entry, i) => (
-          <div key={entry.rank} className={`flex items-center gap-3 px-4 py-3 ${i < LEADERBOARD.length - 1 ? "border-b border-white/12" : ""}`}>
-            <span className="w-5 text-center text-xs font-extrabold text-white/65">{RANK_LABEL[i] ?? entry.rank}</span>
-            <span className="flex-1 text-white/80 text-sm font-medium">{entry.nick}</span>
-            <span className="text-sm font-semibold tabular-nums" style={{ color: "#4ade80" }}>{fmtMs(entry.ms)}</span>
-          </div>
-        ))}
-      </div>
-      {nearTop5 && (
-        <div className="px-4 py-2.5 border-t border-[#4ade80]/20 bg-[#4ade80]/8">
-          <p className="text-xs font-semibold text-center" style={{ color: "#4ade80" }}>랭킹권에 근접했습니다! 🎯</p>
-        </div>
-      )}
-    </div>
-  );
+  return           { label: "조금 더 연습해 보세요",   color: "text-white/60"   };
 }
 
 function ResultScreen({
@@ -90,7 +55,6 @@ function ResultScreen({
         </div>
       </div>
 
-      <Leaderboard userBest={best} />
 
       <div className="flex flex-col gap-2">
         <button
@@ -217,7 +181,7 @@ export default function MiniGamePage() {
 
         <div ref={setRef(1)} className="card-rise mb-5" style={{ transitionDelay: "60ms" }}>
           <h1 className="text-[22px] font-extrabold text-white leading-tight">타이밍 훈련소</h1>
-          <p className="text-base font-semibold mt-1.5" style={{ color: "#4ade80" }}>가장 빠른 손가락만 살아남습니다.</p>
+          <p className="text-base font-semibold mt-1.5" style={{ color: "#4ade80" }}>구매 버튼 누르는 타이밍을 연습해 보세요.</p>
         </div>
 
         {/* READY */}
@@ -237,7 +201,6 @@ export default function MiniGamePage() {
                 훈련 시작
               </button>
             </div>
-            <Leaderboard userBest={bestTime} />
           </div>
         )}
 

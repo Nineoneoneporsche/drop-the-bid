@@ -7,9 +7,9 @@ import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
 
 // Explainer slides — user-authored images, filename order is the intended
-// reading order (설명1 → 설명7). Each is already a finished slide (title +
+// reading order (설명1 → 설명6). Each is already a finished slide (title +
 // screenshot baked in), so no overlay/caption is added on top of them.
-const SLIDE_COUNT = 7;
+const SLIDE_COUNT = 6;
 const SLIDES = Array.from({ length: SLIDE_COUNT }, (_, i) => `/설명${i + 1}.png`);
 
 // Matches every 설명N.png's actual pixel size — keeps aspect-ratio correct
@@ -94,8 +94,8 @@ export default function GuidePage() {
         </div>
 
         <div ref={setRef(1)} className="card-rise mb-6" style={{ transitionDelay: "60ms" }}>
-          <h1 className="text-[22px] font-extrabold text-white leading-tight">게임방법</h1>
-          <p className="text-base text-white/65 mt-2">가격이 내려가는 순간, 먼저 누른 사람이 임자!</p>
+          <h1 className="text-[22px] font-extrabold text-white leading-tight">이용방법</h1>
+          <p className="text-base text-white/65 mt-2">가격이 내려가는 동안, 원하는 가격에 구매하세요</p>
         </div>
 
         {/* Explainer carousel */}
@@ -115,7 +115,7 @@ export default function GuidePage() {
                 <div className="relative w-[80%]" style={{ aspectRatio: IMAGE_ASPECT }}>
                   <Image
                     src={src}
-                    alt={`게임방법 설명 ${i + 1}`}
+                    alt={`이용방법 설명 ${i + 1}`}
                     fill
                     draggable={false}
                     sizes="(max-width: 448px) 80vw, 358px"

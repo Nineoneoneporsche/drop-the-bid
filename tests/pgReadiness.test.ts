@@ -66,7 +66,10 @@ describe("legal texts", () => {
     expect(REFUND_POLICY).toContain("배송비: 무료");
   });
   it("privacy policy names the processors and the privacy officer", () => {
-    for (const s of ["토스페이먼츠", "Supabase", "Vercel", "Cloudflare", "국외 이전", BUSINESS_INFO.privacyOfficer]) expect(PRIVACY_POLICY).toContain(s);
+    for (const s of ["Supabase", "Vercel", "Cloudflare", "국외 이전", BUSINESS_INFO.privacyOfficer]) expect(PRIVACY_POLICY).toContain(s);
+  });
+  it("names no payment gateway that isn't contracted (Toss declined the application)", () => {
+    for (const t of [TERMS_OF_SERVICE, PRIVACY_POLICY, REFUND_POLICY]) expect(t).not.toMatch(/토스|Toss/i);
   });
 });
 
@@ -114,5 +117,36 @@ describe("live drop chat", () => {
     const src = fs.readFileSync(path.join(ROOT, "app", "strategy", "page.tsx"), "utf8");
     expect(src).not.toMatch(/LOUNGE_MESSAGES|RAPID_CHATS|CHAT_EVENTS|lounge-|rapid-/);
     expect(src).not.toMatch(/₩720,000/);
+  });
+});
+
+describe("no staged records or game framing", () => {
+  const read = (p: string) => fs.readFileSync(path.join(ROOT, p), "utf8");
+  it("results page lists no hardcoded sample drops", () => {
+    const src = read("app/results/page.tsx");
+    expect(src).toContain("아직 진행된 드랍이 없습니다");
+    expect(src).not.toMatch(/RESULTS|participants|winning|레전드|상품권/);
+  });
+  it("timing practice shows no fabricated leaderboard or percentile claim", () => {
+    const src = read("app/mini-game/page.tsx");
+    expect(src).not.toMatch(/LEADERBOARD|오늘의 랭킹|상위 10%|살아남습니다/);
+  });
+  it("consumer copy says 드랍/이용, not 게임/경기/심리전", () => {
+    const hits: string[] = [];
+    for (const f of consumerSourceFiles(path.join(ROOT, "app"))) {
+      fs.readFileSync(f, "utf8").split("\n").forEach((l, i) => {
+        if (!isComment(l) && /게임방법|게임 규칙|게임 닉네임|게임에서|경기 시작|경기의|경기 전|심리전|먼저 누른 사람이 임자/.test(l)) hits.push(`${path.relative(ROOT, f)}:${i + 1}`);
+      });
+    }
+    expect(hits).toEqual([]);
+  });
+});
+
+describe("이용방법 slides", () => {
+  it("SLIDE_COUNT matches public/설명N.png (old 7-slide set with staged chat is gone)", () => {
+    const src = fs.readFileSync(path.join(ROOT, "app", "guide", "page.tsx"), "utf8");
+    const n = Number(/const SLIDE_COUNT = (\d+);/.exec(src)?.[1]);
+    for (let i = 1; i <= n; i++) expect(fs.existsSync(path.join(ROOT, "public", `설명${i}.png`))).toBe(true);
+    expect(fs.existsSync(path.join(ROOT, "public", `설명${n + 1}.png`))).toBe(false);
   });
 });
