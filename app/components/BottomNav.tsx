@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   },
   {
     href: "/practice",
-    label: "모의훈련",
+    label: "구매 체험",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/>

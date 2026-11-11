@@ -6,29 +6,24 @@ import BottomNav from "../components/BottomNav";
 import HomeButton from "../components/HomeButton";
 import StageBackdrop from "../components/StageBackdrop";
 import { ProductThumb } from "../components/ProductImage";
-import {
-  TRAINING_CONFIG,
-  TRAINING_CHAT_EVENTS,
-  calcTrainingPriceAndStage,
-  pickScenario,
-  pickCompetitorClaimPrice,
-  type TrainingDropStage,
-} from "../lib/trainingSim";
+import { TRAINING_CONFIG, TRAINING_GUIDE_EVENTS, calcTrainingPrice, trainingDurationSec } from "../lib/trainingSim";
+import { WINNER_PAYMENT_WINDOW_MINUTES } from "../lib/paymentWindow";
 
-// Training Mode. Visually mirrors app/strategy/page.tsx's live game-phase
-// screen as closely as possible, but is entirely self-contained: every piece
-// of state below is local to this component. It never imports useGame(),
-// never touches supabase, and never reads/writes game_state, participants,
-// chat_messages, payment, or orders. See app/lib/trainingSim.ts for the
-// (also fully local) price + competitor simulation this drives off of.
+// 구매 체험. Visually mirrors app/strategy/page.tsx's live drop screen, but is
+// entirely self-contained: every piece of state below is local to this
+// component. It never imports useGame(), never touches supabase, and never
+// reads/writes game_state, participants, chat_messages, payment, or orders.
+// No virtual competitor and no scripted "participant" chat — the user watches
+// the price fall, buys whenever they like (or the price reaches the floor),
+// and sees what would happen next in a real drop.
 
 function fmt(n: number) {
   return "₩" + n.toLocaleString("ko-KR");
 }
 
-type TrainingPhase = "intro" | "running" | "success" | "fail";
+type TrainingPhase = "intro" | "running" | "bought" | "floor";
 
-type Chat = { id: string; nickname: string; message: string };
+type Guide = { id: string; message: string };
 
 const TICK_MS = 1000;
 const COACH_VISIBLE_MS = 1800;
@@ -36,54 +31,28 @@ const COACH_VISIBLE_MS = 1800;
 export default function PracticePage() {
   const [phase, setPhase] = useState<TrainingPhase>("intro");
   const [currentPrice, setCurrentPrice] = useState(TRAINING_CONFIG.startPrice);
-  const [dropStage, setDropStage] = useState<TrainingDropStage>("normal");
-  const [chatMessages, setChatMessages] = useState<Chat[]>([]);
+  const [guides, setGuides] = useState<Guide[]>([]);
   const [myClaimPrice, setMyClaimPrice] = useState<number | null>(null);
-  const [competitorPrice, setCompetitorPrice] = useState<number | null>(null);
   const [tickFlash, setTickFlash] = useState(false);
   const [coachVisible, setCoachVisible] = useState(false);
 
   const priceRef = useRef(TRAINING_CONFIG.startPrice);
-  const claimPriceRef = useRef(0);
   const startedAtRef = useRef<number | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const firedChatRef = useRef(new Set<number>());
+  const firedGuideRef = useRef(new Set<number>());
   const coachTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // DROP ZONE entry sweep — same visual pattern as /strategy: fires once per
-  // NORMAL→FAST / FAST→FINAL transition.
-  const [zoneSweepKey, setZoneSweepKey] = useState(0);
-  const [showZoneSweep, setShowZoneSweep] = useState(false);
-  const prevDropStageRef = useRef<TrainingDropStage>("normal");
-  const zoneSweepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const prev = prevDropStageRef.current;
-    prevDropStageRef.current = dropStage;
-    if (phase !== "running" || prev === dropStage || dropStage === "normal") return;
-    setZoneSweepKey((k) => k + 1);
-    setShowZoneSweep(true);
-    if (zoneSweepTimerRef.current) clearTimeout(zoneSweepTimerRef.current);
-    zoneSweepTimerRef.current = setTimeout(() => setShowZoneSweep(false), 2300);
-  }, [dropStage, phase]);
-
   useEffect(() => () => {
-    if (zoneSweepTimerRef.current) clearTimeout(zoneSweepTimerRef.current);
     if (coachTimerRef.current) clearTimeout(coachTimerRef.current);
   }, []);
 
   const startTraining = useCallback(() => {
-    claimPriceRef.current = pickCompetitorClaimPrice(pickScenario());
     startedAtRef.current = Date.now();
     priceRef.current = TRAINING_CONFIG.startPrice;
-    firedChatRef.current = new Set();
-    prevDropStageRef.current = "normal";
+    firedGuideRef.current = new Set();
     setCurrentPrice(TRAINING_CONFIG.startPrice);
-    setDropStage("normal");
-    setChatMessages([]);
+    setGuides([]);
     setMyClaimPrice(null);
-    setCompetitorPrice(null);
-    setShowZoneSweep(false);
     setPhase("running");
 
     // First-run coach message — fades out on its own, never shown again once
@@ -99,26 +68,23 @@ export default function PracticePage() {
 
     const tick = () => {
       const elapsedMs = Date.now() - startedAtRef.current!;
-      const { price, stage } = calcTrainingPriceAndStage(elapsedMs);
+      const price = calcTrainingPrice(elapsedMs);
       priceRef.current = price;
       setCurrentPrice(price);
-      setDropStage(stage);
       setTickFlash(true);
       setTimeout(() => setTickFlash(false), 220);
 
       const elapsedSec = elapsedMs / 1000;
-      for (const evt of TRAINING_CHAT_EVENTS) {
-        if (elapsedSec >= evt.atSec && !firedChatRef.current.has(evt.atSec)) {
-          firedChatRef.current.add(evt.atSec);
-          setChatMessages((prev) => [...prev, { id: `chat-${evt.atSec}`, nickname: evt.nickname, message: evt.message }]);
+      for (const evt of TRAINING_GUIDE_EVENTS) {
+        if (elapsedSec >= evt.atSec && !firedGuideRef.current.has(evt.atSec)) {
+          firedGuideRef.current.add(evt.atSec);
+          setGuides((prev) => [...prev, { id: `guide-${evt.atSec}`, message: evt.message }]);
         }
       }
 
-      const claimPrice = claimPriceRef.current;
-      if (price <= claimPrice || price <= TRAINING_CONFIG.floorPrice) {
+      if (price <= TRAINING_CONFIG.floorPrice) {
         if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-        setCompetitorPrice(Math.min(claimPrice, price));
-        setPhase("fail");
+        setPhase("floor");
       }
     };
 
@@ -134,15 +100,12 @@ export default function PracticePage() {
     if (phase !== "running") return;
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
     setMyClaimPrice(priceRef.current);
-    setPhase("success");
+    setPhase("bought");
   }, [phase]);
 
   const start = TRAINING_CONFIG.startPrice;
   const floor = TRAINING_CONFIG.floorPrice;
   const barPct = Math.min(100, Math.max(0, ((start - currentPrice) / (start - floor)) * 100));
-  const pct = start > 0 ? (currentPrice / start) * 100 : 0;
-  const isLow = pct < 50;
-  const isCritical = pct < 30;
   const currentSavings = start - currentPrice;
   const currentSavingsPct = start > 0 ? Math.round((currentSavings / start) * 100) : 0;
 
@@ -153,18 +116,18 @@ export default function PracticePage() {
         <div className="w-full max-w-md px-4 pt-10">
           <div className="flex mb-5"><HomeButton /></div>
           <div className="mb-8">
-            <h1 className="text-[22px] font-extrabold text-white leading-tight">모의훈련</h1>
+            <h1 className="text-[22px] font-extrabold text-white leading-tight">구매 체험</h1>
             <p className="text-white/70 text-base mt-3 leading-relaxed">
-              실전 전에 한 번 연습해보세요.<br />
-              실제 드랍과 동일하게 가격이 내려갑니다. 연습에서는 결제되지 않습니다.
+              실제 드랍 전에 구매 방법을 체험해 보세요.<br />
+              가격 범위는 실제 드랍과 같지만, 체험을 위해 실제보다 빠르게 내려갑니다. 체험에서는 결제되지 않습니다.
             </p>
-            <p className="text-white/40 text-xs mt-3">약 15초 · 실제 결제 없음</p>
+            <p className="text-white/40 text-xs mt-3">약 {trainingDurationSec()}초 · 실제 결제 없음</p>
           </div>
           <button
             onClick={startTraining}
             className="w-full py-4 text-white font-semibold text-base transition-opacity active:opacity-80 bid-btn-purple rounded-xl"
           >
-            훈련 시작
+            체험 시작
           </button>
         </div>
         <BottomNav />
@@ -172,21 +135,26 @@ export default function PracticePage() {
     );
   }
 
-  // ── Result screens (success / fail) — fast, no winner video/LED sequence ──
-  if (phase === "success" || phase === "fail") {
-    const isSuccess = phase === "success";
+  // ── Result screens — what the user did, and what a real drop would do next ──
+  if (phase === "bought" || phase === "floor") {
+    const bought = phase === "bought";
     return (
       <main className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-xs text-center">
           <p className="text-xs uppercase tracking-widest text-white/50 mb-2 font-medium">
-            {isSuccess ? "구매 성공" : "한발 늦었습니다"}
+            {bought ? "구매 확정 (체험)" : "최저가 도달 (체험 종료)"}
           </p>
-          <p className="text-xs text-white/45 mb-1">{isSuccess ? "내가 누른 가격" : "다른 참여자가 구매한 가격"}</p>
+          <p className="text-xs text-white/45 mb-1">{bought ? "구매 확정 가격" : "최저가"}</p>
           <p
-            className="font-extrabold tabular-nums leading-none mb-8"
+            className="font-extrabold tabular-nums leading-none mb-4"
             style={{ fontSize: "2.6rem", color: "#f5f3ff", textShadow: "0 0 6px rgba(255,255,255,0.9), 0 0 14px #c084fc, 0 0 28px #a855f7" }}
           >
-            {fmt(isSuccess ? (myClaimPrice ?? 0) : (competitorPrice ?? 0))}
+            {fmt(bought ? (myClaimPrice ?? 0) : floor)}
+          </p>
+          <p className="text-white/55 text-sm leading-relaxed mb-8">
+            {bought
+              ? `실제 드랍이라면 ${WINNER_PAYMENT_WINDOW_MINUTES}분 안에 결제하면 구매가 완료됩니다. 체험에서는 결제되지 않습니다.`
+              : "실제 드랍에서는 최저가까지 구매가 없으면 판매 없이 종료됩니다."}
           </p>
           <div className="flex flex-col gap-2">
             <button
@@ -196,7 +164,7 @@ export default function PracticePage() {
               다시 해보기
             </button>
             <Link href="/" className="w-full py-4 font-semibold text-base text-center border border-white/15 text-white/65 rounded-xl">
-              실전 드랍 보러가기
+              예정된 드랍 보기
             </Link>
           </div>
         </div>
@@ -215,24 +183,9 @@ export default function PracticePage() {
         />
       </div>
 
-      {showZoneSweep && (
-        <div key={`zone-${zoneSweepKey}`} className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none overflow-hidden">
-          <img
-            src="/dtblogowhite.PNG"
-            alt=""
-            className="zone-sweep"
-            style={{
-              width: 320,
-              height: "auto",
-              filter: "drop-shadow(0 0 10px rgba(168,85,247,0.85)) drop-shadow(0 0 24px rgba(139,92,246,0.5))",
-            }}
-          />
-        </div>
-      )}
-
       <div className="relative z-10 flex flex-col h-full">
 
-        {/* Top bar — TRAINING marker replaces the real LIVE badge/counts,
+        {/* Top bar — 체험 marker replaces the real LIVE badge/counts,
             merged into a single compact chip so it reads but doesn't shout. */}
         <div className="flex-shrink-0 flex items-center gap-2 px-4 pt-10 pb-2">
           <Link
@@ -251,7 +204,7 @@ export default function PracticePage() {
             style={{ color: "rgba(196,132,252,0.9)", background: "rgba(168,85,247,0.12)" }}
           >
             <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#c084fc" }} />
-            TRAINING · 실제 구매되지 않습니다
+            체험 · 실제 구매되지 않습니다
           </span>
         </div>
 
@@ -273,27 +226,12 @@ export default function PracticePage() {
             instead of being squeezed behind other elements. */}
         <div className="flex-1" />
 
-        {/* Scripted, read-only chat — same bubble style as /strategy, anchored
-            just above the CTA instead of pinned to the top. Only ever 2-3
-            lines, so no scroll container needed. */}
-        <div className="flex-shrink-0 px-4 pb-2">
-          {chatMessages.map((msg) => {
-            const avatarColor = `hsl(${(msg.nickname.charCodeAt(0) * 37) % 360}, 55%, 52%)`;
-            return (
-              <div key={msg.id} className="flex items-start gap-2 py-0.5 chat-in">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-extrabold text-white mt-0.5"
-                  style={{ background: avatarColor }}
-                >
-                  {msg.nickname[0].toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-semibold mr-1.5" style={{ color: "rgba(255,255,255,0.9)" }}>{msg.nickname}</span>
-                  <p className="text-sm leading-snug mt-0.5 text-white/95">{msg.message}</p>
-                </div>
-              </div>
-            );
-          })}
+        {/* Guide lines — the service explaining the steps, styled like the
+            live drop's narrator lines (no avatars, no participant names). */}
+        <div className="flex-shrink-0 px-4 pb-2 space-y-1">
+          {guides.map((g) => (
+            <p key={g.id} className="text-sm leading-snug text-[#d8b4fe] chat-in">▶ {g.message}</p>
+          ))}
         </div>
 
         {/* Progress bar + bid button — the screen's primary element */}
@@ -314,14 +252,14 @@ export default function PracticePage() {
               className="h-full transition-all duration-1000 rounded-full"
               style={{
                 width: `${barPct}%`,
-                background: isCritical ? "#ef4444" : isLow ? "linear-gradient(90deg, #a855f7, #ef4444)" : "#a855f7",
+                background: "#a855f7",
               }}
             />
           </div>
 
           <button
             onClick={handleClaim}
-            className={`relative overflow-hidden w-full flex flex-col items-center justify-center h-[88px] text-white transition-all active:scale-[0.97] rounded-xl ${isCritical ? "bid-btn-critical critical-shake" : "bid-btn-purple"}`}
+            className={`relative overflow-hidden w-full flex flex-col items-center justify-center h-[88px] text-white transition-all active:scale-[0.97] rounded-xl bid-btn-purple`}
           >
             <div
               className="bid-shimmer absolute inset-y-0 w-[40%] pointer-events-none"

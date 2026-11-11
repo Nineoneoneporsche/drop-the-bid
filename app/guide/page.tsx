@@ -173,7 +173,7 @@ export default function GuidePage() {
         {/* CTAs */}
         <div ref={setRef(3)} className="card-rise flex flex-col gap-2" style={{ transitionDelay: "180ms" }}>
           <Link href="/practice" className="w-full py-4 text-white font-semibold text-base text-center bid-btn-purple rounded-xl">
-            모의훈련 해보기
+            구매 체험 해보기
           </Link>
           <Link href="/" className="w-full py-4 font-semibold text-base text-center border border-white/12 text-white/55 rounded-xl transition-colors hover:border-white/25 hover:text-white/80">
             오늘의 DTB 보기 →

@@ -40,7 +40,7 @@ type Order = DisplayOrder;
 
 const MENU = [
   { label: "이용방법",     href: "/guide"     },
-  { label: "모의훈련",     href: "/practice"  },
+  { label: "구매 체험",    href: "/practice"  },
   { label: "타이밍 훈련소",  href: "/mini-game" },
   { label: "지난결과보기", href: "/results"   },
 ];
@@ -876,7 +876,7 @@ export default function MyPage() {
             { icon: "emoji_events",          label: "첫 구매",    unlocked: stats.wins >= 1,                                                hint: "첫 구매 달성 시" },
             { icon: "bolt",                  label: "반응왕",      unlocked: orders.some(o => o.amount / o.start_price >= 0.85),               hint: "시작가 85% 이상에서 구매 확정 시" },
             { icon: "fitness_center",        label: "알뜰 구매", unlocked: orders.some(o => o.amount / o.start_price <= 0.70),               hint: "시작가 70% 이하에서 구매 확정 시" },
-            { icon: "gps_fixed",             label: "연습왕",      unlocked: false,                                                         hint: "모의훈련 5회 완료 시" },
+            { icon: "gps_fixed",             label: "체험 완료",      unlocked: false,                                                         hint: "구매 체험 5회 완료 시" },
             { icon: "workspace_premium",     label: "단골",        unlocked: stats.wins >= 3,                                               hint: "구매 3회 달성 시" },
             { icon: "local_fire_department", label: "연속 참가",   unlocked: false,                                                         hint: "3일 연속 참가 시" },
           ];

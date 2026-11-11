@@ -52,7 +52,7 @@ describe("legal texts", () => {
   it("terms define 드랍 as a sale and state participation is free", () => {
     expect(TERMS_OF_SERVICE).toContain('"드랍"이란');
     expect(TERMS_OF_SERVICE).toContain("한정 판매");
-    expect(TERMS_OF_SERVICE).toContain("드랍 참여, 관전, 채팅, 모의훈련은 무료입니다");
+    expect(TERMS_OF_SERVICE).toContain("드랍 참여, 관전, 채팅, 구매 체험은 무료입니다");
     expect(TERMS_OF_SERVICE).toContain("30분 이내에 결제");
     expect(TERMS_OF_SERVICE).toContain(BUSINESS_INFO.companyName);
   });
@@ -148,5 +148,26 @@ describe("이용방법 slides", () => {
     const n = Number(/const SLIDE_COUNT = (\d+);/.exec(src)?.[1]);
     for (let i = 1; i <= n; i++) expect(fs.existsSync(path.join(ROOT, "public", `설명${i}.png`))).toBe(true);
     expect(fs.existsSync(path.join(ROOT, "public", `설명${n + 1}.png`))).toBe(false);
+  });
+});
+
+describe("구매 체험 (/practice)", () => {
+  const read = (p: string) => fs.readFileSync(path.join(ROOT, p), "utf8");
+  it("has no virtual competitor and no scripted participant chat", () => {
+    const src = read("app/practice/page.tsx") + read("app/lib/trainingSim.ts");
+    expect(src).not.toMatch(/pickCompetitorClaimPrice|pickScenario|TRAINING_CHAT_EVENTS|한발 늦었습니다|다른 참여자|참가자\d|실전|훈련/);
+  });
+  it("uses the real default price range and says it runs faster than a real drop", async () => {
+    const { TRAINING_CONFIG, calcTrainingPrice } = await import("../app/lib/trainingSim");
+    // GameContext pulls in the Supabase client, so read DEFAULT_CONFIG from source.
+    const ctx = read("app/context/GameContext.tsx");
+    const num = (k: string) => Number(new RegExp(`DEFAULT_CONFIG[\\s\\S]*?${k}:\\s*([\\d_]+)`).exec(ctx)?.[1].replace(/_/g, ""));
+    expect(TRAINING_CONFIG.startPrice).toBe(num("startPrice"));
+    expect(TRAINING_CONFIG.floorPrice).toBe(num("floorPrice"));
+    expect(calcTrainingPrice(10 * 60_000)).toBe(TRAINING_CONFIG.floorPrice);
+    expect(calcTrainingPrice(3_700)).toBe(TRAINING_CONFIG.startPrice - 3 * TRAINING_CONFIG.dropAmount);
+    const page = read("app/practice/page.tsx");
+    expect(page).toContain("실제보다 빠르게");
+    expect(page).not.toContain("실제 드랍과 동일하게");
   });
 });

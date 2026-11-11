@@ -1,101 +1,46 @@
-// Training Mode's own price-drop + competitor simulation — entirely local,
-// no coupling to production config/state (see app/practice/page.tsx). Deliberately
-// duplicates the *shape* of calcPriceAndStage() in app/context/GameContext.tsx
-// (NORMAL → FAST → FINAL zones) so the visual staging (DROP ZONE transitions)
-// matches the real auction, but every number here is training-only and must
-// never be derived from GameContext/game_state.
+// 구매 체험 (/practice) price simulation — entirely local, no coupling to
+// production config/state (see app/practice/page.tsx).
+//
+// The price range is a literal snapshot of GameContext.tsx's DEFAULT_CONFIG
+// (start ₩899,000 → floor ₩550,000, one linear zone), deliberately NOT
+// imported so this file stays auditable as independent of production
+// config. Only the speed differs: the real default drops ₩1,000/s, which
+// would take minutes, so the experience runs faster — and the page says so.
+// There is no virtual competitor: the experience teaches how to buy, not how
+// to beat other people to the button.
 
-export type TrainingDropStage = "normal" | "fast" | "final";
+import { WINNER_PAYMENT_WINDOW_MINUTES } from "./paymentWindow";
 
 export interface TrainingConfig {
   productName: string;
   startPrice: number;
   floorPrice: number;
-  dropAmount: number;      // NORMAL zone, ₩/sec
-  fastDropPrice: number;   // FAST zone starts once price reaches this
-  fastDropAmount: number;  // FAST zone, ₩/sec
-  finalDropPrice: number;  // FINAL zone starts once price reaches this
-  finalDropAmount: number; // FINAL zone, ₩/sec
+  dropAmount: number; // ₩/sec (real default: ₩1,000/sec)
 }
 
-// Product name copied as a literal string from GameContext.tsx's
-// DEFAULT_CONFIG.productName (as of writing) — a one-time snapshot, not a
-// live reference. Deliberately NOT imported from GameContext: this file
-// must stay readable/auditable as fully independent of production config,
-// and this name will not follow the real product if an admin changes it.
 export const TRAINING_CONFIG: TrainingConfig = {
   productName: "Apple iPad Air 11형 Wi-Fi 128GB",
-  startPrice: 500_000,
-  floorPrice: 200_000,
-  dropAmount: 5_000,
-  fastDropPrice: 380_000,
-  fastDropAmount: 5_000,
-  finalDropPrice: 280_000,
-  finalDropAmount: 8_000,
+  startPrice: 899_000,
+  floorPrice: 550_000,
+  dropAmount: 14_000,
 };
 
-export function calcTrainingPriceAndStage(
-  elapsedMs: number,
-  cfg: TrainingConfig = TRAINING_CONFIG
-): { price: number; stage: TrainingDropStage } {
-  const elapsed = Math.max(0, elapsedMs / 1000);
-  const { startPrice, floorPrice, dropAmount, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount } = cfg;
-
-  const tFast = (startPrice - fastDropPrice) / dropAmount;
-  if (elapsed <= tFast) {
-    return { price: Math.round(startPrice - elapsed * dropAmount), stage: "normal" };
-  }
-
-  const fastElapsed = elapsed - tFast;
-  const tFinal = (fastDropPrice - finalDropPrice) / fastDropAmount;
-  if (fastElapsed <= tFinal) {
-    return { price: Math.round(fastDropPrice - fastElapsed * fastDropAmount), stage: "fast" };
-  }
-
-  const finalElapsed = fastElapsed - tFinal;
-  return {
-    price: Math.max(floorPrice, Math.round(finalDropPrice - finalElapsed * finalDropAmount)),
-    stage: "final",
-  };
+export function calcTrainingPrice(elapsedMs: number, cfg: TrainingConfig = TRAINING_CONFIG): number {
+  // Whole seconds only, like the real drop's stepped price — so the price is
+  // always a clean multiple of dropAmount, never ₩772,762.
+  const steps = Math.floor(Math.max(0, elapsedMs) / 1000);
+  return Math.max(cfg.floorPrice, cfg.startPrice - steps * cfg.dropAmount);
 }
 
-// Three fixed scenarios instead of one continuous random range, so a run is
-// simple to reason about/test — one is picked once, at training start.
-export type CompetitorScenario = "early" | "normal" | "late";
-
-const SCENARIOS: CompetitorScenario[] = ["early", "normal", "late"];
-
-export function pickScenario(): CompetitorScenario {
-  return SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+// Seconds from start to floor at the experience's speed.
+export function trainingDurationSec(cfg: TrainingConfig = TRAINING_CONFIG): number {
+  return Math.ceil((cfg.startPrice - cfg.floorPrice) / cfg.dropAmount);
 }
 
-// The price range the virtual competitor claims within — one scenario is
-// picked once per round (pickScenario above), then the exact claim price is
-// randomized within that scenario's range so repeated rounds don't land on
-// the same number, while each range still stays inside a single zone (so
-// all three DROP ZONE stages stay reachable depending on the scenario).
-export const COMPETITOR_CLAIM_RANGE: Record<CompetitorScenario, [number, number]> = {
-  early: [400_000, 460_000],  // NORMAL zone
-  normal: [300_000, 365_000], // FAST zone
-  late: [210_000, 270_000],   // FINAL zone
-};
-
-// Picked once at training start and reused for the whole round — never
-// re-rolled mid-round.
-export function pickCompetitorClaimPrice(scenario: CompetitorScenario): number {
-  const [min, max] = COMPETITOR_CLAIM_RANGE[scenario];
-  const raw = min + Math.random() * (max - min);
-  return Math.round(raw / 1_000) * 1_000; // clean 1,000-won increments
-}
-
-// Scripted chat — fires on a fixed elapsed-time schedule (not price
-// thresholds) so lines show up quickly and predictably regardless of which
-// competitor scenario is picked — a price-% threshold could take 15+
-// seconds to cross in the "early" scenario, which read as "chat never
-// shows up." Short, plausible live-auction reactions, kept to a handful of
-// lines (not a continuous filler stream).
-export const TRAINING_CHAT_EVENTS: { atSec: number; nickname: string; message: string }[] = [
-  { atSec: 2, nickname: "참가자1", message: "아직 아무도 안 눌렀네요" },
-  { atSec: 4, nickname: "참가자2", message: "조금 더 기다려볼까..." },
-  { atSec: 6, nickname: "참가자3", message: "이제 슬슬 눌러야 하나" },
+// Guide lines on a fixed schedule — the service explaining itself, not
+// scripted "other participants".
+export const TRAINING_GUIDE_EVENTS: { atSec: number; message: string }[] = [
+  { atSec: 2, message: "가격이 내려가고 있습니다. 지금 가격은 구매하기 버튼에 표시됩니다." },
+  { atSec: 7, message: "원하는 가격이 되면 구매하기를 누르세요." },
+  { atSec: 13, message: `실제 드랍에서는 구매가 확정되면 ${WINNER_PAYMENT_WINDOW_MINUTES}분 안에 결제합니다.` },
 ];
