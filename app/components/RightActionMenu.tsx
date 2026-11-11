@@ -296,7 +296,7 @@ export default function RightActionMenu({
         objectType: "feed",
         content: {
           title: `${productName ? productName + " · " : ""}드랍더비드`,
-          description: "가격은 계속 내려갑니다. 어디까지 기다리시겠어요?",
+          description: "기다릴수록 낮아지는 가격, 원할 때 구매하세요.",
           imageUrl: `${window.location.origin}/kakao-share-image.jpg`,
           link: { mobileWebUrl: url, webUrl: url },
         },

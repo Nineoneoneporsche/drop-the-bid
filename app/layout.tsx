@@ -25,7 +25,7 @@ const SITE_URL =
   "https://drop-the-bid.vercel.app";
 
 const SITE_TITLE = "드랍더비드";
-const SITE_DESCRIPTION = "가격은 계속 내려갑니다. 원하는 타이밍에 먼저 선택한 한 명이 그 가격에 구매하는 실시간 가격하락 딜.";
+const SITE_DESCRIPTION = "정해진 일정에 따라 판매가가 내려가는 한정 판매. 원하는 가격에 구매하세요.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

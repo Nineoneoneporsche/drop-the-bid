@@ -196,3 +196,16 @@ describe("드랍 일정 (catalog)", () => {
     }
   });
 });
+
+describe("assets and share copy", () => {
+  it("gavel winner video and unused casino/gift-card assets are not served", () => {
+    for (const f of ["winner-animation.mp4", "Jackpot.mp3", "baemincoupon.jpg", "Championship1.mp3"]) {
+      expect(fs.existsSync(path.join(ROOT, "public", f))).toBe(false);
+    }
+  });
+  it("share / meta copy has no competition framing", () => {
+    for (const f of ["app/components/RightActionMenu.tsx", "app/join/layout.tsx", "app/layout.tsx"]) {
+      expect(fs.readFileSync(path.join(ROOT, f), "utf8")).not.toMatch(/어디까지 기다리|뺏깁니다|먼저 선택/);
+    }
+  });
+});

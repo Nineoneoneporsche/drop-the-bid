@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 // or touch the DB/game_state, so it's identical for /join and
 // /join?utm_source=share, and never breaks if Supabase is degraded.
 const TITLE = "지금 가격이 내려가고 있습니다 | 드랍더비드";
-const DESCRIPTION = "어디까지 기다리시겠어요? 실시간으로 내려가는 가격, 원하는 순간 먼저 선택하세요.";
+const DESCRIPTION = "기다릴수록 낮아지는 가격, 원하는 가격에 구매하세요.";
 
 export const metadata: Metadata = {
   title: TITLE,
