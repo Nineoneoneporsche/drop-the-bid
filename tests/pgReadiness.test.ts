@@ -40,6 +40,8 @@ describe("user-facing wording", () => {
     const src = fs.readFileSync(path.join(ROOT, "app", "page.tsx"), "utf8");
     expect(src).toContain("원할 때 구매하세요");
     expect(src).not.toMatch(/과연 누가|가져갈까요|경쟁 중/);
+    expect(src).toContain("최대 할인");
+    expect(src).not.toMatch(/\/초|하락 속도/);
   });
   it("legal texts use 드랍/구매 wording only", () => {
     for (const t of [TERMS_OF_SERVICE, PRIVACY_POLICY, REFUND_POLICY, MARKETING_CONSENT]) expect(t).not.toMatch(AUCTION_WORDS);

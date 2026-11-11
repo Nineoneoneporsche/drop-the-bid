@@ -151,15 +151,15 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* 하락 속도 */}
+            {/* 최대 할인 — 시작가 대비 최저가. 내림이라 실제보다 크게 보이지 않는다 */}
             <div className="px-4 py-3.5">
               <p className="text-xs uppercase tracking-[0.16em] text-white/60 font-medium mb-1">
-                하락 속도
+                최대 할인
               </p>
               <p className="text-white font-semibold tabular-nums text-[1.35rem] leading-none">
-                ₩{state.config.dropAmount.toLocaleString()}/초
+                {start > 0 ? Math.floor(((start - state.config.floorPrice) / start) * 100) : 0}%
               </p>
-              <p className="text-white/45 text-xs mt-1">실시간 자동 하락</p>
+              <p className="text-white/45 text-xs mt-1">시간이 지날수록 할인</p>
             </div>
 
             {/* 참가자 수 */}
