@@ -44,10 +44,7 @@ export default function SiteFooter({ withBottomNav = false }: { withBottomNav?: 
       >
         사업자정보 확인
       </a>
-      <p className="mt-3">
-        드랍더비드는 실시간 가격하락 딜 방식으로 상품을 판매합니다. 드랍 참여는 무료이며, 구매를 확정한 상품의 구매가만 결제합니다.
-      </p>
-      <p className="mt-2">© {b.companyName}. All rights reserved.</p>
+      <p className="mt-3">© {b.companyName}. All rights reserved.</p>
     </footer>
   );
 }
