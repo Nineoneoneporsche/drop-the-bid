@@ -13,6 +13,7 @@ import CatalogThumb from "./components/CatalogThumb";
 import { DROP_CATALOG } from "./lib/dropCatalog";
 import { getServerNow } from "./lib/serverClock";
 import { homeCta, parseScheduledStart, scheduleStatus, secondsUntil, showLive } from "./lib/auctionSchedule";
+import { REVIEW_DROP_MODE, floorReachedAtMs } from "./lib/reviewDrop";
 
 function fmtCountdown(s: number) {
   const h = Math.floor(s / 3600);
@@ -38,10 +39,21 @@ export default function HomePage() {
   const scheduledStartMs = parseScheduledStart(state.config.gameStartTime);
   const leadMinutes = state.config.joinLeadMinutes;
   const status = scheduleStatus({ phase, scheduledStartMs, leadMinutes, nowMs, participantCount });
-  const cta = homeCta(status, { scheduledStartMs, leadMinutes, nowMs });
   const auctionLive = status === "game";
+  // Review mode (app/lib/reviewDrop.ts): a live round is "상시 참여 가능" and
+  // counts down to the floor price instead of showing 관전만 가능.
+  const reviewLive = REVIEW_DROP_MODE && auctionLive;
+  const floorAtMs = reviewLive && state.gameStartedAt
+    ? floorReachedAtMs(state.gameStartedAt, state.config, state.pausedTotalMs)
+    : null;
+  const toFloor = floorAtMs != null ? secondsUntil(floorAtMs, nowMs) : null;
+  const cta = reviewLive
+    ? { kind: "join" as const, label: "드랍 참여하기", sub: "상시 참여 가능" }
+    : homeCta(status, { scheduledStartMs, leadMinutes, nowMs });
   const counting = status === "beforeJoinWindow" || status === "joinOpen";
-  const countdown = counting && scheduledStartMs != null ? secondsUntil(scheduledStartMs, nowMs) : null;
+  const countdown = counting && scheduledStartMs != null
+    ? secondsUntil(scheduledStartMs, nowMs)
+    : reviewLive && toFloor != null && toFloor > 0 ? toFloor : null;
   const statusColor = auctionLive ? "#ff2d2d" : status === "starting" ? "#e8ff00" : counting ? "#a855f7" : "rgba(255,255,255,0.6)";
 
   const start = state.config.startPrice;
@@ -194,6 +206,8 @@ export default function HomePage() {
               >
                 {countdown !== null
                   ? fmtCountdown(countdown)
+                  : reviewLive
+                  ? "최저가 진행 중"
                   : auctionLive
                   ? "드랍 진행 중"
                   : status === "starting"
@@ -209,6 +223,8 @@ export default function HomePage() {
                   ? "지금 참가 가능"
                   : status === "beforeJoinWindow"
                   ? "드랍 시작까지"
+                  : reviewLive
+                  ? (countdown !== null ? "최저가 도달까지 · 상시 참여 가능" : "상시 참여 가능")
                   : auctionLive
                   ? "관전만 가능합니다"
                   : status === "starting"

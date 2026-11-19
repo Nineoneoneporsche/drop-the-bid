@@ -140,11 +140,12 @@ for (const env of ["pre1030", "post1030"] as const) {
       if (r !== "ok") throw new Error(`M4-B1: ${r}`);
     }, 180_000);
 
-    it("fresh replay: 35 migrations, M4-B1 last, no explicit BEGIN/COMMIT; bodies pinned; M1 / M2 / M4-A bodies untouched", async () => {
+    it("fresh replay: 36 migrations, M4-B1 then review accounts, no explicit BEGIN/COMMIT; bodies pinned; M1 / M2 / M4-A bodies untouched", async () => {
       expect(BEFORE_B1).toHaveLength(34);
       expect(BEFORE_B1.at(-1)).toBe("20261030200000_payment_confirm_safety.sql");
-      expect(FILES).toHaveLength(35);
-      expect(FILES.at(-1)).toBe(B1_FILE);
+      expect(FILES).toHaveLength(36);
+      expect(FILES.at(-2)).toBe(B1_FILE);
+      expect(FILES.at(-1)).toBe("20261119100000_review_account_live_join.sql");
       expect(B1).not.toMatch(/^\s*(begin|commit)\s*;/im);
       expect(B1).toMatch(/^set local lock_timeout = '5s';$/m);
       for (const k of Object.keys(SIG) as (keyof typeof SIG)[]) {

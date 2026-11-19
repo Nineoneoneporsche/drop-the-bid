@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { priceAndStageAtElapsed } from "../lib/dropPrice";
 import { supabase } from "../lib/supabase";
 import { getServerNow, startClockSync } from "../lib/serverClock";
 import { DEFAULT_JOIN_LEAD_MINUTES, parseScheduledStart } from "../lib/auctionSchedule";
@@ -83,6 +84,7 @@ export interface GameState {
   // reach the server, but nobody else's game is affected.
   isPaused: boolean;
   transportSafePaused: boolean;
+  pausedTotalMs: number;
 }
 
 export const DEFAULT_CONFIG: GameConfig = {
@@ -209,49 +211,9 @@ function calcPriceAndStage(
 ): { price: number; stage: DropStage } {
   const asOf = pause.isPaused && pause.pausedAt ? pause.pausedAt : getServerNow();
   const rawElapsed = Math.max(0, (asOf - gameStartedAt - pause.pausedTotalMs) / 1000);
-  const {
-    startPrice, floorPrice, dropAmount, fastDropPrice, fastDropAmount, finalDropPrice, finalDropAmount,
-    dropIntervalSeconds, fastDropIntervalSeconds, finalDropIntervalSeconds,
-  } = config;
-  const normalInterval = dropIntervalSeconds > 0 ? dropIntervalSeconds : 1;
-  const fastInterval    = fastDropIntervalSeconds > 0 ? fastDropIntervalSeconds : 1;
-  const finalInterval   = finalDropIntervalSeconds > 0 ? finalDropIntervalSeconds : 1;
-  const step = (t: number, interval: number) => Math.floor(t / interval) * interval;
-
-  if (fastDropPrice == null || fastDropAmount == null) {
-    const stepped = step(rawElapsed, normalInterval);
-    return { price: Math.max(floorPrice, Math.round(startPrice - stepped * dropAmount)), stage: "normal" };
-  }
-
-  const tFast = (startPrice - fastDropPrice) / dropAmount;
-  if (rawElapsed <= tFast) {
-    const stepped = step(rawElapsed, normalInterval);
-    return { price: Math.round(startPrice - stepped * dropAmount), stage: "normal" };
-  }
-
-  const fastElapsed = rawElapsed - tFast;
-
-  if (finalDropPrice == null || finalDropAmount == null) {
-    const stepped = step(fastElapsed, fastInterval);
-    return {
-      price: Math.max(floorPrice, Math.round(fastDropPrice - stepped * fastDropAmount)),
-      stage: "fast",
-    };
-  }
-
-  const tFinal = (fastDropPrice - finalDropPrice) / fastDropAmount;
-  if (fastElapsed <= tFinal) {
-    const stepped = step(fastElapsed, fastInterval);
-    return { price: Math.round(fastDropPrice - stepped * fastDropAmount), stage: "fast" };
-  }
-
-  const finalElapsed = fastElapsed - tFinal;
-  const stepped = step(finalElapsed, finalInterval);
-  return {
-    price: Math.max(floorPrice, Math.round(finalDropPrice - stepped * finalDropAmount)),
-    stage: "final",
-  };
+  return priceAndStageAtElapsed(rawElapsed, config);
 }
+
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [phase, setPhase]               = useState<Phase>("home");
@@ -776,6 +738,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     isLoaded,
     isPaused,
     transportSafePaused,
+    pausedTotalMs,
   };
 
   return (

@@ -56,12 +56,15 @@ const TABLE_GRANTS: Record<string, Record<string, string>> = {
   // M4-B1: read-only for service_role; every write is an RPC.
   payment_cancellations: { service_role: "SELECT" },
   profiles: { anon: ALL, authenticated: ALL, service_role: ALL },
+  // 20261119100000: reviewer account list, service_role only.
+  review_accounts: { service_role: "DELETE,INSERT,SELECT,UPDATE" },
   service_health: { anon: ALL, authenticated: ALL, service_role: ALL },
 };
 
 const ALL_ROLES = ["anon", "authenticated", "service_role"];
 const FUNCTION_EXECUTE: Record<string, string[]> = {
   "admin_force_start_game()": ["service_role"],
+  "am_i_review_account()": ["authenticated", "service_role"],
   "admin_login_gate(text)": ["service_role"],
   "admin_login_mark_success(uuid)": ["service_role"],
   "admin_reset_game()": ["service_role"],
@@ -165,17 +168,18 @@ const bodyMd5 = async (db: PGlite, name: string) =>
     where n.nspname = 'public' and p.proname = '${name}'`)).map((r) => r.h);
 
 describe("migration chain order", () => {
-  it("starts with the schema baseline; the explicit grants are followed only by auction_wins, M2, M3, M4-A and M4-B1 (35 files)", () => {
-    expect(FILES).toHaveLength(35);
+  it("starts with the schema baseline; the explicit grants are followed only by auction_wins, M2, M3, M4-A, M4-B1 and review accounts (36 files)", () => {
+    expect(FILES).toHaveLength(36);
     expect(FILES[0]).toBe("20260901000000_schema_baseline.sql");
     expect(FILES[1]).toBe("20260902120000_drop_zones.sql");
-    expect(FILES.at(-7)).toBe("20261027100000_drop_orphan_calc_drop_price.sql");
-    expect(FILES.at(-6)).toBe("20261027110000_explicit_data_api_grants.sql");
-    expect(FILES.at(-5)).toBe("20261028150000_auction_wins.sql");
-    expect(FILES.at(-4)).toBe("20261029100000_reset_game_uses_auction_wins.sql");
-    expect(FILES.at(-3)).toBe("20261030100000_scheduled_start_join_window.sql");
-    expect(FILES.at(-2)).toBe("20261030200000_payment_confirm_safety.sql");
-    expect(FILES.at(-1)).toBe("20261104100000_payment_cancellations.sql");
+    expect(FILES.at(-8)).toBe("20261027100000_drop_orphan_calc_drop_price.sql");
+    expect(FILES.at(-7)).toBe("20261027110000_explicit_data_api_grants.sql");
+    expect(FILES.at(-6)).toBe("20261028150000_auction_wins.sql");
+    expect(FILES.at(-5)).toBe("20261029100000_reset_game_uses_auction_wins.sql");
+    expect(FILES.at(-4)).toBe("20261030100000_scheduled_start_join_window.sql");
+    expect(FILES.at(-3)).toBe("20261030200000_payment_confirm_safety.sql");
+    expect(FILES.at(-2)).toBe("20261104100000_payment_cancellations.sql");
+    expect(FILES.at(-1)).toBe("20261119100000_review_account_live_join.sql");
   });
 
   it("the baseline grants nothing (privileges live in the explicit grants migration)", () => {
@@ -248,7 +252,8 @@ for (const env of ["pre1030", "post1030"] as const) {
 
     it("carries the M1 claim_winner body (writes auction_wins) and the M3 join / start / schedule bodies", async () => {
       expect(await bodyMd5(db, "claim_winner")).toEqual(["3b84dfd5ca929a55d5c093209693d225"]);
-      expect(await bodyMd5(db, "join_game_participant")).toEqual(["b8d03a4d9dcc5e349d9a30b6d349511d"]);
+      expect(await bodyMd5(db, "join_game_participant")).toEqual(["a0ba24fbba36a716eea3c90b7a91b41e"]); // 20261119100000 (M3 body + review accounts)
+      expect(await bodyMd5(db, "am_i_review_account")).toEqual(["ba41bab0e9f4cbc8ea3d3379e6463158"]);
       expect(await bodyMd5(db, "start_game")).toEqual(["8f8cba95b88422c9c717bb804faa6da9"]);
       expect(await bodyMd5(db, "admin_force_start_game")).toEqual(["0251520809f95fa35f1c010dd6deeade"]);
       expect(await bodyMd5(db, "admin_update_schedule")).toEqual(["fadb9870e7de7dbd0a6ce3591cfd73b0"]);

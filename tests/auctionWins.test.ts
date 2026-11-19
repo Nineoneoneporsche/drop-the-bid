@@ -149,12 +149,12 @@ for (const env of ["pre1030", "post1030"] as const) {
       if (r !== "ok") throw new Error(`M1: ${r}`);
     }, 180_000);
 
-    it("sits after the 30 pre-M1 migrations; only M2, M3, M4-A and M4-B1 follow it", () => {
+    it("sits after the 30 pre-M1 migrations; only M2, M3, M4-A, M4-B1 and review accounts follow it", () => {
       expect(BEFORE_M1).toHaveLength(30);
       expect(BEFORE_M1.at(-1)).toBe("20261027110000_explicit_data_api_grants.sql");
       expect(FILES.filter((f) => f > M1_FILE)).toEqual([
         "20261029100000_reset_game_uses_auction_wins.sql", "20261030100000_scheduled_start_join_window.sql", "20261030200000_payment_confirm_safety.sql",
-        "20261104100000_payment_cancellations.sql",
+        "20261104100000_payment_cancellations.sql", "20261119100000_review_account_live_join.sql",
       ]);
     });
 

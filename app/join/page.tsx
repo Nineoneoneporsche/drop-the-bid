@@ -10,6 +10,7 @@ import PendingWinBanner from "../components/PendingWinBanner";
 import { usePendingWin } from "../lib/pendingWin";
 import { getServerNow } from "../lib/serverClock";
 import { canJoinAsParticipant, parseScheduledStart, scheduleStatus } from "../lib/auctionSchedule";
+import { REVIEW_DROP_MODE } from "../lib/reviewDrop";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -69,11 +70,25 @@ export default function JoinPage() {
     nowMs: now,
     participantCount: state.participantCount,
   });
-  const participantBlocked = !canJoinAsParticipant(status) || isAnonymous;
+  // Review mode (app/lib/reviewDrop.ts): a listed reviewer account may join
+  // a live round. am_i_review_account() only answers for the caller; any
+  // error counts as "not a reviewer". join_game_participant() decides.
+  const [isReviewer, setIsReviewer] = useState(false);
+  useEffect(() => {
+    if (!REVIEW_DROP_MODE || status !== "game" || isAnonymous) return;
+    let cancelled = false;
+    supabase.rpc("am_i_review_account").then(({ data, error }) => {
+      if (!cancelled) setIsReviewer(!error && data === true);
+    });
+    return () => { cancelled = true; };
+  }, [status, isAnonymous]);
+  const reviewerLiveJoin = isReviewer && status === "game";
+  const participantBlocked = !(canJoinAsParticipant(status) || reviewerLiveJoin) || isAnonymous;
 
   useEffect(() => {
     if (participantBlocked) setRole("spectator");
-  }, [participantBlocked]);
+    else if (reviewerLiveJoin) setRole("participant");
+  }, [participantBlocked, reviewerLiveJoin]);
 
   // Render the Turnstile widget only for the role that actually needs it,
   // and only if a site key is configured — otherwise leave the join flow
