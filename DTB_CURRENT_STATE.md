@@ -28,7 +28,7 @@ Status owner: update at every meaningful development session
   - `7feb97a` 단종 Apple Watch Series 11 카탈로그에서 제거 (3개 상품 = 카카오 최소 조건)
   - `b4caa5b` 이용방법 설명3/설명6 문구 변경, 하단 "실시간 가격하락 딜 방식…" 문구 제거
 - 카카오 독립몰 자료 요청 회신 대응 (2026-11-19): 사업자번호 444-74-00462로 정정(`119999e`, 1차 신청서엔 444-64로 잘못 기재 → 회신 시 정정), 결제사 미연동 시 결제하기 클릭 → "결제 연동 준비 중" 안내(`119999e`).
-- 심사용 상시 드랍 (`c161068`, preview): migration `20261119100000_review_account_live_join` **미적용** (Owner가 CLI로 적용). review_accounts에 등록된 계정만 진행 중 라운드에 참여 가능. `REVIEW_DROP_MODE`(app/lib/reviewDrop.ts) on. `scripts/review-keepalive.sh`로 auto-pause 방지.
+- 심사용 상시 드랍 (`c161068`, preview): migration `20261119100000_review_account_live_join` **Production 적용 완료 (2026-11-19, Owner가 CLI db push; 적용 전 migration list상 미적용은 이 1건뿐, 적용 후 join_game_participant md5 a0ba24fb… 확인)**. review_accounts에 등록된 계정만 진행 중 라운드에 참여 가능. `REVIEW_DROP_MODE`(app/lib/reviewDrop.ts) on. `scripts/review-keepalive.sh`로 auto-pause 방지.
 - **PG 연동 후 복원 목록:** ① `docs/archive/guide-slides-pre-kakao/` 슬라이드 복원 여부 ② `REVIEW_DROP_MODE = false` ③ review_accounts 비우기(`supabase/ops/review_accounts.sql`) ④ keep-alive 중지 ⑤ 드랍 가격 설정 원복 ⑥ 결제하기 "연동 준비 중" 경로가 실제 결제로 대체됐는지 확인 ⑦ 하단 "실시간 가격하락 딜 방식…" 문구 복원 여부 ⑧ 필요 시 migration 20261119100000 rollback.
 - 원칙: 심사에는 가격 하락·선착순 구조를 정직하게 설명하고, 승인 후 모델을 바꾸지 않는다.
 
