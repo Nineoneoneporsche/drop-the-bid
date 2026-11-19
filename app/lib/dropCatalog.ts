@@ -116,3 +116,11 @@ export const DROP_CATALOG: CatalogItem[] = [
 export function catalogItem(id: string): CatalogItem | undefined {
   return DROP_CATALOG.find((p) => p.id === id);
 }
+
+// The live drop's product (game_state.product_name, set in the admin page)
+// matched to its catalog entry, so the drop screens can link to the detail
+// page (상품정보 제공고시, 배송·교환·환불). Exact name match only.
+export function catalogItemByName(name: string | null | undefined): CatalogItem | undefined {
+  const n = (name ?? "").trim();
+  return n ? DROP_CATALOG.find((p) => p.name === n) : undefined;
+}

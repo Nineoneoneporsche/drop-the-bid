@@ -10,7 +10,7 @@ import BottomNav from "./components/BottomNav";
 import SiteFooter from "./components/SiteFooter";
 import PendingWinBanner from "./components/PendingWinBanner";
 import CatalogThumb from "./components/CatalogThumb";
-import { DROP_CATALOG } from "./lib/dropCatalog";
+import { DROP_CATALOG, catalogItemByName } from "./lib/dropCatalog";
 import { getServerNow } from "./lib/serverClock";
 import { homeCta, parseScheduledStart, scheduleStatus, secondsUntil, showLive } from "./lib/auctionSchedule";
 import { REVIEW_DROP_MODE, floorReachedAtMs } from "./lib/reviewDrop";
@@ -57,6 +57,7 @@ export default function HomePage() {
   const statusColor = auctionLive ? "#ff2d2d" : status === "starting" ? "#e8ff00" : counting ? "#a855f7" : "rgba(255,255,255,0.6)";
 
   const start = state.config.startPrice;
+  const todayItem = catalogItemByName(state.config.productName);
 
   return (
     <main className="bg-[#0a0a0a] flex flex-col max-w-md mx-auto">
@@ -259,6 +260,11 @@ export default function HomePage() {
             </p>
             <p className="text-white text-sm tabular-nums mt-1">
               시작가 {formatKRW(start)}
+              {todayItem && (
+                <Link href={`/drops/${todayItem.id}`} className="ml-2 text-white/60 text-xs underline underline-offset-2">
+                  상품 상세 ›
+                </Link>
+              )}
             </p>
           </div>
         </div>

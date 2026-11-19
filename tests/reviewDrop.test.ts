@@ -60,3 +60,18 @@ describe("review mode wiring", () => {
     expect(src).toContain("상시 참여 가능");
   });
 });
+
+describe("live product -> detail page link", () => {
+  it("catalogItemByName matches the admin product name exactly", async () => {
+    const { catalogItemByName } = await import("../app/lib/dropCatalog");
+    expect(catalogItemByName("Apple iPad Air 11형 Wi-Fi 128GB")?.id).toBe("ipad-air-11");
+    expect(catalogItemByName("  Apple iPad Air 11형 Wi-Fi 128GB ")?.id).toBe("ipad-air-11");
+    expect(catalogItemByName("없는 상품")).toBeUndefined();
+    expect(catalogItemByName("")).toBeUndefined();
+  });
+  it("the live screen opens the detail page in a new tab; home links it too", () => {
+    const strat = fs.readFileSync(path.join(ROOT, "app/strategy/page.tsx"), "utf8");
+    expect(strat).toMatch(/href=\{`\/drops\/\$\{catalogItem\.id\}`\} target="_blank"/);
+    expect(fs.readFileSync(path.join(ROOT, "app/page.tsx"), "utf8")).toContain("/drops/${todayItem.id}");
+  });
+});

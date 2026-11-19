@@ -18,6 +18,7 @@ import { getServerNow } from "../lib/serverClock";
 import { formatCountdown, joinWindowRemaining, parseScheduledStart, secondsUntil, showLive } from "../lib/auctionSchedule";
 import { nextSawLiveAuction, WINNER_VIDEO_ENABLED, winnerRevealMode } from "../lib/winnerReveal";
 import StageBackdrop from "../components/StageBackdrop";
+import { catalogItemByName } from "../lib/dropCatalog";
 
 // Responsive nickname sizing so long nicknames never clip on the LED reveal.
 function nicknameFontSize(nickname: string): string {
@@ -468,6 +469,7 @@ export default function StrategyPage() {
   const isParticipant = state.currentUser?.role === "participant" && !forcedWatcher;
   const floor = state.config.floorPrice;
   const start = state.config.startPrice;
+  const catalogItem = catalogItemByName(state.config.productName);
   const isUrgent = timeLeft <= 15;
 
   // Once winner is confirmed, freeze the displayed price at the real winning
@@ -798,7 +800,15 @@ export default function StrategyPage() {
               <p className="text-white/90 text-base font-semibold leading-snug line-clamp-1">
                 {state.config.productName}
               </p>
-              <p className="text-xs font-semibold tabular-nums mt-1" style={{ color: "#c084fc" }}>시작가 {formatKRW(start)}</p>
+              <p className="text-xs font-semibold tabular-nums mt-1" style={{ color: "#c084fc" }}>
+                시작가 {formatKRW(start)}
+                {/* New tab: leaving /strategy would drop the live session. */}
+                {catalogItem && (
+                  <Link href={`/drops/${catalogItem.id}`} target="_blank" rel="noopener" className="ml-2 text-white/60 underline underline-offset-2">
+                    상품 상세 ›
+                  </Link>
+                )}
+              </p>
             </div>
           </div>
         </div>
