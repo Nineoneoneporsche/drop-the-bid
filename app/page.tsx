@@ -14,6 +14,7 @@ import { DROP_CATALOG, catalogItemByName } from "./lib/dropCatalog";
 import { getServerNow } from "./lib/serverClock";
 import { homeCta, parseScheduledStart, scheduleStatus, secondsUntil, showLive } from "./lib/auctionSchedule";
 import { REVIEW_DROP_MODE, floorReachedAtMs } from "./lib/reviewDrop";
+import CatalogScheduleLabel from "./components/CatalogScheduleLabel";
 
 function fmtCountdown(s: number) {
   const h = Math.floor(s / 3600);
@@ -333,7 +334,7 @@ export default function HomePage() {
                 <CatalogThumb item={item} size={44} />
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-semibold leading-snug line-clamp-1">{item.name}</p>
-                  <p className="text-white/55 text-xs tabular-nums mt-0.5">정가 {formatKRW(item.retailPrice)} · {item.scheduleLabel.replace("드랍 예정 · ", "")}</p>
+                  <p className="text-white/55 text-xs tabular-nums mt-0.5">정가 {formatKRW(item.retailPrice)} · <CatalogScheduleLabel item={item} short /></p>
                 </div>
               </Link>
             ))}

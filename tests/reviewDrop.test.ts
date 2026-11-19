@@ -75,3 +75,20 @@ describe("live product -> detail page link", () => {
     expect(fs.readFileSync(path.join(ROOT, "app/page.tsx"), "utf8")).toContain("/drops/${todayItem.id}");
   });
 });
+
+describe("checkout shipping change and live schedule label", () => {
+  const read = (p: string) => fs.readFileSync(path.join(ROOT, p), "utf8");
+  it("배송지 변경 on /payment links to the mypage address editor (from=payment), never disabled", () => {
+    const src = read("app/payment/page.tsx");
+    expect(src).toMatch(/<a href="\/mypage\?from=payment"[^>]*>배송지 변경<\/a>/);
+    expect(src).not.toMatch(/<button disabled[^>]*>배송지 변경/);
+  });
+  it("catalog pages use CatalogScheduleLabel (드랍 진행 중 for the live item)", () => {
+    for (const p of ["app/drops/page.tsx", "app/drops/[id]/page.tsx", "app/page.tsx"]) {
+      expect(read(p)).toContain("<CatalogScheduleLabel item={item}");
+    }
+    const c = read("app/components/CatalogScheduleLabel.tsx");
+    expect(c).toContain('state.phase === "game"');
+    expect(c).toContain("드랍 진행 중");
+  });
+});

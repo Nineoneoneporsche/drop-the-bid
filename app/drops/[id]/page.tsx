@@ -6,6 +6,7 @@ import HomeButton from "../../components/HomeButton";
 import SiteFooter from "../../components/SiteFooter";
 import CatalogThumb from "../../components/CatalogThumb";
 import { DROP_CATALOG, catalogItem } from "../../lib/dropCatalog";
+import CatalogScheduleLabel from "../../components/CatalogScheduleLabel";
 
 function fmt(n: number) { return "₩" + n.toLocaleString("ko-KR"); }
 
@@ -47,7 +48,7 @@ export default async function DropItemPage({ params }: { params: Promise<{ id: s
           <p className="text-white/35 text-xs">{item.retailPriceSource}</p>
           <div className="flex justify-between text-sm pt-1">
             <span className="text-white/55">드랍 일정</span>
-            <span className="text-[#c084fc] font-semibold">{item.scheduleLabel}</span>
+            <span className="text-[#c084fc] font-semibold"><CatalogScheduleLabel item={item} /></span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-white/55">배송비</span>

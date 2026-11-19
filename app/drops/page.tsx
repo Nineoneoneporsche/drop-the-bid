@@ -5,6 +5,7 @@ import HomeButton from "../components/HomeButton";
 import SiteFooter from "../components/SiteFooter";
 import CatalogThumb from "../components/CatalogThumb";
 import { DROP_CATALOG } from "../lib/dropCatalog";
+import CatalogScheduleLabel from "../components/CatalogScheduleLabel";
 
 export const metadata: Metadata = { title: "드랍 일정 | 드랍더비드" };
 
@@ -36,7 +37,7 @@ export default function DropsPage() {
                 <p className="text-xs text-white/45">{item.brand} · {item.category}</p>
                 <p className="text-white font-semibold text-base leading-snug mt-0.5">{item.name}</p>
                 <p className="text-white/80 text-sm tabular-nums mt-1">정가 {fmt(item.retailPrice)}</p>
-                <p className="text-[#c084fc] text-xs font-semibold mt-1">{item.scheduleLabel}</p>
+                <p className="text-[#c084fc] text-xs font-semibold mt-1"><CatalogScheduleLabel item={item} /></p>
               </div>
               <span className="material-symbols-outlined text-white/35" style={{ fontSize: 20 }} aria-hidden>chevron_right</span>
             </Link>

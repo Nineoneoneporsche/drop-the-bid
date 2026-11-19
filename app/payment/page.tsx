@@ -304,7 +304,7 @@ export default function PaymentPage() {
         <div className="px-4 py-5 border-b border-white/15">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs uppercase tracking-[0.12em] text-white/60 font-medium">배송지</p>
-            <button disabled className="text-xs text-white/45 border border-white/20 px-2.5 py-1 cursor-not-allowed">배송지 변경</button>
+            <a href="/mypage?from=payment" className="text-xs text-white/75 border border-white/30 px-2.5 py-1 hover:text-white hover:border-white/50">배송지 변경</a>
           </div>
           {profile && (profile.address || profile.recipientName) ? (
             <>
@@ -315,7 +315,7 @@ export default function PaymentPage() {
               <span className="inline-block mt-2 bg-white/12 text-white/65 text-xs font-medium px-2 py-0.5">기본 배송지</span>
             </>
           ) : (
-            <p className="text-white/40 text-sm">배송지 정보가 없습니다. <a href="/mypage" className="underline text-white/70">마이페이지에서 등록</a>해주세요.</p>
+            <p className="text-white/40 text-sm">배송지 정보가 없습니다. <a href="/mypage?from=payment" className="underline text-white/70">마이페이지에서 등록</a>해주세요.</p>
           )}
           {!shippingComplete && (
             <div className="mt-3 px-3 py-2.5 bg-red-500/10 border border-red-500/20">
