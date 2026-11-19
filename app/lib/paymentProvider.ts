@@ -1,7 +1,8 @@
 // Which payment gateway the site takes payments through. Toss Payments
 // declined the merchant application (2026-11: it only onboards fixed-product,
-// fixed-price sales), so the default is "none": /payment shows "결제 준비 중"
-// with no pay button, and /api/payment/confirm + /recheck approve and look up
+// fixed-price sales), so the default is "none": /payment's 결제하기 button
+// works up to the click and then only shows a "결제 연동 준비 중" notice (no
+// SDK, no charge), and /api/payment/confirm + /recheck approve and look up
 // nothing. The Toss integration stays in the codebase, reachable only with
 // NEXT_PUBLIC_PAYMENT_PROVIDER=toss (local rehearsal, or a future contract).
 //

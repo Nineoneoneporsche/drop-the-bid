@@ -37,9 +37,13 @@ describe("payment routes with no gateway", () => {
 });
 
 describe("checkout page", () => {
-  it("gates the pay button and Toss SDK on the provider and names no gateway", () => {
+  it("with no provider the pay button only shows a notice; the Toss SDK stays gated; names no gateway", () => {
     const src = fs.readFileSync(path.join(__dirname, "..", "app", "payment", "page.tsx"), "utf8");
-    expect(src).toContain("const canPay = PAYMENTS_OPEN &&");
+    const gate = src.indexOf("if (!PAYMENTS_OPEN) {");
+    expect(gate).toBeGreaterThan(-1);
+    expect(src.slice(gate, gate + 120)).toContain("setNotConnected(true);");
+    expect(gate).toBeLessThan(src.indexOf("@tosspayments/tosspayments-sdk"));
+    expect(src).toContain("결제 연동 준비 중입니다.");
     expect(src).toContain("결제 수단 준비 중");
     expect(src.split("\n").filter((l) => !/^\s*\/\//.test(l)).join("\n")).not.toMatch(/토스페이먼츠/);
   });

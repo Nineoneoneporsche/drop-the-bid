@@ -128,11 +128,19 @@ export default function PaymentPage() {
   // server-side before Toss is contacted.
   const missingShipping = profile ? missingShippingFields(profile) : null;
   const shippingComplete = missingShipping !== null && missingShipping.length === 0;
-  const canPay = PAYMENTS_OPEN && agreed && !expired && !paying && !!win && PRICE > 0 && shippingComplete;
+  const canPay = agreed && !expired && !paying && !!win && PRICE > 0 && shippingComplete;
+  // No gateway contracted yet ("none"): the pay button still works up to the
+  // click (PG review checks that the flow reaches it), then says payment is
+  // not connected yet. Nothing is charged and no order is created.
+  const [notConnected, setNotConnected] = useState(false);
 
   async function handlePay() {
     if (!canPay || !win) return;
     setError("");
+    if (!PAYMENTS_OPEN) {
+      setNotConnected(true);
+      return;
+    }
     setPaying(true);
 
     if (!TOSS_CLIENT.ok) {
@@ -307,7 +315,7 @@ export default function PaymentPage() {
               <span className="inline-block mt-2 bg-white/12 text-white/65 text-xs font-medium px-2 py-0.5">기본 배송지</span>
             </>
           ) : (
-            <p className="text-white/40 text-sm">배송지 정보가 없습니다. 마이페이지에서 등록해주세요.</p>
+            <p className="text-white/40 text-sm">배송지 정보가 없습니다. <a href="/mypage" className="underline text-white/70">마이페이지에서 등록</a>해주세요.</p>
           )}
           {!shippingComplete && (
             <div className="mt-3 px-3 py-2.5 bg-red-500/10 border border-red-500/20">
@@ -359,9 +367,15 @@ export default function PaymentPage() {
               </svg>
               결제창 열리는 중...
             </>
-          ) : PAYMENTS_OPEN ? `${fmt(PRICE)} 결제하기` : "결제 준비 중"}
+          ) : `${fmt(PRICE)} 결제하기`}
         </button>
-        {PAYMENTS_OPEN && !agreed && !expired && shippingComplete && <p className="text-center text-white/55 text-xs mt-2">동의 후 결제 가능합니다.</p>}
+        {notConnected && (
+          <p role="status" className="text-center text-[#c084fc] text-sm mt-3 leading-relaxed">
+            결제 연동 준비 중입니다.<br />
+            <span className="text-white/55 text-xs">결제는 진행되지 않았으며, 연동이 완료되면 결제하실 수 있습니다.</span>
+          </p>
+        )}
+        {!agreed && !expired && shippingComplete && <p className="text-center text-white/55 text-xs mt-2">동의 후 결제 가능합니다.</p>}
         {!expired && !shippingComplete && <p className="text-center text-white/55 text-xs mt-2">배송지 정보를 등록한 후 결제 가능합니다.</p>}
         {expired && <p className="text-center text-red-400 text-xs mt-2">결제 가능 시간이 만료되었습니다.</p>}
       </div>

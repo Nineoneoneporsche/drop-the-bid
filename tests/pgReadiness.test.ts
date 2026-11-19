@@ -79,7 +79,7 @@ describe("SiteFooter", () => {
     for (const v of Object.values(BUSINESS_INFO)) if (v) expect(html).toContain(v);
     for (const href of ["/terms", "/privacy", "/refund"]) expect(html).toContain(`href="${href}"`);
     expect(html).toContain("ftc.go.kr");
-    expect(html).toContain("4446400462");
+    expect(html).toContain("4447400462");
   });
   it("public policy pages exist", () => {
     for (const p of ["terms", "privacy", "refund"]) expect(fs.existsSync(path.join(ROOT, "app", p, "page.tsx"))).toBe(true);
