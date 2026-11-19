@@ -1,12 +1,12 @@
 # DTB Session Snapshot
 
-Generated: 2026-11-19 14:26:44 +0900
+Generated: 2026-11-19 15:28:07 +0900
 
 ## Git
 
 ```text
 branch: preview/pg-readiness
-head: b4caa5bb937b20b4b45432338f1694e6a561faaf
+head: c1610681b34d347edab19eec259b25ead7db2262
 
 [status]
  M DTB_CURRENT_STATE.md
@@ -15,16 +15,16 @@ head: b4caa5bb937b20b4b45432338f1694e6a561faaf
 ?? "public/\354\232\260\354\243\274\353\225\205\354\275\251.PNG"
 
 [recent commits]
-b4caa5b (HEAD -> preview/pg-readiness, origin/preview/pg-readiness, origin/main, origin/HEAD) Guide slides 3/6 recaptioned; footer drop-format blurb removed
+c161068 (HEAD -> preview/pg-readiness, origin/preview/pg-readiness) Review drop: listed reviewer accounts may join a live round
+119999e (origin/main, origin/HEAD) Fix business number (444-74); pay button reaches click with no gateway
+851ecaf DTB state: Kakao Pay 1st application received
+4bc37fb DTB state: PG status, Kakao Pay application, catalog and guide changes
+b4caa5b Guide slides 3/6 recaptioned; footer drop-format blurb removed
 7feb97a 드랍 일정: remove Apple Watch Series 11 (discontinued at Apple Korea)
 452402d 드랍 일정: fill 상품정보 제공고시 (KC, 제조국, 크기·무게) for iPad Air, AirPods Pro 3, Airwrap
 3e608bd Service name in Korean only: 드랍더비드 (no "Drop The Bid")
 5b0e465 Home art: finalmainimage.png replaces main.png; new OG image; slides recaptured
 5c33165 Remove gavel video and unused assets; neutral share image and meta copy
-9389906 드랍 일정: provisional manufacturer images for AirPods, Watch, Airwrap
-32e04a6 드랍 일정: product catalog replaces the mini game in the bottom nav
-ddb13c1 Practice -> 구매 체험: no virtual competitor, no fake chat, real price range
-e03648b Payments: no gateway by default after Toss declined; drop Toss from legal text
 ```
 
 ## Changed files vs HEAD
@@ -88,6 +88,7 @@ supabase/migrations/20261029100000_reset_game_uses_auction_wins.sql
 supabase/migrations/20261030100000_scheduled_start_join_window.sql
 supabase/migrations/20261030200000_payment_confirm_safety.sql
 supabase/migrations/20261104100000_payment_cancellations.sql
+supabase/migrations/20261119100000_review_account_live_join.sql
 ```
 
 ## TODO
