@@ -491,9 +491,10 @@ export default function StrategyPage() {
 
       {/* ── Background (StageBackdrop) ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <StageBackdrop opacity={0.45} />
+        {/* Still and dark: no drift / zoom, a uniform dim over the art. */}
+        <StageBackdrop opacity={0.3} still />
         <div className="absolute inset-0"
-          style={{ background: "linear-gradient(180deg, rgba(10,10,10,0.80) 0%, rgba(10,10,10,0.35) 38%, rgba(10,10,10,0.85) 100%)" }}
+          style={{ background: "linear-gradient(180deg, rgba(10,10,10,0.82) 0%, rgba(10,10,10,0.55) 38%, rgba(10,10,10,0.88) 100%)" }}
         />
       </div>
 
