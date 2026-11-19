@@ -1,6 +1,6 @@
 # DTB Current State
 
-Last updated: 2026-11-09
+Last updated: 2026-11-19
 Status owner: update at every meaningful development session
 
 ---
@@ -15,6 +15,20 @@ Status owner: update at every meaningful development session
 - 2026-11-06 확인 당시 GitHub 저장소 공개 범위는 `public`이었다.
 
 중요: **이 문서에 적힌 SHA를 현재 HEAD로 간주하지 않는다.** 새 개발 세션을 시작할 때마다 실제 브랜치/HEAD/status를 먼저 확인한다. 로컬 작업 트리는 GitHub보다 앞서 있을 수도 있다.
+
+---
+
+## P. PG / 결제대행 심사 — 진행 중 (2026-11-19)
+
+- Toss Payments: 2026-11-11 심사 거절("고정 상품·고정 금액"만 가능). 가입비 330,000원 환불 요청 중. Production 결제는 꺼져 있음(`NEXT_PUBLIC_PAYMENT_PROVIDER` 미설정 → none), Toss 코드는 휴면 상태로 유지.
+- 카카오페이(독립형 쇼핑몰) 1차 신청: 2026-11-19 biz.kakaopay.com에서 제출. 단, 확인 후 화면이 로딩 상태로 멈춰 접수 여부 미확인 → 파트너센터 신청 내역 / help@dropthebid.com 메일로 확인 필요. 1차 통과 시 메일 링크로 2차 서류(사업자등록증, 정산계좌, 대표자 신분증) 제출.
+- 심사 대비 Production 반영 내역 (main `b4caa5b`):
+  - `3e608bd` 영문 "Drop The Bid" 표기 제거, 한글 상호만 사용
+  - `452402d` /drops 3개 상품(iPad Air 11 M4, AirPods Pro 3, 다이슨 에어랩 코안다2x) 상품정보 제공고시 전부 채움 (판매처 페이지에서 직접 확인)
+  - `7feb97a` 단종 Apple Watch Series 11 카탈로그에서 제거 (3개 상품 = 카카오 최소 조건)
+  - `b4caa5b` 이용방법 설명3/설명6 문구 변경, 하단 "실시간 가격하락 딜 방식…" 문구 제거
+- **카카오 승인 후 할 일:** `docs/archive/guide-slides-pre-kakao/`의 원본 슬라이드 복원 여부 결정 (README에 복원 명령).
+- 원칙: 심사에는 가격 하락·선착순 구조를 정직하게 설명하고, 승인 후 모델을 바꾸지 않는다.
 
 ---
 

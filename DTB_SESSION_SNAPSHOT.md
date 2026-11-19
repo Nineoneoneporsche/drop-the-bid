@@ -1,28 +1,30 @@
 # DTB Session Snapshot
 
-Generated: 2026-11-09 16:02:52 +0900
+Generated: 2026-11-19 14:26:44 +0900
 
 ## Git
 
 ```text
 branch: preview/pg-readiness
-head: 80399c26e81107e386d70c597c0a6959b26254e3
+head: b4caa5bb937b20b4b45432338f1694e6a561faaf
 
 [status]
  M DTB_CURRENT_STATE.md
  M DTB_SESSION_SNAPSHOT.md
+?? public/Gemini_Generated_Image_pae8kxpae8kxpae8.png
+?? "public/\354\232\260\354\243\274\353\225\205\354\275\251.PNG"
 
 [recent commits]
-80399c2 (HEAD -> preview/pg-readiness, origin/preview/pg-readiness, origin/main, origin/HEAD) Turn off the gavel winner video; reveal goes blackout -> price count-down
-6d26e34 Show company and support email in mypage app info
-e1d0e07 Regenerate how-to slides with drop/purchase screens
-8885f66 Replace auction artwork with drop-themed stage art
-fff14f7 Prepare site for PG review: drop/purchase wording, legal pages, business footer
-8741083 (origin/preview/m4a-payment-safety, preview/m4a-payment-safety) docs: M4 결제 안전성 작업 상태 체크포인트
-ed9c842 Merge remote-tracking branch 'origin/main' into preview/m4a-payment-safety
-8754020 연속성 시스템 병합 후 저장소 체크포인트 문구 정리
-edd5670 (origin/chore/dtb-context-continuity) Add DTB development continuity context
-f9c412e Add admin payment refund management
+b4caa5b (HEAD -> preview/pg-readiness, origin/preview/pg-readiness, origin/main, origin/HEAD) Guide slides 3/6 recaptioned; footer drop-format blurb removed
+7feb97a 드랍 일정: remove Apple Watch Series 11 (discontinued at Apple Korea)
+452402d 드랍 일정: fill 상품정보 제공고시 (KC, 제조국, 크기·무게) for iPad Air, AirPods Pro 3, Airwrap
+3e608bd Service name in Korean only: 드랍더비드 (no "Drop The Bid")
+5b0e465 Home art: finalmainimage.png replaces main.png; new OG image; slides recaptured
+5c33165 Remove gavel video and unused assets; neutral share image and meta copy
+9389906 드랍 일정: provisional manufacturer images for AirPods, Watch, Airwrap
+32e04a6 드랍 일정: product catalog replaces the mini game in the bottom nav
+ddb13c1 Practice -> 구매 체험: no virtual competitor, no fake chat, real price range
+e03648b Payments: no gateway by default after Toss declined; drop Toss from legal text
 ```
 
 ## Changed files vs HEAD
